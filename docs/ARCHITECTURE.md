@@ -1,0 +1,50 @@
+# Architecture v0.1
+
+## Objectif
+
+Un même projet et un même moteur sont utilisés par l’éditeur humain et les agents. Le premier jalon privilégie un parcours complet et reproductible. Le système est un monolithe modulaire dans un dépôt unique ; il n’y a pas de microservices ou de base de données à ce stade.
+
+```mermaid
+flowchart LR
+  UI[Éditeur React] --> Commands[Commandes validées]
+  Agent[Agent MCP] --> MCP[Serveur stdio]
+  MCP --> Commands
+  Commands --> Store[Projet versionné et historique]
+  Store --> Engine[Calcul de pose à un instant]
+  Engine --> SVG[Rendu SVG partagé]
+  SVG --> Screen[Aperçu navigateur]
+  SVG --> PNG[PNG pour agents]
+  SVG --> Video[Canvas et WebM]
+```
+
+## Contrats
+
+`schema.ts` définit le schéma Zod, les types TypeScript et les plafonds. Un projet contient des scènes ordonnées ; une scène contient des personnages. IDs stables au sein de leur portée, `schemaVersion: 1`, format 1280 × 720 à 30 i/s. Les temps des personnages sont relatifs à leur scène ; le rendu du projet reçoit un temps global.
+
+`commands.ts` expose sept commandes. Chaque lot est appliqué à une copie, puis validé entièrement ; une erreur ne modifie pas la source. Le store conserve jusqu’à cent états pour annuler/rétablir. Les mutations exposées par l’éditeur et le MCP passent par ce store. Le MCP ajoute un contrôle de révision pour les mutations de session.
+
+`engine.ts` calcule la scène active et les articulations sans horloge cachée. Les angles des bras et jambes, la bouche et le déplacement se déduisent du temps explicite. Les frontières de scène appartiennent à la scène suivante ; la fin du projet affiche la dernière pose.
+
+`svg.ts` transforme la scène en SVG sans accès au DOM. Les textes sont échappés. Les positions sont validées ; aucune URL de média ni SVG arbitraire n’est accepté. Le même SVG alimente l’interface, le PNG navigateur et le PNG MCP. Les moteurs typographiques natifs peuvent produire de petites différences entre le navigateur et Sharp.
+
+## Décisions et compromis
+
+| Choix                     | Motif                                                       | Limite et évolution                                                        |
+| ------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| React + TypeScript + Vite | Interface web portable et types partagés                    | Découper l’interface en composants par domaine au prochain jalon           |
+| SVG initial               | Rendu inspectable et image statique serveur sans navigateur | Mesurer les performances avant ajout éventuel de PixiJS                    |
+| Rig procédural simple     | Permet de vérifier tout le parcours immédiatement           | Introduire os, attaches, contraintes, puis rig editor                      |
+| JSON v1                   | Portable, validé et facile à inspecter                      | Migrer vers archive projet + assets lorsque nécessaire                     |
+| Stockage navigateur       | Zéro backend pour le premier déploiement                    | Ajouter IndexedDB/autosaves ; pas de partage multi-onglets garanti         |
+| MCP stdio                 | Connexion locale sans serveur Internet ouvert               | Serveur distant avec authentification et isolation plus tard               |
+| WebM MediaRecorder        | Export accessible sans backend                              | Temps réel, sans audio, cadence non garantie ; rendu image par image futur |
+
+## Sécurité et persistance
+
+L’éditeur ne contient ni clé, ni compte, ni API distante. Les projets importés sont plafonnés à 5 Mo. Les données sont validées ; les textes du projet ne deviennent pas du code.
+
+Le MCP écrit uniquement dans `ANIMATELIER_PROJECTS_DIR` ou `agent-projects` du répertoire courant. Les noms autorisés excluent les séparateurs de chemin. L’écrasement d’un fichier demande `overwrite: true`. L’accès au processus local confère l’accès à cette session et à ce dossier : ne pas l’exposer directement sur Internet. Une session MCP est indépendante des autres sessions et du navigateur. Le contrôle de révision ne verrouille pas les fichiers entre plusieurs processus ; donner des dossiers ou noms distincts aux agents tant qu’un coordinateur partagé n’existe pas.
+
+## Avant de monter en charge
+
+Établir des mesures sur une machine de référence : temps de rendu, mémoire, coût des commandes, performance avec 10 puis 40 personnages. Extraire le rendu lourd dans un worker seulement lorsque les mesures le justifient. Pour le cloud : comptes et autorisation, stockage des ressources, file de jobs idempotents, limites par utilisateur, annulation, reprise et observabilité précèdent le déploiement public du backend.

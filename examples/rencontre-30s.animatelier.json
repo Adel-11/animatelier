@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "id": "example_rencontre",
+  "name": "Une idée, trois scènes",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "scene_rencontre",
+      "name": "La rencontre",
+      "duration": 10,
+      "background": "studio",
+      "title": "Tout commence par une idée.",
+      "actors": [
+        {
+          "id": "camille",
+          "name": "Camille",
+          "x": 450,
+          "y": 565,
+          "scale": 1,
+          "color": "#8777ee",
+          "skin": "#eab894",
+          "action": "wave",
+          "start": 0,
+          "end": 10,
+          "moveX": 0,
+          "dialogue": "Et si on créait ensemble ?",
+          "flip": false
+        },
+        {
+          "id": "alex",
+          "name": "Alex",
+          "x": 850,
+          "y": 565,
+          "scale": 1,
+          "color": "#e99658",
+          "skin": "#9c674d",
+          "action": "talk",
+          "start": 0,
+          "end": 10,
+          "moveX": 0,
+          "dialogue": "",
+          "flip": true
+        }
+      ]
+    },
+    {
+      "id": "scene_travail",
+      "name": "En mouvement",
+      "duration": 10,
+      "background": "office",
+      "title": "Une équipe pour la faire grandir.",
+      "actors": [
+        {
+          "id": "camille",
+          "name": "Camille",
+          "x": 250,
+          "y": 565,
+          "scale": 1,
+          "color": "#8777ee",
+          "skin": "#eab894",
+          "action": "walk",
+          "start": 0,
+          "end": 10,
+          "moveX": 260,
+          "dialogue": "",
+          "flip": false
+        },
+        {
+          "id": "sasha",
+          "name": "Sasha",
+          "x": 770,
+          "y": 565,
+          "scale": 1,
+          "color": "#6c9e96",
+          "skin": "#d6a276",
+          "action": "talk",
+          "start": 0,
+          "end": 10,
+          "moveX": 0,
+          "dialogue": "À chaque étape, on avance.",
+          "flip": true
+        }
+      ]
+    },
+    {
+      "id": "scene_finale",
+      "name": "La suite nous appartient",
+      "duration": 10,
+      "background": "park",
+      "title": "À vous de raconter la suite.",
+      "actors": [
+        {
+          "id": "camille",
+          "name": "Camille",
+          "x": 450,
+          "y": 565,
+          "scale": 1,
+          "color": "#8777ee",
+          "skin": "#eab894",
+          "action": "celebrate",
+          "start": 0,
+          "end": 10,
+          "moveX": 0,
+          "dialogue": "",
+          "flip": false
+        },
+        {
+          "id": "alex",
+          "name": "Alex",
+          "x": 810,
+          "y": 565,
+          "scale": 1,
+          "color": "#e99658",
+          "skin": "#9c674d",
+          "action": "wave",
+          "start": 0,
+          "end": 10,
+          "moveX": 0,
+          "dialogue": "",
+          "flip": true
+        }
+      ]
+    }
+  ]
+}
