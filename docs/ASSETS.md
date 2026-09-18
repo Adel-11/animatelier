@@ -19,3 +19,8 @@ Classer séparément : illustration non riggée, personnage riggé, clip d’ani
 Avant intégration : valider la provenance, inspecter le fichier, passer par un importateur contrôlé, conserver l’original, produire une version normalisée et tester des poses de référence. Les licences non établies restent en attente et les fichiers concernés ne sont pas distribués.
 
 Le choix du premier format externe sera fait après le contrat de rig interne. Ne pas promettre une conversion universelle : os, contraintes, meshes, déformations et expressions peuvent ne pas être transposables.
+
+
+## Dépendance de schémas agents
+
+`zod-to-json-schema` 3.25.2, registre npm officiel : https://www.npmjs.com/package/zod-to-json-schema/v/3.25.2. Déjà présent transitivement via le SDK MCP, ajouté en dépendance directe le 18 septembre 2026. Version et intégrité verrouillées dans package-lock.json. Aucun média externe ajouté.

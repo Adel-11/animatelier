@@ -42,3 +42,17 @@ Livraison : code, documentation et note de reprise actualisée.
 ## Points à mesurer avant extension
 
 Cadence du rendu avec 10/40 personnages ; mémoire de l’historique ; latence des lots ; taille des projets ; fidélité SVG navigateur/Sharp ; qualité et durée des exports. Choisir PixiJS, WebCodecs, workers ou rendu serveur sur la base de ces résultats, sans coupler le format des projets à une bibliothèque.
+
+
+## Retours de l’agent utilisateur — septembre 2026
+
+Premier lot : points **1, 5, 6, 7, 8 et 14** (aide et schémas intégrés, inspection temporelle, validation dry-run, retours structurés, copies locales et export vidéo API). Les délais de capture sont désormais bornés ; le blocage de 30 s rapporté n’a pas été reproduit.
+
+Lot suivant à concevoir avec version de projet et migration testée :
+
+- **2, 3, 11 :** casting partagé par ID, piste d’actions par personnage et piste de répliques indépendante. Définir la priorité des pistes et les intervalles semi-ouverts avant de migrer les segments v1. L’éditeur doit permettre leur modification sans perte à la sauvegarde.
+- **4, 9, 10 :** positions hors champ, orientation explicite et marche calculée en pixels/seconde. Les anciens `flip` et `moveX` doivent conserver leur rendu après migration. Les profils visuels nécessitent aussi un travail sur le rig.
+- **12 :** décors maison intérieur/extérieur et porte animée, transitions. Dessiner les ressources dans le projet ou documenter leur provenance. Une coupe existe déjà au passage entre scènes ; fondu et objets animés restent à implémenter.
+- **13 :** compilateur de script déterministe vers ces pistes. Le timing estimé du texte doit être réglable et présenté comme une estimation, sans prétendre fournir une synchronisation audio.
+
+Le pont MCP live reste un chantier distinct : l’API navigateur agit déjà sur l’éditeur ouvert, tandis que le serveur MCP garde une session séparée.

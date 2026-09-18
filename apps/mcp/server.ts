@@ -21,6 +21,11 @@ import {
 } from "../../packages/core/schema";
 import { commandSchema, ProjectStore } from "../../packages/core/commands";
 import { totalDuration } from "../../packages/core/engine";
+import {
+  agentSchema,
+  getStateAt,
+  validateProject,
+} from "../../packages/core/agent";
 import { renderProjectSvg } from "../../packages/renderer/svg";
 
 const server = new McpServer({ name: "animatelier", version: "0.1.0" });
@@ -80,6 +85,7 @@ server.registerTool(
   },
   async () =>
     text({
+      schema: agentSchema(),
       schemaVersion: 1,
       actions,
       backgrounds,
@@ -116,6 +122,25 @@ server.registerTool(
         "Pas de synchronisation automatique avec un navigateur.",
       ],
     }),
+);
+server.registerTool(
+  "project_validate",
+  {
+    description:
+      "Valider un projet sans modifier la session ; retourne les erreurs détaillées.",
+    inputSchema: { project: z.unknown() },
+  },
+  async ({ project }) => text(validateProject(project)),
+);
+server.registerTool(
+  "project_state_at",
+  {
+    description:
+      "Inspecter la scène et les positions, actions et bulles à un temps global sans image.",
+    inputSchema: { time: z.number().finite() },
+  },
+  async ({ time }) =>
+    safe(() => text({ revision, ...getStateAt(store.get(), time) })),
 );
 server.registerTool(
   "project_apply",

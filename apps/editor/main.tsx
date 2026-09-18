@@ -15,10 +15,10 @@ import { ProjectStore, type Command } from "../../packages/core/commands";
 import { clamp, locateTime, totalDuration } from "../../packages/core/engine";
 import {
   renderSceneSvg,
-  renderProjectSvg,
   renderCharacterSvg,
 } from "../../packages/renderer/svg";
-import { download, exportVideo, pngFrame } from "./export";
+import { download, pngFrame } from "./export";
+import { createBrowserApi, type BrowserApi } from "./agent-api";
 import "./style.css";
 
 const STORAGE = "animatelier.project.v1";
@@ -53,14 +53,6 @@ const characterPresets: Partial<Actor>[] = [
   { name: "Sasha", color: "#6c9e96", skin: "#d6a276" },
   { name: "Noa", color: "#ce7494", skin: "#684738" },
 ];
-type BrowserApi = {
-  getProject: () => Project;
-  apply: (commands: Command[]) => Project;
-  load: (project: unknown) => void;
-  seek: (time: number) => void;
-  renderSvg: (time: number) => string;
-  renderPng: (time: number) => Promise<Blob>;
-};
 declare global {
   interface Window {
     animatelier: BrowserApi;
@@ -125,7 +117,6 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [apiOpen, setApiOpen] = useState(false);
-  const abort = useRef<AbortController | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<{
@@ -255,47 +246,31 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [duration, busy]);
   useEffect(() => {
-    window.animatelier = {
-      getProject: () => store.get(),
-      apply: (commands) => {
-        if (busy) throw new Error("Export en cours.");
-        const next = store.dispatch(commands);
-        sync(next);
-        return next;
-      },
-      load: (p) => {
-        if (busy) throw new Error("Export en cours.");
-        sync(store.replace(p));
-        setTime(0);
+    window.animatelier = createBrowserApi(store, {
+      sync: (project) => {
+        sync(project);
         setSelected(null);
-        setPlaying(false);
       },
       seek: (t) => {
         if (!Number.isFinite(t)) throw new Error("Temps invalide.");
         setPlaying(false);
         setTime(clamp(t, 0, totalDuration(store.get())));
       },
-      renderSvg: (t) => renderProjectSvg(store.get(), t),
-      renderPng: (t) => pngFrame(store.get(), t),
-    };
-  }, [busy]);
+      busy: setBusy,
+      progress: setProgress,
+    });
+  }, []);
   const exportWebm = async () => {
-    setPlaying(false);
-    setBusy(true);
-    setProgress(0);
-    abort.current = new AbortController();
     try {
-      const blob = await exportVideo(
-        store.get(),
-        setProgress,
-        abort.current.signal,
-      );
-      download(blob, "animation.webm");
+      const result = await window.animatelier.exportVideo();
+      const link = document.createElement("a");
+      link.href = result.url;
+      link.download = "animation.webm";
+      link.click();
+      setTimeout(() => window.animatelier.releaseExport(result.url), 1000);
       setNotice("Vidéo WebM exportée (sans audio).");
     } catch (e) {
       report(e);
-    } finally {
-      setBusy(false);
     }
   };
   const importFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -958,7 +933,7 @@ function App() {
             </p>
             <progress max={1} value={progress} />
             <p>{Math.round(progress * 100)} %</p>
-            <button onClick={() => abort.current?.abort()}>
+            <button onClick={() => window.animatelier.cancelExport()}>
               Annuler l’export
             </button>
           </div>
@@ -980,11 +955,32 @@ function App() {
               serveur MCP fourni dans le dépôt permet aussi de créer des projets
               et de retourner des aperçus PNG aux agents.
             </p>
-            <pre>{`const p = window.animatelier.getProject();\nwindow.animatelier.apply([{\n  type: 'project.rename',\n  name: 'Mon histoire'\n}]);\nwindow.animatelier.seek(2);\nawait window.animatelier.renderPng(2);`}</pre>
+            <pre>{`const api = window.animatelier;
+api.help(); // méthodes, unités, limites et JSON Schema
+api.validate(projet); // vérifier sans charger
+const résultat = api.load(projet); // ok, project, duration, warnings
+api.getStateAt(2); // positions, visibilité, actions et bulles
+api.saveAs("Mon histoire — variante");
+// await api.exportVideo(); puis api.getExportState()`}</pre>
+            <details>
+              <summary>Référence complète de l’API</summary>
+              <pre
+                style={{
+                  maxHeight: 260,
+                  overflow: "auto",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {JSON.stringify(window.animatelier.help(), null, 2)}
+              </pre>
+            </details>
             <p className="muted">
-              Le MCP s’exécute sur votre ordinateur. Échangez les projets avec «
-              Ouvrir » et « Sauvegarder ». Pas de connexion distante automatique
-              dans cette version.
+              API navigateur v2 : apply et load renvoient un résultat contenant
+              project. Projets JSON v1 conservés. Les copies save/saveAs restent
+              locales au navigateur. Exportez aussi votre JSON avec «
+              Sauvegarder ». Le MCP possède toujours sa propre session ; aucun
+              pont live.
             </p>
             <button
               className="primary"

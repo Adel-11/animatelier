@@ -32,6 +32,29 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
     const initial = unpack(
       await client.callTool({ name: "project_get", arguments: {} }),
     );
+    const capabilities = unpack(
+      await client.callTool({ name: "capabilities", arguments: {} }),
+    );
+    expect(capabilities.schema.project.definitions.Project).toBeDefined();
+    const invalid = unpack(
+      await client.callTool({
+        name: "project_validate",
+        arguments: { project: {} },
+      }),
+    );
+    expect(invalid.ok).toBe(false);
+    expect(
+      unpack(await client.callTool({ name: "project_get", arguments: {} })),
+    ).toEqual(initial);
+    const state = unpack(
+      await client.callTool({
+        name: "project_state_at",
+        arguments: { time: 2 },
+      }),
+    );
+    expect(state.revision).toBe(initial.revision);
+    expect(state.scene.id).toBe(initial.project.scenes[0].id);
+    expect(state.actors[0].visible).toBe(true);
     const changed = unpack(
       await client.callTool({
         name: "project_apply",

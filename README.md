@@ -22,7 +22,8 @@ Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` a
 - Lecture et recherche temporelle, déplacement à la souris, annuler/rétablir.
 - Sauvegarde automatique dans le navigateur et import/export JSON versionné.
 - Capture PNG et export WebM 720p dans le navigateur, en temps réel et sans audio.
-- API `window.animatelier` et serveur MCP local avec commandes, contrôle de révision, images PNG et sauvegarde.
+- API `window.animatelier` v2 : aide et schémas intégrés, validation, inspection à un instant, copies locales et export vidéo avec progression.
+- Serveur MCP local avec commandes, contrôle de révision, validation, inspection temporelle, images PNG et sauvegarde.
 - Validation des données, tests unitaires, intégration MCP et parcours navigateur.
 
 ## Limites assumées
