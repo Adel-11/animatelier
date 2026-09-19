@@ -4,6 +4,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { newElement } from "../packages/core/elements";
 
 it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "animatelier-test-"));
@@ -60,11 +61,38 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
         name: "project_apply",
         arguments: {
           expectedRevision: initial.revision,
-          commands: [{ type: "project.rename", name: "Projet agent" }],
+          commands: [
+            { type: "project.rename", name: "Projet agent" },
+            {
+              type: "element.add",
+              sceneId: initial.project.scenes[0].id,
+              element: newElement("group", 8, {
+                id: "groupe_agent",
+                children: [
+                  newElement("rect", 8, {
+                    id: "pivot_agent",
+                    keyframes: {
+                      rotation: [
+                        { t: 0, v: 0 },
+                        { t: 4, v: -70, ease: "easeInOut" },
+                      ],
+                    },
+                  }),
+                ],
+              }),
+            },
+          ],
         },
       }),
     );
     expect(changed.project.name).toBe("Projet agent");
+    const posed = unpack(
+      await client.callTool({
+        name: "project_state_at",
+        arguments: { time: 2 },
+      }),
+    );
+    expect(posed.elements[0].children[0].element.rotation).toBe(-35);
     const conflict = await client.callTool({
       name: "project_apply",
       arguments: {

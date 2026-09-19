@@ -9,7 +9,7 @@ import {
 import { renderProjectSvg } from "../../packages/renderer/svg";
 import { exportVideo, pngFrame } from "./export";
 
-const SAVED = "animatelier.saved.";
+const SAVED = "animatelier.saved.v2.";
 type ExportState = {
   status: "idle" | "running" | "done" | "cancelled" | "error";
   progress: number;
@@ -39,12 +39,12 @@ export function createBrowserApi(
   const api = {
     help: () => ({
       apiVersion: 2,
-      schemaVersion: 1,
+      schemaVersion: 2,
       methods: {
         help: "help() : documentation et schémas",
         schema:
           "schema() : JSON Schema du projet et des commandes, unités et contraintes",
-        getProject: "getProject() : copie du projet v1",
+        getProject: "getProject() : copie du projet v2",
         validate:
           "validate(project) : {ok, duration, warnings, errors}, sans mutation",
         apply:

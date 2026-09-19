@@ -1,6 +1,6 @@
 # Animatelier
 
-Un premier studio d’animation 2D dans le navigateur, conçu pour évoluer avec plusieurs agents de développement. Version **0.1.0 — alpha**.
+Un premier studio d’animation 2D dans le navigateur, conçu pour évoluer avec plusieurs agents de développement. Version **0.2.0 — alpha**.
 
 ## Démarrer
 
@@ -13,11 +13,16 @@ npm run dev
 
 Ouvrir l’adresse locale affichée. La scène de démonstration est prête à lire. Ajouter un personnage depuis le casting, le déplacer, choisir un mouvement dans le panneau droit, puis exporter.
 
+Pour les formes et les pivots, ouvrir `examples/formes-et-pivots.animatelier.json` : un rectangle tourne autour de son coin avec easing, accompagné de texte, lignes, ellipse et groupe.
+
+Les projets utilisent désormais `schemaVersion: 2`. Les anciens fichiers v1 ne sont plus acceptés ; cette rupture a été autorisée par le propriétaire.
+
 Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` avec le bouton « Ouvrir » : trois scènes et trente secondes d’animation éditables.
 
 ## Disponible
 
 - Quatre variantes de personnages originaux articulés, cinq mouvements procéduraux, quatre décors.
+- Formes rect/ellipse/line, texte libre, groupes imbriqués, pivots, couches et images clés avec cinq interpolations. Panneau Éléments pour ajouter et modifier les objets et leurs clés.
 - Plusieurs scènes, titre, bulles de dialogue, déplacement horizontal, échelle, orientation, couleurs et plages temporelles.
 - Lecture et recherche temporelle, déplacement à la souris, annuler/rétablir.
 - Sauvegarde automatique dans le navigateur et import/export JSON versionné.
@@ -28,7 +33,7 @@ Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` a
 
 ## Limites assumées
 
-C’est un socle fonctionnel, pas encore un équivalent complet de Vyond. Pas encore d’import de rigs externes, d’éditeur d’os, d’images clés libres, de voix, de synchronisation labiale audio, de MP4, de comptes ou de partage cloud. Les variantes du casting utilisent le même rig procédural.
+C’est un socle fonctionnel, pas encore un équivalent complet de Vyond. Pas encore d’import de rigs externes, d’éditeur d’os, de pistes d’actions multiples, de voix, de synchronisation labiale audio, de MP4, de comptes ou de partage cloud. Les variantes du casting utilisent le même rig procédural.
 
 Le projet reste dans le navigateur concerné. Effacer ses données efface cette copie ; télécharger le JSON pour une sauvegarde durable. L’enregistrement n’est pas partagé entre onglets, navigateurs ou appareils. Le MCP conserve sa session en mémoire : sauvegarder explicitement avant de l’arrêter.
 

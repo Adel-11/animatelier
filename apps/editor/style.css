@@ -952,3 +952,52 @@ input[type="color"] {
     font-size: 11px;
   }
 }
+
+.elements-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.element-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.element-list {
+  max-height: 220px;
+  overflow: auto;
+}
+.element-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 4px;
+}
+.element-row.chosen {
+  outline: 1px solid var(--lime);
+}
+.element-properties {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+.element-properties input,
+.element-properties select,
+.element-properties textarea {
+  max-width: 100%;
+}
+.keyframe-editor {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #4b5064;
+  padding-top: 12px;
+}
+.keyframe-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 11px;
+  align-items: center;
+}

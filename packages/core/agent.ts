@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { elementStates } from "./element-state";
+import { elementTypes, newElement } from "./elements";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { projectSchema, type Project } from "./schema";
 import { commandSchema } from "./commands";
@@ -8,26 +10,38 @@ export function agentSchema() {
   return {
     project: zodToJsonSchema(projectSchema, {
       name: "Project",
-      $refStrategy: "none",
+      $refStrategy: "root",
     }),
     commands: zodToJsonSchema(z.array(commandSchema).max(100), {
       name: "Commands",
-      $refStrategy: "none",
+      $refStrategy: "root",
     }),
+    examples: Object.fromEntries(
+      elementTypes.map((type) => [
+        type,
+        newElement(type, 8, { id: `example_${type}` }),
+      ]),
+    ),
     units: {
-      x: "pixels, position des pieds",
-      y: "pixels vers le bas, position des pieds",
+      x: "pixels locaux ; pieds pour les personnages, origine locale pour les éléments",
+      y: "pixels locaux vers le bas",
       scale: "multiplicateur",
       moveX: "déplacement total en pixels",
       start: "secondes relatives à la scène",
       end: "secondes relatives à la scène",
       time: "secondes globales au projet",
+      keyframes:
+        "t en secondes de scène ; ease sur la clé d’arrivée ; propriété inconnue rejetée",
+      anchor:
+        "pivot en pixels locaux, transformation T(x,y) T(anchor) R S T(-anchor)",
     },
     constraints: [
       "end > start",
       "end <= durée de scène",
       "IDs de scènes uniques dans le projet",
-      "IDs de personnages uniques dans chaque scène",
+      "IDs uniques pour personnages et éléments dans chaque scène",
+      "Maximum 200 éléments, huit niveaux de groupes, 120 clés par piste",
+      "Clés triées strictement par temps et limitées à la durée de scène",
       "Les remplacements exigent un objet complet",
       "Un lot est atomique",
     ],
@@ -79,6 +93,7 @@ export function getStateAt(project: Project, time: number) {
       background: located.scene.background,
       title: located.scene.title,
     },
+    elements: elementStates(located.scene.elements, located.time),
     actors: located.scene.actors.map((actor) => {
       const pose = poseAt(actor, located.time);
       return {
@@ -88,7 +103,7 @@ export function getStateAt(project: Project, time: number) {
         action: actor.action,
         dialogue: pose.visible ? actor.dialogue : "",
         facing: actor.flip ? ("left" as const) : ("right" as const),
-        scale: actor.scale,
+        scale: pose.scale,
       };
     }),
   };

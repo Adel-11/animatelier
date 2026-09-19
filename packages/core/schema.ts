@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { elementsSchema, flattenElements, transformShape } from "./elements";
+import { transformBounds, validateTracks } from "./keyframes";
 
 export const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const id = z
@@ -12,9 +14,7 @@ export const actorSchema = z
   .object({
     id,
     name: z.string().min(1).max(80),
-    x: z.number().min(0).max(1280),
-    y: z.number().min(100).max(710),
-    scale: z.number().min(0.3).max(2.5),
+    ...transformShape,
     color,
     skin: color,
     action: z.enum(actions),
@@ -25,7 +25,15 @@ export const actorSchema = z
     flip: z.boolean(),
   })
   .strict()
-  .refine((a) => a.end > a.start, { message: "La fin doit suivre le début." });
+  .superRefine((a, ctx) => {
+    if (a.end <= a.start)
+      ctx.addIssue({ code: "custom", message: "La fin doit suivre le début." });
+    validateTracks(
+      a.keyframes,
+      { ...transformBounds, moveX: [-1000, 1000] },
+      ctx,
+    );
+  });
 export const sceneSchema = z
   .object({
     id,
@@ -34,23 +42,33 @@ export const sceneSchema = z
     background: z.enum(backgrounds),
     title: z.string().max(120),
     actors: z.array(actorSchema).max(40),
+    elements: elementsSchema,
   })
   .strict()
   .superRefine((s, ctx) => {
-    if (new Set(s.actors.map((a) => a.id)).size !== s.actors.length)
+    const nodes = [...s.actors, ...flattenElements(s.elements)];
+    if (new Set(nodes.map((a) => a.id)).size !== nodes.length)
       ctx.addIssue({
         code: "custom",
-        message: "Identifiants de personnages dupliqués.",
+        message: "Identifiants de personnages ou éléments dupliqués.",
       });
-    if (s.actors.some((a) => a.end > s.duration))
-      ctx.addIssue({
-        code: "custom",
-        message: "Un personnage dépasse la durée de scène.",
-      });
+    for (const node of nodes) {
+      if (node.end > s.duration)
+        ctx.addIssue({
+          code: "custom",
+          message: `${node.id} dépasse la durée de scène.`,
+        });
+      for (const [property, keys] of Object.entries(node.keyframes))
+        if (keys.some((key) => key.t > s.duration))
+          ctx.addIssue({
+            code: "custom",
+            message: `${node.id} : piste ${property} au-delà de la durée de scène.`,
+          });
+    }
   });
 export const projectSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     id,
     name: z.string().min(1).max(100),
     width: z.literal(1280),
@@ -70,6 +88,15 @@ export type Actor = z.infer<typeof actorSchema>;
 export type Scene = z.infer<typeof sceneSchema>;
 export type Project = z.infer<typeof projectSchema>;
 export function parseProject(input: unknown): Project {
+  if (
+    input &&
+    typeof input === "object" &&
+    "schemaVersion" in input &&
+    input.schemaVersion === 1
+  )
+    throw new Error(
+      "Projet v1 non pris en charge. Créez un projet au format v2.",
+    );
   return projectSchema.parse(input);
 }
 export function uid(prefix = "item") {
@@ -98,7 +125,7 @@ export function newActor(
 }
 export function demoProject(): Project {
   return parseProject({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: uid("project"),
     name: "Une idée prend vie",
     width: 1280,

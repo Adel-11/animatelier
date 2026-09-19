@@ -56,3 +56,18 @@ Lot suivant à concevoir avec version de projet et migration testée :
 - **13 :** compilateur de script déterministe vers ces pistes. Le timing estimé du texte doit être réglable et présenté comme une estimation, sans prétendre fournir une synchronisation audio.
 
 Le pont MCP live reste un chantier distinct : l’API navigateur agit déjà sur l’éditeur ouvert, tandis que le serveur MCP garde une session séparée.
+
+
+## Priorité actuelle — briques génériques (19 septembre 2026)
+
+La demande générique de formes, textes, groupes et images clés remplace la priorité précédente. L’utilisateur a autorisé l’abandon du v1, sans migration. Le lot 1 livre rect/ellipse/line/text/group, pivot, couches et interpolation ; voir FORMAT-V2.md. Les positions hors champ sont désormais possibles.
+
+Lots restants, dans cet ordre :
+
+1. path avec dessin progressif, clip et nombre animé dans le texte.
+2. Timeline d’actions, gestes hold/point, attache à la main et wobble.
+3. Transitions, freeze et caméra.
+4. Décors simples/images et placement des bulles.
+5. Export image par image, téléchargement direct et import/export JSON par API.
+
+La démonstration pédagogique doit être construite uniquement avec ces briques, jamais codée en dur. Le critère d’export 60 s en arrière-plan reste à atteindre ; l’export actuel dépend toujours de la visibilité de l’onglet.

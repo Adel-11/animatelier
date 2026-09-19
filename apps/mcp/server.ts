@@ -28,7 +28,7 @@ import {
 } from "../../packages/core/agent";
 import { renderProjectSvg } from "../../packages/renderer/svg";
 
-const server = new McpServer({ name: "animatelier", version: "0.1.0" });
+const server = new McpServer({ name: "animatelier", version: "0.2.0" });
 const store = new ProjectStore(demoProject());
 let revision = 0;
 const root = path.resolve(
@@ -86,7 +86,7 @@ server.registerTool(
   async () =>
     text({
       schema: agentSchema(),
-      schemaVersion: 1,
+      schemaVersion: 2,
       actions,
       backgrounds,
       resolution: [1280, 720],
@@ -101,6 +101,9 @@ server.registerTool(
         "actor.add",
         "actor.replace",
         "actor.remove",
+        "element.add",
+        "element.replace",
+        "element.remove",
       ],
       workflow: [
         "project_get",
@@ -164,7 +167,7 @@ server.registerTool(
   "project_load_data",
   {
     description:
-      "Remplacer le projet courant avec un document v1 complet ; annulation possible.",
+      "Remplacer le projet courant avec un document v2 complet ; annulation possible.",
     inputSchema: {
       expectedRevision: z.number().int().min(0),
       project: projectSchema,

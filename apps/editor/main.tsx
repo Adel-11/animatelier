@@ -20,8 +20,9 @@ import {
 import { download, pngFrame } from "./export";
 import { createBrowserApi, type BrowserApi } from "./agent-api";
 import "./style.css";
+import { ElementsPanel } from "./elements-panel";
 
-const STORAGE = "animatelier.project.v1";
+const STORAGE = "animatelier.project.v2";
 let startupWarning = "";
 function initialProject() {
   try {
@@ -108,7 +109,7 @@ function App() {
   const [selected, setSelected] = useState<string | null>(
     project.scenes[0].actors[0]?.id ?? null,
   );
-  const [tab, setTab] = useState<"characters" | "sets" | "scenes">(
+  const [tab, setTab] = useState<"characters" | "sets" | "scenes" | "elements">(
     "characters",
   );
   const [notice, setNotice] = useState(
@@ -188,6 +189,7 @@ function App() {
       background: "studio",
       title: "",
       actors: [],
+      elements: [],
     };
     dispatch([{ type: "scene.add", scene: next }]);
     setTime(duration);
@@ -361,9 +363,15 @@ function App() {
           >
             <b>▤</b>Scènes
           </button>
+          <button
+            className={tab === "elements" ? "active" : ""}
+            onClick={() => setTab("elements")}
+          >
+            <b>◇</b>Éléments
+          </button>
           <div className="rail-bottom">
             A<br />
-            <small>v0.1</small>
+            <small>v0.2</small>
           </div>
         </nav>
         <aside className="library">
@@ -373,14 +381,18 @@ function App() {
                 ? "Le casting"
                 : tab === "sets"
                   ? "Les décors"
-                  : "Votre histoire"}
+                  : tab === "elements"
+                    ? "Les éléments"
+                    : "Votre histoire"}
             </h2>
             <span>
               {tab === "characters"
                 ? "04"
                 : tab === "sets"
                   ? "04"
-                  : String(project.scenes.length).padStart(2, "0")}
+                  : tab === "elements"
+                    ? String(scene.elements.length)
+                    : String(project.scenes.length).padStart(2, "0")}
             </span>
           </div>
           <p className="muted">
@@ -388,8 +400,21 @@ function App() {
               ? "Des personnages prêts à prendre vie."
               : tab === "sets"
                 ? "Changez de cadre en un clic."
-                : "Une idée, plusieurs scènes."}
+                : tab === "elements"
+                  ? "Formes, textes et images clés."
+                  : "Une idée, plusieurs scènes."}
           </p>
+          {tab === "elements" && (
+            <ElementsPanel
+              key={scene.id}
+              scene={scene}
+              selected={selected}
+              select={setSelected}
+              dispatch={dispatch}
+              time={located.time}
+              busy={busy}
+            />
+          )}
           {tab === "characters" && (
             <>
               <div className="character-grid">
@@ -441,7 +466,13 @@ function App() {
                   <div
                     dangerouslySetInnerHTML={{
                       __html: renderSceneSvg(
-                        { ...scene, background: bg, title: "", actors: [] },
+                        {
+                          ...scene,
+                          background: bg,
+                          title: "",
+                          actors: [],
+                          elements: [],
+                        },
                         0,
                       ),
                     }}
@@ -518,11 +549,25 @@ function App() {
               ref={stage}
               onPointerDown={(e) => {
                 if (busy || playing) return;
+                const elementTarget = (e.target as Element).closest(
+                  "[data-element-id]",
+                );
+                if (elementTarget) {
+                  setSelected(elementTarget.getAttribute("data-element-id"));
+                  setTab("elements");
+                  return;
+                }
                 const target = (e.target as Element).closest("[data-actor-id]");
                 const id = target?.getAttribute("data-actor-id");
                 setSelected(id ?? null);
                 const a = scene.actors.find((a) => a.id === id);
                 if (!a || !stage.current) return;
+                if (a.keyframes.x || a.keyframes.y) {
+                  setNotice(
+                    "Position animée : modifiez les images clés par l’API.",
+                  );
+                  return;
+                }
                 drag.current = {
                   actor: a,
                   sceneId: scene.id,
@@ -667,6 +712,38 @@ function App() {
                   </div>
                 </div>
               ))}
+              {scene.elements.map((element) => (
+                <div className="actor-track" key={element.id}>
+                  <div className="track-label">
+                    <span style={{ background: "#8777ee" }} />
+                    {element.type}
+                  </div>
+                  <div className="track-bed">
+                    <button
+                      className={`actor-clip ${selected === element.id ? "selected" : ""}`}
+                      aria-label={`Sélectionner élément ${element.id}`}
+                      style={{
+                        left: `${(element.start / scene.duration) * 100}%`,
+                        width: `${((element.end - element.start) / scene.duration) * 100}%`,
+                        background: "#8777ee33",
+                        borderColor: "#8777ee",
+                      }}
+                      onClick={() => {
+                        setSelected(element.id);
+                        setTab("elements");
+                      }}
+                    >
+                      {element.id}
+                    </button>
+                    <div
+                      className="playhead"
+                      style={{
+                        left: `${(located.time / scene.duration) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         </main>
@@ -699,15 +776,15 @@ function App() {
                 <NumberField
                   label="Position X"
                   value={actor.x}
-                  min={0}
-                  max={1280}
+                  min={-10000}
+                  max={10000}
                   onCommit={(x) => updateActor({ x })}
                 />
                 <NumberField
                   label="Position Y"
                   value={actor.y}
-                  min={100}
-                  max={710}
+                  min={-10000}
+                  max={10000}
                   onCommit={(y) => updateActor({ y })}
                 />
               </div>
@@ -715,8 +792,8 @@ function App() {
                 <NumberField
                   label="Échelle"
                   value={actor.scale}
-                  min={0.3}
-                  max={2.5}
+                  min={0}
+                  max={10}
                   step={0.1}
                   onCommit={(scale) => updateActor({ scale })}
                 />
@@ -977,10 +1054,9 @@ api.saveAs("Mon histoire — variante");
             </details>
             <p className="muted">
               API navigateur v2 : apply et load renvoient un résultat contenant
-              project. Projets JSON v1 conservés. Les copies save/saveAs restent
-              locales au navigateur. Exportez aussi votre JSON avec «
-              Sauvegarder ». Le MCP possède toujours sa propre session ; aucun
-              pont live.
+              project. Projets JSON v2. Les copies save/saveAs restent locales
+              au navigateur. Exportez aussi votre JSON avec « Sauvegarder ». Le
+              MCP possède toujours sa propre session ; aucun pont live.
             </p>
             <button
               className="primary"

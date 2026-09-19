@@ -6,7 +6,7 @@ import { renderProjectSvg } from "../packages/renderer/svg";
 import referenceProject from "../examples/rencontre-30s.animatelier.json";
 
 describe("Contrats de projet", () => {
-  it("ouvre le projet de référence v1 à trois scènes", () => {
+  it("ouvre le projet de référence v2 à trois scènes", () => {
     const p = parseProject(referenceProject);
     expect(locateTime(p, 10).scene.id).toBe("scene_travail");
     expect(locateTime(p, 20).scene.id).toBe("scene_finale");
@@ -14,7 +14,7 @@ describe("Contrats de projet", () => {
   });
   it("refuse les versions inconnues et identifiants dupliqués", () => {
     const p = demoProject();
-    expect(() => parseProject({ ...p, schemaVersion: 2 })).toThrow();
+    expect(() => parseProject({ ...p, schemaVersion: 1 })).toThrow();
     p.scenes.push(structuredClone(p.scenes[0]));
     expect(() => parseProject(p)).toThrow();
   });

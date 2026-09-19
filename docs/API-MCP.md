@@ -46,7 +46,7 @@ Ne pas ouvrir ce processus aux utilisateurs distants : il n’existe pas encore 
 | `capabilities`      | Aucun                                      | Actions, décors, conventions et limites |
 | `project_get`       | Aucun                                      | Projet, durée totale, révision          |
 | `project_apply`     | `expectedRevision`, `commands`             | Nouveau projet après lot atomique       |
-| `project_load_data` | `expectedRevision`, `project`              | Charge un projet v1 complet             |
+| `project_load_data` | `expectedRevision`, `project`              | Charge un projet v2 complet             |
 | `project_undo`      | `expectedRevision`                         | Annule le dernier changement            |
 | `render_frame`      | `time`                                     | PNG 960 × 540 et temps global effectif  |
 | `render_storyboard` | `times` (2 à 8 valeurs)                    | Images PNG horodatées                   |
@@ -89,7 +89,7 @@ Le point `(x, y)` correspond aux pieds, en pixels dans le canevas 1280 × 720. `
 
 ## API dans le navigateur
 
-Disponible après le montage de l’éditeur, par la console ou un agent de navigateur autorisé sur cette page. API navigateur **v2**, documents de projet toujours **v1**.
+Disponible après le montage de l’éditeur, par la console ou un agent de navigateur autorisé sur cette page. API navigateur **v2**, documents de projet **v2** (v1 rejeté, sans migration).
 
 `help()` fournit la référence complète, également consultable dans le panneau **Agents**. `schema()` fournit les JSON Schemas draft-07 du projet et du tableau attendu par `apply`, générés depuis les schémas Zod. Les enums, bornes et champs obligatoires y figurent. Les unités et contraintes entre champs (IDs uniques, fin après début, durée de scène) sont indiquées séparément : appeler `validate()` pour la validation complète.
 
@@ -128,7 +128,7 @@ const état = api.getStateAt(2.5);
 console.log(état.scene, état.actors.filter(a => a.visible));
 ```
 
-`getStateAt` utilise les mêmes fonctions de pose que le SVG : temps global borné, scène active et temps local, positions aux pieds, visibilité, action, orientation dérivée de `flip`, dialogue affiché et articulations. Les personnages invisibles sont inclus avec `visible: false` et un dialogue vide. Le format v1 conserve une fin de présence inclusive : deux segments se touchant à la même seconde peuvent être visibles ensemble à cet instant. La fonction ne prétend pas mesurer l’occlusion ou le découpage de la bulle à l’écran.
+`getStateAt` utilise les mêmes fonctions de pose que le SVG : temps global borné, scène active et temps local, positions aux pieds, visibilité, action, orientation dérivée de `flip`, dialogue affiché et articulations. Les personnages invisibles sont inclus avec `visible: false` et un dialogue vide. Le format v2 conserve une fin de présence inclusive : deux segments se touchant à la même seconde peuvent être visibles ensemble à cet instant. La fonction ne prétend pas mesurer l’occlusion ou le découpage de la bulle à l’écran.
 
 ### Copies locales
 
@@ -152,4 +152,35 @@ Un seul export est autorisé à la fois. Les mutations API sont bloquées pendan
 
 ## Prochaines évolutions
 
-Synchronisation opt-in éditeur/agent, révisions partagées, images clés, édition par patch typé, commandes de caméra et dialogues temporisés. Pour le MCP distant : authentification, contrôle d’accès aux projets, gestion des sessions, protection contre les requêtes intersites et quotas de rendu avant exposition réseau.
+Synchronisation opt-in éditeur/agent, révisions partagées, pistes d’actions, édition par patch typé, commandes de caméra et dialogues temporisés. Pour le MCP distant : authentification, contrôle d’accès aux projets, gestion des sessions, protection contre les requêtes intersites et quotas de rendu avant exposition réseau.
+
+
+## Éléments génériques et images clés (format v2)
+
+Le [contrat v2](FORMAT-V2.md) décrit les unités, les limites et l’ordre des transformations. `help().examples` donne un objet valide par type ; `schema()` contient les schémas récursifs avec `$ref` pour les groupes. Les commandes `element.add`, `element.replace`, `element.remove` agissent sur un élément racine ou imbriqué. `element.add` accepte un `parentId` désignant un groupe existant. Supprimer un groupe supprime tous ses enfants. Les IDs doivent être uniques dans toute la scène, personnages compris.
+
+Exemple exécutable dans l’éditeur (la scène doit durer au moins 4 s) :
+
+```js
+const api = window.animatelier;
+const scene = api.getProject().scenes[0];
+api.apply([{
+  type: "element.add",
+  sceneId: scene.id,
+  element: {
+    id: "rectangle_pivot", type: "rect", x: 450, y: 300,
+    w: 240, h: 150, fill: "#8777ee", end: scene.duration,
+    anchor: {x: 0, y: 150},
+    keyframes: {rotation: [
+      {t: 0, v: 0}, {t: 4, v: -70, ease: "easeInOut"}
+    ]}
+  }
+}]);
+api.seek(2);
+api.getStateAt(2).elements; // valeurs interpolées, matrices locales et globales
+await api.renderPng(2);
+```
+
+Les éléments de `getStateAt()` forment un arbre : `element` contient les propriétés locales interpolées, `transform` la matrice locale, `worldTransform` la matrice cumulée, `visible` la présence tenant compte des parents et `effectiveOpacity` leur opacité multipliée ; `children` contient les états calculés des enfants. L’opacité ou la sortie du cadre n’est pas une absence temporelle.
+
+Les personnages disposent eux aussi de pistes x/y, rotation, scale, opacity, z et moveX. Une piste x remplace le déplacement moveX. x/y peuvent être hors champ dans [-10000,10000]. Le placement manuel des personnages avec pistes x/y est bloqué : modifier leurs clés via l’API. Le fichier `examples/formes-et-pivots.animatelier.json` démontre tous les types du lot.

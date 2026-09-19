@@ -12,12 +12,15 @@ describe("Inspection agents", () => {
     const schema = agentSchema();
     const project: any = schema.project.definitions!.Project;
     const actor = project.properties.scenes.items.properties.actors.items;
-    expect(actor.properties.x).toMatchObject({ minimum: 0, maximum: 1280 });
+    expect(actor.properties.x).toMatchObject({
+      minimum: -10000,
+      maximum: 10000,
+    });
     expect(actor.properties.action.enum).toContain("walk");
     expect(actor.additionalProperties).toBe(false);
     const commands: any = schema.commands.definitions!.Commands;
     expect(commands.maxItems).toBe(100);
-    expect(commands.items.anyOf).toHaveLength(7);
+    expect(commands.items.anyOf).toHaveLength(10);
     expect(schema.constraints).toContain("end > start");
   });
   it("valide sans mutation et retourne les chemins des erreurs Zod", () => {

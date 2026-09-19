@@ -1,4 +1,4 @@
-# Architecture v0.1
+# Architecture v0.2
 
 ## Objectif
 
@@ -19,9 +19,9 @@ flowchart LR
 
 ## Contrats
 
-`schema.ts` définit le schéma Zod, les types TypeScript et les plafonds. Un projet contient des scènes ordonnées ; une scène contient des personnages. IDs stables au sein de leur portée, `schemaVersion: 1`, format 1280 × 720 à 30 i/s. Les temps des personnages sont relatifs à leur scène ; le rendu du projet reçoit un temps global.
+`schema.ts` définit le schéma Zod, les types TypeScript et les plafonds. Un projet contient des scènes ordonnées ; une scène contient des personnages et des éléments génériques. IDs stables au sein de leur portée, `schemaVersion: 2`, format 1280 × 720 à 30 i/s. Les temps des personnages sont relatifs à leur scène ; le rendu du projet reçoit un temps global.
 
-`commands.ts` expose sept commandes. Chaque lot est appliqué à une copie, puis validé entièrement ; une erreur ne modifie pas la source. Le store conserve jusqu’à cent états pour annuler/rétablir. Les mutations exposées par l’éditeur et le MCP passent par ce store. Le MCP ajoute un contrôle de révision pour les mutations de session.
+`commands.ts` expose dix commandes. Chaque lot est appliqué à une copie, puis validé entièrement ; une erreur ne modifie pas la source. Le store conserve jusqu’à cent états pour annuler/rétablir. Les mutations exposées par l’éditeur et le MCP passent par ce store. Le MCP ajoute un contrôle de révision pour les mutations de session.
 
 `engine.ts` calcule la scène active et les articulations sans horloge cachée. Les angles des bras et jambes, la bouche et le déplacement se déduisent du temps explicite. Les frontières de scène appartiennent à la scène suivante ; la fin du projet affiche la dernière pose.
 
@@ -34,7 +34,7 @@ flowchart LR
 | React + TypeScript + Vite | Interface web portable et types partagés                    | Découper l’interface en composants par domaine au prochain jalon           |
 | SVG initial               | Rendu inspectable et image statique serveur sans navigateur | Mesurer les performances avant ajout éventuel de PixiJS                    |
 | Rig procédural simple     | Permet de vérifier tout le parcours immédiatement           | Introduire os, attaches, contraintes, puis rig editor                      |
-| JSON v1                   | Portable, validé et facile à inspecter                      | Migrer vers archive projet + assets lorsque nécessaire                     |
+| JSON v2                   | Portable, validé et facile à inspecter                      | Migrer vers archive projet + assets lorsque nécessaire                     |
 | Stockage navigateur       | Zéro backend pour le premier déploiement                    | Ajouter IndexedDB/autosaves ; pas de partage multi-onglets garanti         |
 | MCP stdio                 | Connexion locale sans serveur Internet ouvert               | Serveur distant avec authentification et isolation plus tard               |
 | WebM MediaRecorder        | Export accessible sans backend                              | Temps réel, sans audio, cadence non garantie ; rendu image par image futur |
@@ -48,3 +48,12 @@ Le MCP écrit uniquement dans `ANIMATELIER_PROJECTS_DIR` ou `agent-projects` du 
 ## Avant de monter en charge
 
 Établir des mesures sur une machine de référence : temps de rendu, mémoire, coût des commandes, performance avec 10 puis 40 personnages. Extraire le rendu lourd dans un worker seulement lorsque les mesures le justifient. Pour le cloud : comptes et autorisation, stockage des ressources, file de jobs idempotents, limites par utilisateur, annulation, reprise et observabilité précèdent le déploiement public du backend.
+
+
+## Éléments et interpolation — lot 1 v2
+
+Voir [FORMAT-V2.md](FORMAT-V2.md) pour le contrat détaillé et l’exception de compatibilité autorisée par l’utilisateur. `elements.ts` définit cinq types structurés et une validation des arbres limitée avant récursion. `keyframes.ts` valide les pistes et interpole les propriétés ; `element-state.ts` compose leurs matrices de transformation. Le rendu et getStateAt partagent ce calcul.
+
+Les groupes forment des couches indivisibles, leurs enfants sont ordonnés localement. Le renderer échappe le texte et génère lui-même le SVG ; il n’accepte ni balisage arbitraire ni URL de média. L’éditeur propose un panneau de formes et un éditeur d’images clés ; toutes les mutations passent par les commandes du core. Les images clés des personnages sont actuellement éditables par API ; leurs valeurs de base restent dans l’inspecteur.
+
+Les clés localStorage v2 évitent de charger les anciens projets. Les anciens fichiers et données v1 ne sont pas supprimés automatiquement. Aucune migration n’est livrée.

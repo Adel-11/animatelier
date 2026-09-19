@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 2,
+  "id": "demo_elements",
+  "name": "Formes en mouvement",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "scene_pivot",
+      "name": "Pivots et images clés",
+      "duration": 8,
+      "background": "studio",
+      "title": "Un pivot. Cinq briques. Mille possibilités.",
+      "actors": [],
+      "elements": [
+        {
+          "id": "ensemble",
+          "type": "group",
+          "x": 420,
+          "y": 330,
+          "end": 8,
+          "children": [
+            {
+              "id": "carte",
+              "type": "rect",
+              "x": 0,
+              "y": 0,
+              "w": 240,
+              "h": 150,
+              "radius": 14,
+              "fill": "#8777ee",
+              "anchor": {
+                "x": 0,
+                "y": 150
+              },
+              "end": 8,
+              "keyframes": {
+                "rotation": [
+                  {
+                    "t": 0,
+                    "v": 0
+                  },
+                  {
+                    "t": 4,
+                    "v": -70,
+                    "ease": "easeInOut"
+                  },
+                  {
+                    "t": 8,
+                    "v": 0,
+                    "ease": "easeInOut"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "pivot",
+              "type": "ellipse",
+              "x": -8,
+              "y": 142,
+              "w": 16,
+              "h": 16,
+              "fill": "#e99658",
+              "end": 8
+            }
+          ]
+        },
+        {
+          "id": "fleche",
+          "type": "line",
+          "x": 250,
+          "y": 570,
+          "x2": 780,
+          "y2": 0,
+          "stroke": "#566780",
+          "strokeWidth": 3,
+          "arrow": "end",
+          "dashed": true,
+          "end": 8
+        },
+        {
+          "id": "legende",
+          "type": "text",
+          "x": 640,
+          "y": 650,
+          "text": "Rotation autour du coin inférieur gauche",
+          "fontSize": 26,
+          "align": "center",
+          "color": "#303440",
+          "end": 8,
+          "keyframes": {
+            "opacity": [
+              {
+                "t": 0,
+                "v": 0
+              },
+              {
+                "t": 1,
+                "v": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "balle",
+          "type": "ellipse",
+          "x": 850,
+          "y": 380,
+          "w": 90,
+          "h": 90,
+          "fill": "#6c9e96",
+          "end": 8,
+          "keyframes": {
+            "y": [
+              {
+                "t": 0,
+                "v": 380
+              },
+              {
+                "t": 4,
+                "v": 180,
+                "ease": "easeInOut"
+              },
+              {
+                "t": 8,
+                "v": 380,
+                "ease": "easeInOut"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

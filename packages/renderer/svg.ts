@@ -1,5 +1,7 @@
 import type { Actor, Project, Scene } from "../core/schema";
 import { locateTime, poseAt } from "../core/engine";
+import { elementStates, transformMatrix } from "../core/element-state";
+import { renderElement } from "./elements";
 
 const esc = (v: string) =>
   v.replace(
@@ -54,6 +56,7 @@ function background(kind: Scene["background"]) {
 function actor(a: Actor, t: number, selected?: string) {
   const p = poseAt(a, t);
   if (!p.visible) return "";
+  a = { ...a, scale: p.scale };
   const limb = (
     x: number,
     y: number,
@@ -70,7 +73,7 @@ function actor(a: Actor, t: number, selected?: string) {
   const bubble = a.dialogue
     ? `<g transform="translate(${p.x} ${p.y - 345 * a.scale - bh})"><rect x="-180" width="360" height="${bh}" rx="18" fill="white"/><path d="m-10 ${bh} 10 15 10-15" fill="white"/><text text-anchor="middle" fill="#303440" font-size="20">${bubbleLines.map((l, i) => `<tspan x="0" y="${30 + i * 25}">${esc(l)}</tspan>`).join("")}</text></g>`
     : "";
-  return `<g data-actor-id="${esc(a.id)}"><ellipse cx="${p.x}" cy="${p.y + 5}" rx="${64 * a.scale}" ry="${12 * a.scale}" fill="#000" opacity=".09"/><g transform="translate(${p.x} ${p.y - p.bob}) scale(${a.flip ? -a.scale : a.scale} ${a.scale})">
+  return `<g data-actor-id="${esc(a.id)}" opacity="${p.opacity}"><ellipse cx="${p.x}" cy="${p.y + 5}" rx="${64 * a.scale}" ry="${12 * a.scale}" fill="#000" opacity=".09"/><g transform="matrix(${transformMatrix({ ...p, y: p.y - p.bob }).join(" ")}) scale(${a.flip ? -1 : 1} 1)">
     ${a.id === selected ? '<rect x="-90" y="-315" width="180" height="330" rx="14" fill="none" stroke="#8876ef" stroke-width="2" stroke-dasharray="7 5"/>' : ""}
     ${leg(-20, p.leftLeg)}${leg(20, p.rightLeg)}
     <path d="M0-228v24" stroke="${a.skin}" stroke-width="23"/>
@@ -89,10 +92,16 @@ export function renderSceneSvg(
 ): string {
   const titleLines = lines(scene.title, 52);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="${esc(scene.name)}"><g font-family="Arial, sans-serif">${background(scene.background)}<text x="640" y="78" text-anchor="middle" font-size="36" font-weight="700" fill="${scene.background === "night" ? "#f6f2e9" : "#3c4050"}">${titleLines.map((l, i) => `<tspan x="640" dy="${i === 0 ? 0 : 43}">${esc(l)}</tspan>`).join("")}</text>${[
-    ...scene.actors,
+    ...[...scene.actors]
+      .sort((a, b) => poseAt(a, time).y - poseAt(b, time).y)
+      .map((a) => ({ z: poseAt(a, time).z, svg: actor(a, time, selected) })),
+    ...elementStates(scene.elements, time).map((e) => ({
+      z: e.element.z,
+      svg: renderElement(e, selected),
+    })),
   ]
-    .sort((a, b) => a.y - b.y)
-    .map((a) => actor(a, time, selected))
+    .sort((a, b) => a.z - b.z)
+    .map((layer) => layer.svg)
     .join("")}</g></svg>`;
 }
 export function renderProjectSvg(project: Project, time: number) {

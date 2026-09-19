@@ -1,5 +1,10 @@
 import { z } from "zod";
 import {
+  elementSchema,
+  findElementContainer,
+  flattenElements,
+} from "./elements";
+import {
   actorSchema,
   sceneSchema,
   projectSchema,
@@ -7,6 +12,28 @@ import {
 } from "./schema";
 
 export const commandSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("element.add"),
+      sceneId: z.string(),
+      parentId: z.string().optional(),
+      element: elementSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("element.replace"),
+      sceneId: z.string(),
+      element: elementSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("element.remove"),
+      sceneId: z.string(),
+      elementId: z.string(),
+    })
+    .strict(),
   z
     .object({
       type: z.literal("project.rename"),
@@ -64,6 +91,29 @@ export function applyCommands(project: Project, input: unknown[]): Project {
       continue;
     }
     const scene = next.scenes[index];
+    if (cmd.type === "element.add") {
+      let destination = scene.elements;
+      if (cmd.parentId) {
+        const parent = flattenElements(scene.elements).find(
+          (e) => e.id === cmd.parentId,
+        );
+        if (!parent || parent.type !== "group")
+          throw new Error(`Groupe introuvable : ${cmd.parentId}`);
+        destination = parent.children;
+      }
+      destination.push(cmd.element);
+      continue;
+    }
+    if (cmd.type === "element.replace" || cmd.type === "element.remove") {
+      const id =
+        cmd.type === "element.replace" ? cmd.element.id : cmd.elementId;
+      const container = findElementContainer(scene.elements, id);
+      if (!container) throw new Error(`Élément introuvable : ${id}`);
+      const index = container.findIndex((e) => e.id === id);
+      if (cmd.type === "element.replace") container[index] = cmd.element;
+      else container.splice(index, 1);
+      continue;
+    }
     if (cmd.type === "actor.add") scene.actors.push(cmd.actor);
     else {
       const actorId = cmd.type === "actor.replace" ? cmd.actor.id : cmd.actorId;

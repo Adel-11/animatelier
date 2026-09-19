@@ -23,7 +23,7 @@ L’utilisateur demande de s’arrêter avant d’épuiser ses crédits. Lorsque
 
 Un responsable par module ; branches ou worktrees isolés pour des missions concurrentes. Découper en tâches avec fichiers concernés, contrat, exemple, critères d’acceptation et vérifications. Coordonner les changements du schéma et du lockfile. Les contrats partagés se modifient avant les implémentations qui en dépendent.
 
-Ne pas casser les projets v1. Une évolution incompatible exige une nouvelle version, une migration testée et des fixtures. Valider toutes les données importées. Les commandes par lots sont atomiques ; les modifications MCP utilisent une révision attendue.
+Exception explicitement autorisée par l’utilisateur les 18–19 septembre 2026 : les anciens projets v1 sont jetables, le format v2 ne nécessite pas de migration v1. Ne pas étendre cette exception aux versions futures : une prochaine évolution incompatible exige une nouvelle version, une migration testée et des fixtures. Valider toutes les données importées. Les commandes par lots sont atomiques ; les modifications MCP utilisent une révision attendue.
 
 Le temps est explicite et le rendu ne doit pas dépendre du nombre d’images jouées. Échapper tous les textes dans SVG. Ne pas accepter du SVG/HTML arbitraire ou des URL externes sans modèle de sécurité défini.
 

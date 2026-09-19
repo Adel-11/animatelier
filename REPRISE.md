@@ -1,4 +1,32 @@
-# Point de reprise — 18 septembre 2026
+# Point de reprise — 19 septembre 2026
+
+## État actuel : lot 1 générique, v0.2
+
+Format de projet v2, sans migration v1 : exception expressément autorisée par l’utilisateur, consignée dans AGENTS.md. Le schéma et les clés localStorage sont versionnés ; les anciens fichiers et données v1 n’ont pas été supprimés. Ne pas réintroduire une migration sans besoin nouveau.
+
+Livré dans ce lot :
+
+- Éléments rect, ellipse, line (flèches/pointillés), text (multiligne), group imbriqué. Transformations x/y, rotation, scale, opacity, z et pivot anchor.
+- Images clés numériques : linear, easeIn, easeOut, easeInOut, step. Même moteur déterministe pour état calculé, SVG, PNG et export.
+- Personnages : pistes x/y, rotation, scale, opacity, z, moveX et positions hors champ. Une piste x a priorité sur moveX. Les bulles restent droites.
+- Commandes element.add/replace/remove, enfants de groupes et transactions atomiques. IDs uniques dans toute la scène, validation des bornes, temps triés, propriétés autorisées, plafonds de 200 éléments/8 niveaux/120 clés.
+- Panneau Éléments : création, sélection, propriétés, pivot, éditeur de clés, suppression et historique. Les éléments racines figurent dans la timeline ; les enfants sont accessibles par la liste du panneau. Les images clés des personnages sont éditables par API ; le glisser-déposer de personnages avec pistes x/y est désactivé pour éviter une édition sans effet.
+- help/schema : exemples valides pour les cinq types, schémas récursifs. getStateAt inclut l’arbre des éléments avec matrices locales/globales et opacité héritée.
+- Fixture `examples/formes-et-pivots.animatelier.json` : rectangle tournant de 0 à -70° autour du coin inférieur gauche, easing et groupe, ellipse animée, ligne et texte. La fixture de rencontre est mise au format v2.
+
+Contrat détaillé : docs/FORMAT-V2.md. Le document non suivi `animatelier-evolutions-integrale.md` présent à la racine n’a pas été modifié ; son contenu diffère du cahier générique lu dans Downloads. La priorité suivie est bien celle des briques génériques adoptée dans la conversation.
+
+Vérifications : 20 tests moteur/SDK MCP et 8 parcours Chrome passés ; compilation réussie. Démonstration inspectée sur desktop et mobile. Les deux parcours éléments ont été repassés après les dernières retouches de timeline ; tests et compilation ont été revérifiés avec succès.
+
+## Prochaine étape
+
+Lot 2 : path/draw, clip et nombre animé dans un texte. Puis pistes d’actions et attache main, transitions/freeze/caméra, décors/bulles, export image par image. Aucun type spécifique aux intégrales ne doit être ajouté. La démonstration pédagogique complète et l’export de 60 secondes en arrière-plan ne sont pas encore réalisables : le WebM actuel exige toujours un onglet visible.
+
+Pas de pont MCP live : le MCP conserve sa propre session ; window.animatelier manipule l’éditeur ouvert. Pas de changement aux services externes ni déploiement vérifié dans ce lot.
+
+Quota avant les vérifications finales : 58 % sur cinq heures, 32 % hebdomadaire restants. Seuil d’arrêt : 15 %. Aucun crédit de réinitialisation utilisé.
+
+## Historique des lots précédents
 
 ## État
 
@@ -52,7 +80,7 @@ Le sandbox Codex empêchait esbuild de lire certains dossiers parents ; l’inst
 1. Déployer l’éditeur depuis un dépôt contenant uniquement Animatelier.
 2. Découper `apps/editor/main.tsx` en composants et hooks, à comportement constant.
 3. Ajouter regroupement des modifications dans l’historique, autosaves et récupération de projets.
-4. Définir le contrat d’images clés et de rigs avec migration v1 → v2 avant toute implémentation concurrente.
+4. Images clés v2 livrées au lot générique 1 ; rigs à définir ultérieurement.
 5. Ajouter le pont live éditeur/MCP avec révisions et permissions explicites.
 6. Qualifier un premier format de personnages externes et vérifier les licences avant import.
 7. Ajouter audio, visèmes, puis export MP4 reproductible.
@@ -63,7 +91,7 @@ Pas encore de synchronisation live entre MCP et éditeur, de serveur MCP héberg
 
 ## Prompt de reprise suggéré
 
-> Continue le développement d’Animatelier depuis ce dossier. Lis AGENTS.md et REPRISE.md, consulte les quotas, puis prends la prochaine mission de docs/ROADMAP.md. Préserve les projets v1 et les commandes partagées ; vérifie le résultat et actualise ce point de reprise. Arrête les nouvelles fonctionnalités si une fenêtre de quota arrive à 15 % restants.
+> Continue le développement d’Animatelier depuis ce dossier. Lis AGENTS.md et REPRISE.md, consulte les quotas, puis prends la prochaine mission de docs/ROADMAP.md. Respecte le contrat v2 et les commandes partagées ; vérifie le résultat et actualise ce point de reprise. Arrête les nouvelles fonctionnalités si une fenêtre de quota arrive à 15 % restants.
 
 ## Connexion MCP après déplacement — 18 septembre 2026
 
