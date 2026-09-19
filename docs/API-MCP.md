@@ -202,3 +202,7 @@ Le champ `clip` appartient au groupe, `number` au texte. Le moteur ne calcule au
 ## Quiz et listes progressives
 
 Voir [QUIZ.md](QUIZ.md). Le même guide est disponible dans `capabilities.schema.quiz.guide` et `window.animatelier.help().quiz.guide`. Les schémas et exemples sont à côté (`quiz.schema`, `quiz.examples`). `compileQuiz` ne modifie pas le projet ; `loadQuiz` le charge avec un nouvel ID. `quiz_compile` côté MCP ne modifie pas la révision : charger ensuite par `project_load_data` avec une révision attendue.
+
+## Pistes de personnages et objets attachés
+
+Voir [PERSONNAGES.md](PERSONNAGES.md), aussi exposé par `help().motion.guide` et `capabilities.schema.motion.guide`. Pas de nouvelle commande : actor.replace pour timeline/wobble, element.replace pour attachment/wobble. project_state_at et getStateAt renvoient l’action et la réplique évaluées, les matrices hands.left/right et les transformations mondiales des objets. Les mutations MCP gardent leur révision attendue.

@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 2,
+  "id": "demo_mains",
+  "name": "Un objet, plusieurs actions",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "presentation",
+      "name": "La rencontre",
+      "duration": 8,
+      "background": "studio",
+      "title": "Marcher. Tenir. Montrer. Repartir.",
+      "actors": [
+        {
+          "id": "alex",
+          "name": "Alex",
+          "x": 400,
+          "y": 565,
+          "rotation": 0,
+          "scale": 1,
+          "opacity": 1,
+          "z": 0,
+          "anchor": {
+            "x": 0,
+            "y": 0
+          },
+          "keyframes": {},
+          "wobble": {},
+          "color": "#8777ee",
+          "skin": "#eab894",
+          "action": "idle",
+          "timeline": [
+            {
+              "start": 0,
+              "end": 2,
+              "action": "walk",
+              "dialogue": "",
+              "toX": 620
+            },
+            {
+              "start": 2,
+              "end": 4,
+              "action": "hold",
+              "dialogue": "Voici mon idée !"
+            },
+            {
+              "start": 4,
+              "end": 6,
+              "action": "point",
+              "dialogue": "On la partage ?"
+            },
+            {
+              "start": 6,
+              "end": 8,
+              "action": "walk",
+              "dialogue": "",
+              "toX": 900
+            }
+          ],
+          "start": 0,
+          "end": 8,
+          "moveX": 0,
+          "dialogue": "",
+          "flip": false
+        }
+      ],
+      "elements": [
+        {
+          "attachment": {
+            "actorId": "alex",
+            "hand": "right"
+          },
+          "id": "carte",
+          "x": 0,
+          "y": 0,
+          "rotation": 65,
+          "scale": 1,
+          "opacity": 1,
+          "z": 0,
+          "anchor": {
+            "x": 0,
+            "y": 0
+          },
+          "keyframes": {},
+          "wobble": {},
+          "start": 0,
+          "end": 8,
+          "type": "group",
+          "children": [
+            {
+              "id": "papier",
+              "x": -45,
+              "y": -30,
+              "rotation": 0,
+              "scale": 1,
+              "opacity": 1,
+              "z": 0,
+              "anchor": {
+                "x": 0,
+                "y": 0
+              },
+              "keyframes": {},
+              "wobble": {},
+              "start": 0,
+              "end": 8,
+              "type": "rect",
+              "w": 90,
+              "h": 60,
+              "fill": "#f9d87c",
+              "stroke": "none",
+              "strokeWidth": 2,
+              "radius": 5
+            },
+            {
+              "id": "idee",
+              "x": 0,
+              "y": 6,
+              "rotation": 0,
+              "scale": 1,
+              "opacity": 1,
+              "z": 0,
+              "anchor": {
+                "x": 0,
+                "y": 0
+              },
+              "keyframes": {},
+              "wobble": {},
+              "start": 0,
+              "end": 8,
+              "type": "text",
+              "text": "IDÉE",
+              "fontSize": 18,
+              "color": "#403427",
+              "align": "center",
+              "bold": true,
+              "progress": 0
+            }
+          ]
+        },
+        {
+          "id": "legende",
+          "x": 640,
+          "y": 665,
+          "rotation": 0,
+          "scale": 1,
+          "opacity": 1,
+          "z": 0,
+          "anchor": {
+            "x": 0,
+            "y": 0
+          },
+          "keyframes": {},
+          "wobble": {
+            "y": {
+              "amplitude": 4,
+              "frequency": 0.5,
+              "phase": 0
+            }
+          },
+          "start": 0,
+          "end": 8,
+          "type": "text",
+          "text": "Un seul personnage • une piste • un objet attaché",
+          "fontSize": 24,
+          "color": "#3c4050",
+          "align": "center",
+          "bold": false,
+          "progress": 0
+        }
+      ]
+    }
+  ]
+}

@@ -78,3 +78,7 @@ Lot 2 implémenté : path/draw, masques de groupe et nombres animés. Prochaine 
 ## Lot quiz livré — septembre 2026
 
 Ajout prioritaire demandé par l’utilisateur : compilateur de QCM et de listes cumulatives, délai réglable (3 s par défaut), calendrier inspectable, API navigateur/MCP, création et guide intégrés à l’application. Projet v2 générique et export WebM existant. Voir QUIZ.md. Le lot personnages (timeline d’actions, hold/point, attache main et wobble) reste la prochaine mission ; il n’est pas inclus dans ce lot quiz.
+
+## Lot personnages livré — septembre 2026
+
+Piste d’actions, hold/point, toX, attache main de tout élément racine et oscillations déterministes. Édition JSON guidée dans l’interface et références complètes dans Agents. Démo personnage-et-objet. Prochaine mission : transitions/freeze/caméra ; casting partagé, dialogue indépendant, orientation automatique et marche à vitesse calibrée restent à traiter.

@@ -17,6 +17,31 @@ export const keyframeSchema = z
 export const keyframesSchema = z
   .record(z.array(keyframeSchema).min(1).max(120))
   .default({});
+export const wobbleSchema = z
+  .record(
+    z
+      .object({
+        amplitude: z.number().finite().min(0).max(10000),
+        frequency: z.number().finite().min(0).max(20),
+        phase: z.number().finite().min(-360).max(360).default(0),
+      })
+      .strict(),
+  )
+  .default({});
+export type Wobble = z.infer<typeof wobbleSchema>;
+export function validateWobble(
+  wobble: Wobble,
+  bounds: Bounds,
+  ctx: z.RefinementCtx,
+) {
+  for (const property of Object.keys(wobble))
+    if (!Object.hasOwn(bounds, property))
+      ctx.addIssue({
+        code: "custom",
+        path: ["wobble", property],
+        message: "Propriété non animable.",
+      });
+}
 export type Keyframes = z.infer<typeof keyframesSchema>;
 export type Bounds = Record<string, readonly [number, number]>;
 export const transformBounds: Bounds = {
@@ -84,13 +109,28 @@ export function interpolate(keys: Keyframes[string], time: number) {
   }
   return keys[keys.length - 1].v;
 }
-export function animated<T extends { keyframes: Keyframes }>(
+export function animated<T extends { keyframes: Keyframes; wobble?: Wobble }>(
   value: T,
   time: number,
+  bounds: Bounds = transformBounds,
 ): T {
   if (!Number.isFinite(time)) throw new Error("Temps invalide.");
   const result = { ...value };
   for (const [property, keys] of Object.entries(value.keyframes))
     (result as Record<string, unknown>)[property] = interpolate(keys, time);
+  for (const [property, wave] of Object.entries(value.wobble ?? {})) {
+    const range = Object.hasOwn(bounds, property)
+      ? bounds[property]
+      : undefined;
+    if (!range) continue;
+    const record = result as Record<string, unknown>;
+    const n =
+      Number(record[property]) +
+      wave.amplitude *
+        Math.sin(
+          2 * Math.PI * wave.frequency * time + (wave.phase * Math.PI) / 180,
+        );
+    record[property] = Math.min(range[1], Math.max(range[0], n));
+  }
   return result;
 }

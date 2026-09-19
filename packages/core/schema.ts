@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { elementsSchema, flattenElements, transformShape } from "./elements";
-import { transformBounds, validateTracks } from "./keyframes";
+import { transformBounds, validateTracks, validateWobble } from "./keyframes";
 
 export const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const id = z
@@ -8,8 +8,25 @@ const id = z
   .min(1)
   .max(100)
   .regex(/^[a-zA-Z0-9_-]+$/);
-export const actions = ["idle", "wave", "walk", "talk", "celebrate"] as const;
+export const actions = [
+  "idle",
+  "wave",
+  "walk",
+  "talk",
+  "celebrate",
+  "hold",
+  "point",
+] as const;
 export const backgrounds = ["studio", "office", "park", "night"] as const;
+export const actionClipSchema = z
+  .object({
+    start: z.number().finite().min(0).max(120),
+    end: z.number().finite().min(0).max(120),
+    action: z.enum(actions),
+    dialogue: z.string().max(240).default(""),
+    toX: z.number().finite().min(-10000).max(10000).optional(),
+  })
+  .strict();
 export const actorSchema = z
   .object({
     id,
@@ -18,6 +35,7 @@ export const actorSchema = z
     color,
     skin: color,
     action: z.enum(actions),
+    timeline: z.array(actionClipSchema).max(100).default([]),
     start: z.number().min(0).max(120),
     end: z.number().min(0.1).max(120),
     moveX: z.number().min(-1000).max(1000),
@@ -28,6 +46,21 @@ export const actorSchema = z
   .superRefine((a, ctx) => {
     if (a.end <= a.start)
       ctx.addIssue({ code: "custom", message: "La fin doit suivre le début." });
+    a.timeline.forEach((clip, i) => {
+      if (
+        clip.end <= clip.start ||
+        clip.start < a.start ||
+        clip.end > a.end ||
+        (i > 0 && clip.start < a.timeline[i - 1].end)
+      )
+        ctx.addIssue({
+          code: "custom",
+          path: ["timeline", i],
+          message:
+            "Segments triés, sans chevauchement, de durée positive et compris dans la présence du personnage.",
+        });
+    });
+    validateWobble(a.wobble, { ...transformBounds, moveX: [-1000, 1000] }, ctx);
     validateTracks(
       a.keyframes,
       { ...transformBounds, moveX: [-1000, 1000] },
@@ -46,7 +79,21 @@ export const sceneSchema = z
   })
   .strict()
   .superRefine((s, ctx) => {
-    const nodes = [...s.actors, ...flattenElements(s.elements)];
+    const elements = flattenElements(s.elements);
+    for (const element of elements)
+      if (element.attachment) {
+        if (!s.elements.includes(element))
+          ctx.addIssue({
+            code: "custom",
+            message: `${element.id} : attache réservée aux éléments racines.`,
+          });
+        if (!s.actors.some((a) => a.id === element.attachment!.actorId))
+          ctx.addIssue({
+            code: "custom",
+            message: `${element.id} : personnage attaché introuvable.`,
+          });
+      }
+    const nodes = [...s.actors, ...elements];
     if (new Set(nodes.map((a) => a.id)).size !== nodes.length)
       ctx.addIssue({
         code: "custom",

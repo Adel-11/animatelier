@@ -25,9 +25,10 @@ Le bouton **Quiz** propose un QCM et une liste de dix réponses révélées prog
 
 ## Disponible
 
-- Quatre variantes de personnages originaux articulés, cinq mouvements procéduraux, quatre décors.
+- Quatre variantes de personnages originaux articulés, sept mouvements procéduraux, quatre décors.
 - Tracés SVG progressifs, masques de groupe rect/ellipse/path et compteurs animés dans les textes. Démo : `examples/trace-masque-compteur.animatelier.json`.
 - Formes rect/ellipse/line, texte libre, groupes imbriqués, pivots, couches et images clés avec cinq interpolations. Panneau Éléments pour ajouter et modifier les objets et leurs clés.
+- Pistes d’actions par personnage, destinations toX, poses tenir/montrer, objets attachés aux mains et oscillations. [Guide](docs/PERSONNAGES.md), également dans Agents. Démo : `examples/personnage-et-objet.animatelier.json`.
 - Plusieurs scènes, titre, bulles de dialogue, déplacement horizontal, échelle, orientation, couleurs et plages temporelles.
 - Lecture et recherche temporelle, déplacement à la souris, annuler/rétablir.
 - Sauvegarde automatique dans le navigateur et import/export JSON versionné.
@@ -38,7 +39,7 @@ Le bouton **Quiz** propose un QCM et une liste de dix réponses révélées prog
 
 ## Limites assumées
 
-C’est un socle fonctionnel, pas encore un équivalent complet de Vyond. Pas encore d’import de rigs externes, d’éditeur d’os, de pistes d’actions multiples, de voix, de synchronisation labiale audio, de MP4, de comptes ou de partage cloud. Les variantes du casting utilisent le même rig procédural.
+C’est un socle fonctionnel, pas encore un équivalent complet de Vyond. Pas encore d’import de rigs externes, d’éditeur d’os, de voix, de synchronisation labiale audio, de MP4, de comptes ou de partage cloud. Les variantes du casting utilisent le même rig procédural.
 
 Le projet reste dans le navigateur concerné. Effacer ses données efface cette copie ; télécharger le JSON pour une sauvegarde durable. L’enregistrement n’est pas partagé entre onglets, navigateurs ou appareils. Le MCP conserve sa session en mémoire : sauvegarder explicitement avant de l’arrêter.
 

@@ -63,7 +63,11 @@ test("crée une liste depuis l’application, vérifie son calendrier et retrouv
   await page
     .getByText("Guide quiz : API, timing et export", { exact: true })
     .click();
-  await expect(page.locator(".quiz-guide")).toContainText("compileQuiz(spec)");
+  await expect(
+    page
+      .locator(".quiz-guide")
+      .filter({ hasText: "Guide quiz : API, timing et export" }),
+  ).toContainText("compileQuiz(spec)");
   await page.screenshot({
     path: "test-results/quiz-help-mobile.png",
     fullPage: true,

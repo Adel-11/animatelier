@@ -1,3 +1,4 @@
+import { MotionEditor } from "./motion-editor";
 import React, { useState } from "react";
 import type { Scene } from "../../packages/core/schema";
 import type { Command } from "../../packages/core/commands";
@@ -101,6 +102,70 @@ export function ElementsPanel({
       {node && (
         <fieldset disabled={busy} className="element-properties">
           <legend>{labels[node.type]} sélectionné</legend>
+          {scene.elements.some((e) => e.id === node.id) && (
+            <>
+              <label className="field">
+                Attacher au personnage
+                <select
+                  aria-label="Attacher au personnage"
+                  value={node.attachment?.actorId ?? ""}
+                  onChange={(e) =>
+                    commit({
+                      ...node,
+                      attachment: e.target.value
+                        ? {
+                            actorId: e.target.value,
+                            hand: node.attachment?.hand ?? "right",
+                          }
+                        : undefined,
+                    })
+                  }
+                >
+                  <option value="">Aucune attache</option>
+                  {scene.actors.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {node.attachment && (
+                <label className="field">
+                  Main
+                  <select
+                    aria-label="Main"
+                    value={node.attachment.hand}
+                    onChange={(e) =>
+                      commit({
+                        ...node,
+                        attachment: {
+                          ...node.attachment!,
+                          hand: e.target.value,
+                        },
+                      })
+                    }
+                  >
+                    <option value="left">Gauche du rig</option>
+                    <option value="right">Droite du rig</option>
+                  </select>
+                  <span className="muted small">
+                    x/y deviennent des décalages locaux depuis la main ;
+                    utilisez 0/0 pour son centre. Le retournement inverse les
+                    côtés à l’écran.
+                  </span>
+                </label>
+              )}
+            </>
+          )}
+          <MotionEditor
+            key={`${node.id}-wobble`}
+            label="Oscillations"
+            value={node.wobble}
+            example={{ rotation: { amplitude: 5, frequency: 1, phase: 0 } }}
+            commit={(wobble) =>
+              commit(elementSchema.parse({ ...node, wobble }))
+            }
+          />
           <p className="muted">
             Valeurs de base. Une piste d’images clés a priorité.
           </p>
@@ -173,7 +238,7 @@ export function ElementsPanel({
             </label>
           )}
           {node.type === "group" && (
-            <ClipEditor key={node.id} node={node} commit={commit} />
+            <ClipEditor key={`${node.id}-clip`} node={node} commit={commit} />
           )}
           {node.type === "text" && (
             <>
@@ -295,7 +360,7 @@ export function ElementsPanel({
             </>
           )}
           <KeyframeEditor
-            key={node.id}
+            key={`${node.id}-keys`}
             node={node}
             time={time}
             duration={scene.duration}
@@ -347,7 +412,13 @@ function KeyframeEditor({
           value={property}
           onChange={(e) => {
             setProperty(e.target.value);
-            setValue(Number((animated(node, time) as any)[e.target.value]));
+            setValue(
+              Number(
+                (animated(node, time, elementBounds[node.type]) as any)[
+                  e.target.value
+                ],
+              ),
+            );
           }}
         >
           {Object.keys(elementBounds[node.type]).map((p) => (

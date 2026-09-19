@@ -1,6 +1,6 @@
 import { pathMetrics } from "./paths";
 import { animated } from "./keyframes";
-import type { SceneElement } from "./elements";
+import { elementBounds, type SceneElement } from "./elements";
 export type Matrix = [number, number, number, number, number, number];
 const identity: Matrix = [1, 0, 0, 1, 0, 0];
 export function multiply(a: Matrix, b: Matrix): Matrix {
@@ -48,7 +48,7 @@ export function elementStates(
   parentOpacity = 1,
 ): ElementState[] {
   return elements.map((raw) => {
-    const element = animated(raw, time),
+    const element = animated(raw, time, elementBounds[raw.type]),
       transform = transformMatrix(element),
       worldTransform = multiply(parent, transform);
     const visible =

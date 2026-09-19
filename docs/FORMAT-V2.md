@@ -30,3 +30,7 @@ Les lots suivants (path/draw, clip, compteur, timeline, attache main, caméra, f
 - getStateAt expose displayText/numberValue pour le texte et pathLength/drawnLength pour les tracés. La visibilité est temporelle ; elle n’est pas un test pixel par pixel du masque.
 
 Exemple complet : `examples/trace-masque-compteur.animatelier.json`. Les fichiers v2 du lot 1 restent lisibles grâce aux valeurs par défaut des nouveaux champs.
+
+## Extensions compatibles : actions, attaches et oscillations
+
+Voir [PERSONNAGES.md](PERSONNAGES.md) pour les contrats de timeline, toX, attachment et wobble. Les valeurs par défaut préservent les projets précédents. Les actions hold/point sont ajoutées ; les clés x restent prioritaires sur le déplacement. Les références d’attache sont validées à la fin d’un lot atomique. Les nouvelles données ne seront pas comprises par les anciennes versions de l’application.

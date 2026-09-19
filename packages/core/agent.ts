@@ -1,7 +1,9 @@
+import { motionGuide } from "./motion-guide";
 import { quizSchema, quizExamples } from "./quiz";
 import { quizGuide } from "./quiz-guide";
 import { z } from "zod";
-import { elementStates } from "./element-state";
+import { sceneElementStates } from "./scene-state";
+import { handMatrix } from "./rig";
 import { elementTypes, newElement } from "./elements";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { projectSchema, type Project } from "./schema";
@@ -10,6 +12,7 @@ import { clamp, locateTime, poseAt, totalDuration } from "./engine";
 
 export function agentSchema() {
   return {
+    motion: { guide: motionGuide },
     quiz: {
       schema: zodToJsonSchema(quizSchema, {
         name: "Quiz",
@@ -46,6 +49,9 @@ export function agentSchema() {
         "pivot en pixels locaux, transformation T(x,y) T(anchor) R S T(-anchor)",
     },
     constraints: [
+      "timeline : segments triés sans chevauchement dans la présence du personnage ; toX absolu ; keyframes.x prioritaire",
+      "attachment : élément racine vers une main d’un personnage de la même scène",
+      "wobble : sinusoïde additionnelle, frequency en Hz, phase en degrés, résultat borné",
       "end > start",
       "end <= durée de scène",
       "IDs de scènes uniques dans le projet",
@@ -66,7 +72,10 @@ export function projectWarnings(project: Project): string[] {
   const warnings = new Set<string>();
   for (const scene of project.scenes)
     for (const actor of scene.actors) {
-      if (actor.x + actor.moveX < 0 || actor.x + actor.moveX > project.width)
+      if (
+        poseAt(actor, actor.end).x < 0 ||
+        poseAt(actor, actor.end).x > project.width
+      )
         warnings.add("Au moins un personnage termine hors du cadre.");
       if (actor.dialogue && actor.action !== "talk")
         warnings.add(
@@ -106,15 +115,17 @@ export function getStateAt(project: Project, time: number) {
       background: located.scene.background,
       title: located.scene.title,
     },
-    elements: elementStates(located.scene.elements, located.time),
+    elements: sceneElementStates(located.scene, located.time),
     actors: located.scene.actors.map((actor) => {
       const pose = poseAt(actor, located.time);
       return {
         id: actor.id,
         name: actor.name,
         ...pose,
-        action: actor.action,
-        dialogue: pose.visible ? actor.dialogue : "",
+        hands: {
+          left: handMatrix(actor, located.time, "left"),
+          right: handMatrix(actor, located.time, "right"),
+        },
         facing: actor.flip ? ("left" as const) : ("right" as const),
         scale: pose.scale,
       };

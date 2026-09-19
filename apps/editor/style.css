@@ -1020,3 +1020,21 @@ input[type="color"] {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.motion-editor {
+  min-width: 0;
+  margin: 12px 0;
+}
+.motion-editor textarea {
+  width: 100%;
+  font-family: monospace;
+}
+.motion-editor [role="alert"] {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 951px) {
+  .library {
+    max-height: calc(100dvh - 107px);
+  }
+}

@@ -1,6 +1,7 @@
 import type { Actor, Project, Scene } from "../core/schema";
 import { locateTime, poseAt } from "../core/engine";
-import { elementStates, transformMatrix } from "../core/element-state";
+import { sceneElementStates } from "../core/scene-state";
+import { actorMatrix } from "../core/rig";
 import { renderElement } from "./elements";
 
 const esc = (v: string) =>
@@ -54,9 +55,10 @@ function background(kind: Scene["background"]) {
   return `<rect width="1280" height="720" fill="${colors[0]}"/>${detail}<path d="M0 565H1280V720H0Z" fill="${colors[1]}"/><path d="M0 565H1280" stroke="#000" opacity=".04" stroke-width="2"/>`;
 }
 function actor(a: Actor, t: number, selected?: string) {
+  const bodyMatrix = actorMatrix(a, t);
   const p = poseAt(a, t);
   if (!p.visible) return "";
-  a = { ...a, scale: p.scale };
+  a = { ...a, scale: p.scale, dialogue: p.dialogue };
   const limb = (
     x: number,
     y: number,
@@ -73,13 +75,14 @@ function actor(a: Actor, t: number, selected?: string) {
   const bubble = a.dialogue
     ? `<g transform="translate(${p.x} ${p.y - 345 * a.scale - bh})"><rect x="-180" width="360" height="${bh}" rx="18" fill="white"/><path d="m-10 ${bh} 10 15 10-15" fill="white"/><text text-anchor="middle" fill="#303440" font-size="20">${bubbleLines.map((l, i) => `<tspan x="0" y="${30 + i * 25}">${esc(l)}</tspan>`).join("")}</text></g>`
     : "";
-  return `<g data-actor-id="${esc(a.id)}" opacity="${p.opacity}"><ellipse cx="${p.x}" cy="${p.y + 5}" rx="${64 * a.scale}" ry="${12 * a.scale}" fill="#000" opacity=".09"/><g transform="matrix(${transformMatrix({ ...p, y: p.y - p.bob }).join(" ")}) scale(${a.flip ? -1 : 1} 1)">
+  return `<g data-actor-id="${esc(a.id)}" opacity="${p.opacity}"><ellipse cx="${p.x}" cy="${p.y + 5}" rx="${64 * a.scale}" ry="${12 * a.scale}" fill="#000" opacity=".09"/><g transform="matrix(${bodyMatrix.join(" ")})">
     ${a.id === selected ? '<rect x="-90" y="-315" width="180" height="330" rx="14" fill="none" stroke="#8876ef" stroke-width="2" stroke-dasharray="7 5"/>' : ""}
     ${leg(-20, p.leftLeg)}${leg(20, p.rightLeg)}
     <path d="M0-228v24" stroke="${a.skin}" stroke-width="23"/>
     <path d="M-32-206Q0-224 32-206l8 92q-40 15-80 0Z" fill="${a.color}"/>
     ${limb(-37, -197, p.leftArm, 85, a.skin, 18)}${limb(37, -197, p.rightArm, 85, a.skin, 18)}
     ${limb(-37, -197, p.leftArm, 32, a.color, 24)}${limb(37, -197, p.rightArm, 32, a.color, 24)}
+    ${p.action === "point" ? `<path d="M118 -197h20" stroke="${a.skin}" stroke-width="7" stroke-linecap="round"/>` : ""}
     <ellipse cy="-263" rx="39" ry="45" fill="${a.skin}"/><path d="M-39-262q-13-63 41-54 48 2 36 55l-11-27q-24 18-56 0Z" fill="#333044"/>
     <circle cx="-13" cy="-263" r="3.2" fill="#333044"/><circle cx="13" cy="-263" r="3.2" fill="#333044"/>
     <ellipse cy="-241" rx="8" ry="${p.mouth}" fill="#8c494a"/>
@@ -95,7 +98,7 @@ export function renderSceneSvg(
     ...[...scene.actors]
       .sort((a, b) => poseAt(a, time).y - poseAt(b, time).y)
       .map((a) => ({ z: poseAt(a, time).z, svg: actor(a, time, selected) })),
-    ...elementStates(scene.elements, time).map((e) => ({
+    ...sceneElementStates(scene, time).map((e) => ({
       z: e.element.z,
       svg: renderElement(e, selected),
     })),
@@ -109,5 +112,5 @@ export function renderProjectSvg(project: Project, time: number) {
   return renderSceneSvg(located.scene, located.time);
 }
 export function renderCharacterSvg(a: Actor) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-110 -340 220 370" aria-hidden="true"><rect x="-110" y="-340" width="220" height="370" fill="#e8e2f2"/>${actor({ ...a, x: 0, y: 0, scale: 1, dialogue: "", action: "idle" }, 0)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-110 -340 220 370" aria-hidden="true"><rect x="-110" y="-340" width="220" height="370" fill="#e8e2f2"/>${actor({ ...a, x: 0, y: 0, scale: 1, dialogue: "", action: "idle", timeline: [], keyframes: {}, wobble: {} }, 0)}</svg>`;
 }

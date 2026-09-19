@@ -1,3 +1,4 @@
+import motionExample from "../examples/personnage-et-objet.animatelier.json";
 import { it, expect } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -200,6 +201,31 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
       arguments: { time: 3 },
     });
     expect(quizPng.content[1].mimeType).toBe("image/png");
+    expect(capabilities.schema.motion.guide).toContain("timeline");
+    await client.callTool({
+      name: "project_load_data",
+      arguments: { expectedRevision: quiz.revision, project: motionExample },
+    });
+    const motion = unpack(
+      await client.callTool({
+        name: "project_state_at",
+        arguments: { time: 3 },
+      }),
+    );
+    expect(motion.actors[0]).toMatchObject({
+      action: "hold",
+      dialogue: "Voici mon idée !",
+      x: 620,
+    });
+    expect(motion.actors[0].hands.right).toHaveLength(6);
+    expect(motion.elements[0].worldTransform[4]).toBeCloseTo(
+      motion.actors[0].hands.right[4],
+    );
+    const motionPng: any = await client.callTool({
+      name: "render_frame",
+      arguments: { time: 3 },
+    });
+    expect(motionPng.content[1].mimeType).toBe("image/png");
   } finally {
     await client.close();
   }

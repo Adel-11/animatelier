@@ -2,6 +2,9 @@ import { z } from "zod";
 import { pathDataSchema } from "./paths";
 import {
   keyframesSchema,
+  wobbleSchema,
+  validateWobble,
+  type Wobble,
   transformBounds,
   validateTracks,
   type Keyframes,
@@ -40,6 +43,7 @@ export const transformShape = {
     .strict()
     .default({ x: 0, y: 0 }),
   keyframes: keyframesSchema,
+  wobble: wobbleSchema,
 };
 type Common = {
   id: string;
@@ -51,6 +55,8 @@ type Common = {
   z: number;
   anchor: { x: number; y: number };
   keyframes: Keyframes;
+  wobble: Wobble;
+  attachment?: { actorId: string; hand: "left" | "right" };
   start: number;
   end: number;
 };
@@ -150,6 +156,10 @@ export const elementBounds: Record<SceneElement["type"], Bounds> = {
   path: { ...transformBounds, draw: [0, 1], strokeWidth: [0, 100] },
 };
 const common = {
+  attachment: z
+    .object({ actorId: identifier, hand: z.enum(["left", "right"]) })
+    .strict()
+    .optional(),
   id: identifier,
   ...transformShape,
   start: z.number().min(0).max(120).default(0),
@@ -241,6 +251,7 @@ const recursive: z.ZodType<SceneElement, z.ZodTypeDef, any> = z.lazy(() =>
           message: "La fin doit suivre le début.",
         });
       validateTracks(element.keyframes, elementBounds[element.type], ctx);
+      validateWobble(element.wobble, elementBounds[element.type], ctx);
     }),
 );
 

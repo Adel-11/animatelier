@@ -1,3 +1,6 @@
+import { motionGuide } from "../../packages/core/motion-guide";
+import { MotionEditor } from "./motion-editor";
+import { actorSchema } from "../../packages/core/schema";
 import { QuizPanel, QuizGuide } from "./quiz-panel";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -42,6 +45,8 @@ const actionNames = {
   walk: "Marcher",
   talk: "Parler",
   celebrate: "Célébrer",
+  hold: "Tenir",
+  point: "Montrer",
 };
 const backgroundNames = {
   studio: "Studio créatif",
@@ -565,7 +570,13 @@ function App() {
                 setSelected(id ?? null);
                 const a = scene.actors.find((a) => a.id === id);
                 if (!a || !stage.current) return;
-                if (a.keyframes.x || a.keyframes.y) {
+                if (
+                  a.keyframes.x ||
+                  a.keyframes.y ||
+                  a.wobble.x ||
+                  a.wobble.y ||
+                  a.timeline.some((c) => c.toX !== undefined)
+                ) {
                   setNotice(
                     "Position animée : modifiez les images clés par l’API.",
                   );
@@ -693,19 +704,22 @@ function App() {
                     {a.name}
                   </button>
                   <div className="track-bed">
-                    <button
-                      aria-label={`Sélectionner ${a.name}`}
-                      className={`actor-clip ${selected === a.id ? "selected" : ""}`}
-                      style={{
-                        left: `${(a.start / scene.duration) * 100}%`,
-                        width: `${((a.end - a.start) / scene.duration) * 100}%`,
-                        background: a.color + "33",
-                        borderColor: a.color,
-                      }}
-                      onClick={() => setSelected(a.id)}
-                    >
-                      {actionNames[a.action]}
-                    </button>
+                    {(a.timeline.length ? a.timeline : [a]).map((clip, i) => (
+                      <button
+                        key={i}
+                        aria-label={`Sélectionner ${a.name}`}
+                        className={`actor-clip ${selected === a.id ? "selected" : ""}`}
+                        style={{
+                          left: `${(clip.start / scene.duration) * 100}%`,
+                          width: `${((clip.end - clip.start) / scene.duration) * 100}%`,
+                          background: a.color + "33",
+                          borderColor: a.color,
+                        }}
+                        onClick={() => setSelected(a.id)}
+                      >
+                        {actionNames[clip.action]}
+                      </button>
+                    ))}
                     <div
                       className="playhead"
                       style={{
@@ -859,6 +873,33 @@ function App() {
                   onCommit={(end) => updateActor({ end })}
                 />
               </div>
+              <MotionEditor
+                key={`${actor.id}-timeline`}
+                label="Piste d’actions"
+                value={actor.timeline}
+                example={[
+                  {
+                    start: actor.start,
+                    end: actor.end,
+                    action: "hold",
+                    dialogue: "Voici mon objet.",
+                  },
+                ]}
+                commit={(timeline) => {
+                  const next = actorSchema.parse({ ...actor, timeline });
+                  updateActor({ timeline: next.timeline });
+                }}
+              />
+              <MotionEditor
+                key={`${actor.id}-wobble`}
+                label="Oscillations"
+                value={actor.wobble}
+                example={{ rotation: { amplitude: 3, frequency: 1, phase: 0 } }}
+                commit={(wobble) => {
+                  const next = actorSchema.parse({ ...actor, wobble });
+                  updateActor({ wobble: next.wobble });
+                }}
+              />
               <h3>DIALOGUE</h3>
               <label className="field">
                 <span>Bulle de texte</span>
@@ -1043,6 +1084,12 @@ const résultat = api.load(projet); // ok, project, duration, warnings
 api.getStateAt(2); // positions, visibilité, actions et bulles
 api.saveAs("Mon histoire — variante");
 // await api.exportVideo(); puis api.getExportState()`}</pre>
+            <details className="quiz-guide">
+              <summary>
+                Guide personnages : pistes, mains et oscillations
+              </summary>
+              <pre>{motionGuide}</pre>
+            </details>
             <QuizGuide />
             <details>
               <summary>Référence complète de l’API</summary>

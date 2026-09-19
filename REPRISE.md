@@ -1,5 +1,23 @@
 # Point de reprise — 19 septembre 2026
 
+## Lot personnages terminé : pistes, mains et oscillations
+
+Ajouts compatibles v2 : actor.timeline (100 segments maximum), toX absolu, poses hold/point, dialogues de segment avec bouche animée, attachment sur les éléments racines, wobble numérique déterministe. Champs absents : comportement précédent conservé. Le rendu SVG et getStateAt partagent les matrices du corps et des mains ; opacité/visibilité et couches héritées pour les objets attachés. Références invalides et suppressions laissant une attache orpheline rejetées atomiquement.
+
+Interface : une ligne par personnage avec plusieurs segments, éditeurs JSON de piste et oscillations dans les propriétés, sélection du personnage et de la main dans Éléments. Correction de clés React dupliquées qui pouvaient accumuler les panneaux Masque après édition ; panneau Éléments défilable sans étirer la scène sur desktop.
+
+Guide complet : docs/PERSONNAGES.md, intégré dans Agents et help().motion.guide / capabilities.schema.motion.guide. Exemples et règles de priorité, temps, bornes, limites documentés. Démo prête à ouvrir : examples/personnage-et-objet.animatelier.json (8 secondes, marcher/tenir/montrer/repartir).
+
+Validation : 30 tests moteur/SDK MCP réussis ; douze parcours Chrome validés. La première passe avait un sélecteur d’aide quiz devenu ambigu après ajout du guide personnages ; corrigé et parcours quiz rejoué. Les parcours attaches et masques ont été revérifiés après les retouches UI. Pixels PNG d’un objet à la main vérifiés avec et sans retournement, tests des frontières, priorités et rejets atomiques. Compilation finale réussie ; captures desktop/mobile inspectées. Les exports WebM existants ont passé les tests de non-régression.
+
+Limites : édition des pistes par JSON, changements de pose sans interpolation, retournement explicite, cadence du pas non calibrée sur la vitesse. Attaches seulement aux mains des personnages, uniquement éléments racines (groupes autorisés), pas d’occlusion automatique des doigts ni conservation de la position mondiale en détachant. Pas encore de casting partagé ou de piste de dialogues indépendante. Oscillations sinusoïdales constantes, bornées, sans bruit aléatoire. MCP indépendant de l’éditeur ; aucun déploiement Netlify vérifié.
+
+Prochaine mission : transitions/freeze/caméra selon le cahier générique. Le document utilisateur non suivi animatelier-evolutions-integrale.md reste inchangé et hors commit.
+
+Dernier quota avant finalisation : 29 % restants sur cinq heures, 89 % hebdomadaire. Aucun crédit de réinitialisation utilisé. Relire avant le lot suivant, arrêt des nouvelles fonctionnalités au seuil de 15 %.
+
+## Historique du lot quiz
+
 ## Lot quiz terminé : questions et révélations génériques
 
 Priorité ajoutée par l’utilisateur avant le lot personnages : QCM à 2–4 choix ou liste cumulative de 1–10 cases ; révélation après 3 secondes par défaut, durée de réponse réglable, couleurs personnalisables. Compilation pure vers les primitives v2 existantes (sans changement du format). Les réponses précédentes persistent dans les scènes suivantes ; un calendrier donne les instants globaux de chaque révélation.
