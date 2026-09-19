@@ -22,6 +22,7 @@ Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` a
 ## Disponible
 
 - Quatre variantes de personnages originaux articulés, cinq mouvements procéduraux, quatre décors.
+- Tracés SVG progressifs, masques de groupe rect/ellipse/path et compteurs animés dans les textes. Démo : `examples/trace-masque-compteur.animatelier.json`.
 - Formes rect/ellipse/line, texte libre, groupes imbriqués, pivots, couches et images clés avec cinq interpolations. Panneau Éléments pour ajouter et modifier les objets et leurs clés.
 - Plusieurs scènes, titre, bulles de dialogue, déplacement horizontal, échelle, orientation, couleurs et plages temporelles.
 - Lecture et recherche temporelle, déplacement à la souris, annuler/rétablir.

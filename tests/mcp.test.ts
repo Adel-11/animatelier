@@ -66,6 +66,20 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
             {
               type: "element.add",
               sceneId: initial.project.scenes[0].id,
+              element: newElement("path", 8, {
+                id: "trace_agent",
+                d: "M0 0 L100 0",
+                keyframes: {
+                  draw: [
+                    { t: 0, v: 0 },
+                    { t: 4, v: 1 },
+                  ],
+                },
+              }),
+            },
+            {
+              type: "element.add",
+              sceneId: initial.project.scenes[0].id,
               element: newElement("group", 8, {
                 id: "groupe_agent",
                 children: [
@@ -92,7 +106,14 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
         arguments: { time: 2 },
       }),
     );
-    expect(posed.elements[0].children[0].element.rotation).toBe(-35);
+    expect(
+      posed.elements.find((e: any) => e.element.id === "groupe_agent")
+        .children[0].element.rotation,
+    ).toBe(-35);
+    expect(
+      posed.elements.find((e: any) => e.element.id === "trace_agent")
+        .drawnLength,
+    ).toBe(50);
     const conflict = await client.callTool({
       name: "project_apply",
       arguments: {

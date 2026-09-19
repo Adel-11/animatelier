@@ -1,5 +1,17 @@
 # Point de reprise — 19 septembre 2026
 
+## Lot 2 terminé : tracés, masques et compteurs
+
+Ajouts compatibles avec les projets v2 du lot 1 : path/draw et contours SVG validés (500 segments, 16 000 caractères), group.clip rect/ellipse/path, text.number et piste progress. getStateAt fournit displayText/numberValue et pathLength/drawnLength. Le panneau Éléments permet de modifier le tracé, les masques et les compteurs. Les exemples et schémas de l’API sont actualisés.
+
+Démo : examples/trace-masque-compteur.animatelier.json. Vérifications : 23 tests moteur/SDK MCP, neuf parcours Chrome et compilation réussis. Pixels PNG de masquage et de progression vérifiés côté serveur et navigateur ; captures desktop/mobile inspectées. Dépendance svg-path-properties 2.1.0 documentée dans docs/ASSETS.md.
+
+Limites : fill du tracé apparaît à draw=1 ; raccords de segments partiels susceptibles de différer légèrement du contour final ; masques statiques (leur groupe peut être animé) ; compteur purement visuel, sans calcul physique. Les arcs doivent fournir leurs indicateurs comme paramètres séparés. Aucun changement à l’export temps réel ni au pont MCP.
+
+Prochaine mission : lot 3, timeline d’actions par personnage, hold/point, attache main et wobble. Dernier quota lu : 16 % de session et 25 % hebdomadaire restants. Aucun nouveau lot à entamer avant relecture des quotas ; arrêt des fonctionnalités au seuil de 15 %. Aucun crédit de réinitialisation utilisé.
+
+## Historique du lot 1
+
 ## État actuel : lot 1 générique, v0.2
 
 Format de projet v2, sans migration v1 : exception expressément autorisée par l’utilisateur, consignée dans AGENTS.md. Le schéma et les clés localStorage sont versionnés ; les anciens fichiers et données v1 n’ont pas été supprimés. Ne pas réintroduire une migration sans besoin nouveau.

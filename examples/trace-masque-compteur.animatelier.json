@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 2,
+  "id": "demo_progression",
+  "name": "Tracé, masque et compteur",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "progression",
+      "name": "Trois briques combinées",
+      "duration": 10,
+      "background": "studio",
+      "title": "",
+      "actors": [],
+      "elements": [
+        {
+          "id": "fond",
+          "type": "rect",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "fill": "#ffffff",
+          "end": 10
+        },
+        {
+          "id": "titre",
+          "type": "text",
+          "x": 640,
+          "y": 90,
+          "align": "center",
+          "fontSize": 36,
+          "bold": true,
+          "text": "Tracé · masque · compteur",
+          "end": 10
+        },
+        {
+          "id": "vase",
+          "type": "group",
+          "x": 220,
+          "y": 230,
+          "end": 10,
+          "clip": {
+            "type": "rect",
+            "w": 200,
+            "h": 230,
+            "radius": 16
+          },
+          "children": [
+            {
+              "id": "niveau",
+              "type": "rect",
+              "x": -40,
+              "y": 230,
+              "w": 280,
+              "h": 0,
+              "fill": "#5caee8",
+              "end": 10,
+              "keyframes": {
+                "y": [
+                  {
+                    "t": 0,
+                    "v": 230
+                  },
+                  {
+                    "t": 10,
+                    "v": -30
+                  }
+                ],
+                "h": [
+                  {
+                    "t": 0,
+                    "v": 0
+                  },
+                  {
+                    "t": 10,
+                    "v": 260
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "bord",
+          "type": "rect",
+          "x": 220,
+          "y": 230,
+          "w": 200,
+          "h": 230,
+          "radius": 16,
+          "fill": "none",
+          "stroke": "#303440",
+          "strokeWidth": 3,
+          "end": 10
+        },
+        {
+          "id": "compteur",
+          "type": "text",
+          "x": 320,
+          "y": 540,
+          "align": "center",
+          "fontSize": 36,
+          "text": "V = {n} mL",
+          "number": {
+            "from": 0,
+            "to": 200,
+            "decimals": 0
+          },
+          "end": 10,
+          "keyframes": {
+            "progress": [
+              {
+                "t": 0,
+                "v": 0
+              },
+              {
+                "t": 10,
+                "v": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "courbe",
+          "type": "path",
+          "x": 620,
+          "y": 210,
+          "d": "M0 240 C80 220 100 100 180 150 S300 10 430 20",
+          "stroke": "#8777ee",
+          "strokeWidth": 6,
+          "end": 10,
+          "keyframes": {
+            "draw": [
+              {
+                "t": 0,
+                "v": 0
+              },
+              {
+                "t": 10,
+                "v": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "legende",
+          "type": "text",
+          "x": 830,
+          "y": 540,
+          "align": "center",
+          "fontSize": 26,
+          "text": "Un contour révélé progressivement",
+          "end": 10
+        }
+      ]
+    }
+  ]
+}

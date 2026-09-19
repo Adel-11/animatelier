@@ -24,3 +24,6 @@ Le choix du premier format externe sera fait après le contrat de rig interne. N
 ## Dépendance de schémas agents
 
 `zod-to-json-schema` 3.25.2, registre npm officiel : https://www.npmjs.com/package/zod-to-json-schema/v/3.25.2. Déjà présent transitivement via le SDK MCP, ajouté en dépendance directe le 18 septembre 2026. Version et intégrité verrouillées dans package-lock.json. Aucun média externe ajouté.
+
+
+`svg-path-properties` 2.1.0 (MIT), ajouté le 19 septembre 2026 depuis https://www.npmjs.com/package/svg-path-properties/v/2.1.0 ; source et documentation : https://github.com/rveciana/svg-path-properties. Sert au calcul pur JavaScript des longueurs SVG, sans DOM. Version et intégrité verrouillées dans package-lock.json. Aucun média téléchargé.

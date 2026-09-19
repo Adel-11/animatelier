@@ -1,3 +1,4 @@
+import { pathMetrics } from "./paths";
 import { animated } from "./keyframes";
 import type { SceneElement } from "./elements";
 export type Matrix = [number, number, number, number, number, number];
@@ -34,6 +35,10 @@ export type ElementState = {
   visible: boolean;
   effectiveOpacity: number;
   children: ElementState[];
+  displayText?: string;
+  numberValue?: number;
+  pathLength?: number;
+  drawnLength?: number;
 };
 export function elementStates(
   elements: SceneElement[],
@@ -51,6 +56,13 @@ export function elementStates(
     const effectiveOpacity = parentOpacity * element.opacity;
     return {
       element,
+      ...(element.type === "text" ? textState(element) : {}),
+      ...(element.type === "path"
+        ? {
+            pathLength: pathMetrics(element.d).length,
+            drawnLength: pathMetrics(element.d).length * element.draw,
+          }
+        : {}),
       transform,
       worldTransform,
       visible,
@@ -67,4 +79,17 @@ export function elementStates(
           : [],
     };
   });
+}
+
+function textState(element: Extract<SceneElement, { type: "text" }>) {
+  if (!element.number) return { displayText: element.text };
+  const numberValue =
+    element.number.from +
+    (element.number.to - element.number.from) * element.progress;
+  let formatted = numberValue.toFixed(element.number.decimals);
+  if (Number(formatted) === 0) formatted = (0).toFixed(element.number.decimals);
+  return {
+    numberValue,
+    displayText: element.text.replaceAll("{n}", formatted),
+  };
 }

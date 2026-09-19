@@ -184,3 +184,16 @@ await api.renderPng(2);
 Les éléments de `getStateAt()` forment un arbre : `element` contient les propriétés locales interpolées, `transform` la matrice locale, `worldTransform` la matrice cumulée, `visible` la présence tenant compte des parents et `effectiveOpacity` leur opacité multipliée ; `children` contient les états calculés des enfants. L’opacité ou la sortie du cadre n’est pas une absence temporelle.
 
 Les personnages disposent eux aussi de pistes x/y, rotation, scale, opacity, z et moveX. Une piste x remplace le déplacement moveX. x/y peuvent être hors champ dans [-10000,10000]. Le placement manuel des personnages avec pistes x/y est bloqué : modifier leurs clés via l’API. Le fichier `examples/formes-et-pivots.animatelier.json` démontre tous les types du lot.
+
+
+### Tracés, masques et compteurs
+
+Les nouveaux champs et leurs bornes figurent dans help/schema, avec un exemple par type. Le panneau Éléments permet aussi de modifier le tracé d, la forme du masque et les paramètres du compteur. Consultez FORMAT-V2.md pour les limites de syntaxe et de rendu.
+
+```js
+// Objets à insérer avec element.add, dans une scène de 10 s minimum :
+const trace = {id:"courbe",type:"path",end:10,d:"M0 100 Q100 0 200 100",stroke:"#8777ee",keyframes:{draw:[{t:0,v:0},{t:10,v:1}]}};
+const compteur = {id:"volume",type:"text",end:10,text:"V = {n} mL",number:{from:0,to:200,decimals:0},keyframes:{progress:[{t:0,v:0},{t:10,v:1}]}};
+```
+
+Le champ `clip` appartient au groupe, `number` au texte. Le moteur ne calcule aucune grandeur physique ; il anime uniquement les valeurs fournies. Les nouveaux éléments passent par le même rendu pour l’aperçu, les PNG navigateur/MCP et le WebM.

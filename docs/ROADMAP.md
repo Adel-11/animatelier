@@ -71,3 +71,6 @@ Lots restants, dans cet ordre :
 5. Export image par image, téléchargement direct et import/export JSON par API.
 
 La démonstration pédagogique doit être construite uniquement avec ces briques, jamais codée en dur. Le critère d’export 60 s en arrière-plan reste à atteindre ; l’export actuel dépend toujours de la visibilité de l’onglet.
+
+
+Lot 2 implémenté : path/draw, masques de groupe et nombres animés. Prochaine mission : lot 3, timeline d’actions, gestes hold/point, attache main et wobble. L’export en arrière-plan reste à réaliser au lot 6.

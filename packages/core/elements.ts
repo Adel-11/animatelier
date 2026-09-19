@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pathDataSchema } from "./paths";
 import {
   keyframesSchema,
   transformBounds,
@@ -13,6 +14,7 @@ export const elementTypes = [
   "line",
   "text",
   "group",
+  "path",
 ] as const;
 export const identifier = z
   .string()
@@ -52,6 +54,29 @@ type Common = {
   start: number;
   end: number;
 };
+export const clipSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("rect"),
+      x: z.number().min(-10000).max(10000).default(0),
+      y: z.number().min(-10000).max(10000).default(0),
+      w: z.number().min(0).max(5000),
+      h: z.number().min(0).max(5000),
+      radius: z.number().min(0).max(2500).default(0),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("ellipse"),
+      x: z.number().min(-10000).max(10000).default(0),
+      y: z.number().min(-10000).max(10000).default(0),
+      w: z.number().min(0).max(5000),
+      h: z.number().min(0).max(5000),
+    })
+    .strict(),
+  z.object({ type: z.literal("path"), d: pathDataSchema }).strict(),
+]);
+export type Clip = z.infer<typeof clipSchema>;
 export type SceneElement = Common &
   (
     | {
@@ -87,8 +112,18 @@ export type SceneElement = Common &
         color: string;
         align: "left" | "center" | "right";
         bold: boolean;
+        progress: number;
+        number?: { from: number; to: number; decimals: number };
       }
-    | { type: "group"; children: SceneElement[] }
+    | { type: "group"; children: SceneElement[]; clip?: Clip }
+    | {
+        type: "path";
+        d: string;
+        fill: string;
+        stroke: string;
+        strokeWidth: number;
+        draw: number;
+      }
   );
 export const elementBounds: Record<SceneElement["type"], Bounds> = {
   rect: {
@@ -110,8 +145,9 @@ export const elementBounds: Record<SceneElement["type"], Bounds> = {
     y2: [-10000, 10000],
     strokeWidth: [0, 100],
   },
-  text: { ...transformBounds, fontSize: [1, 400] },
+  text: { ...transformBounds, fontSize: [1, 400], progress: [0, 1] },
   group: transformBounds,
+  path: { ...transformBounds, draw: [0, 1], strokeWidth: [0, 100] },
 };
 const common = {
   id: identifier,
@@ -131,6 +167,17 @@ const style = {
 const recursive: z.ZodType<SceneElement, z.ZodTypeDef, any> = z.lazy(() =>
   z
     .discriminatedUnion("type", [
+      z
+        .object({
+          ...common,
+          type: z.literal("path"),
+          d: pathDataSchema.default("M0 100 C60 0 100 200 160 100"),
+          fill: paint.default("none"),
+          stroke: paint.default("#8777ee"),
+          strokeWidth: style.strokeWidth,
+          draw: z.number().min(0).max(1).default(1),
+        })
+        .strict(),
       z
         .object({
           ...common,
@@ -167,6 +214,15 @@ const recursive: z.ZodType<SceneElement, z.ZodTypeDef, any> = z.lazy(() =>
             .default("#303440"),
           align: z.enum(["left", "center", "right"]).default("left"),
           bold: z.boolean().default(false),
+          progress: z.number().min(0).max(1).default(0),
+          number: z
+            .object({
+              from: z.number().finite().min(-1e12).max(1e12),
+              to: z.number().finite().min(-1e12).max(1e12),
+              decimals: z.number().int().min(0).max(6).default(0),
+            })
+            .strict()
+            .optional(),
         })
         .strict(),
       z
@@ -174,6 +230,7 @@ const recursive: z.ZodType<SceneElement, z.ZodTypeDef, any> = z.lazy(() =>
           ...common,
           type: z.literal("group"),
           children: z.array(recursive).max(200).default([]),
+          clip: clipSchema.optional(),
         })
         .strict(),
     ])

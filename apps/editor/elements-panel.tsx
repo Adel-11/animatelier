@@ -13,6 +13,7 @@ import { animated, easings } from "../../packages/core/keyframes";
 
 const labels = {
   rect: "Rectangle",
+  path: "Tracé",
   ellipse: "Ellipse",
   line: "Ligne",
   text: "Texte",
@@ -160,6 +161,20 @@ export function ElementsPanel({
               />
             </label>
           ))}
+          {node.type === "path" && (
+            <label className="field">
+              Tracé SVG (d)
+              <textarea
+                aria-label="Tracé SVG"
+                key={`${node.id}-${node.d}`}
+                defaultValue={node.d}
+                onBlur={(e) => commit({ ...node, d: e.target.value })}
+              />
+            </label>
+          )}
+          {node.type === "group" && (
+            <ClipEditor key={node.id} node={node} commit={commit} />
+          )}
           {node.type === "text" && (
             <>
               <label className="field">
@@ -191,6 +206,53 @@ export function ElementsPanel({
                 Gras
               </label>
             </>
+          )}
+          {node.type === "text" && (
+            <section className="keyframe-editor">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={!!node.number}
+                  onChange={(e) =>
+                    commit({
+                      ...node,
+                      number: e.target.checked
+                        ? { from: 0, to: 200, decimals: 0 }
+                        : undefined,
+                    })
+                  }
+                />{" "}
+                Nombre animé (remplace {"{n}"})
+              </label>
+              {node.number &&
+                (["from", "to", "decimals"] as const).map((property) => (
+                  <label className="field" key={property}>
+                    {property}
+                    <input
+                      aria-label={`Compteur ${property}`}
+                      type="number"
+                      step={property === "decimals" ? 1 : "any"}
+                      key={`${node.id}-${property}-${node.number![property]}`}
+                      defaultValue={node.number![property]}
+                      onBlur={(e) =>
+                        commit({
+                          ...node,
+                          number: {
+                            ...node.number,
+                            [property]: Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              {node.number && (
+                <p className="muted">
+                  Écrivez {"{n}"} dans le texte, puis animez progress de 0 à 1
+                  dans les images clés.
+                </p>
+              )}
+            </section>
           )}
           {["fill", "stroke", "color"]
             .filter((property) => property in node)
@@ -366,6 +428,86 @@ function KeyframeEditor({
           </button>
         </div>
       ))}
+    </section>
+  );
+}
+
+function ClipEditor({
+  node,
+  commit,
+}: {
+  node: Extract<SceneElement, { type: "group" }>;
+  commit: (node: unknown) => void;
+}) {
+  const clip = node.clip;
+  return (
+    <section className="keyframe-editor">
+      <h3>Masque du groupe</h3>
+      <label className="field">
+        Forme du masque
+        <select
+          aria-label="Forme du masque"
+          value={clip?.type ?? "none"}
+          onChange={(e) => {
+            const type = e.target.value;
+            commit({
+              ...node,
+              clip:
+                type === "none"
+                  ? undefined
+                  : type === "path"
+                    ? { type, d: "M0 0 L200 0 L200 200 L0 200 Z" }
+                    : {
+                        type,
+                        x: 0,
+                        y: 0,
+                        w: 200,
+                        h: 200,
+                        ...(type === "rect" ? { radius: 0 } : {}),
+                      },
+            });
+          }}
+        >
+          {["none", "rect", "ellipse", "path"].map((type) => (
+            <option key={type}>{type}</option>
+          ))}
+        </select>
+      </label>
+      {clip?.type === "path" ? (
+        <label className="field">
+          Tracé du masque
+          <textarea
+            aria-label="Tracé du masque"
+            key={clip.d}
+            defaultValue={clip.d}
+            onBlur={(e) =>
+              commit({ ...node, clip: { ...clip, d: e.target.value } })
+            }
+          />
+        </label>
+      ) : (
+        clip &&
+        Object.entries(clip)
+          .filter(([property]) => property !== "type")
+          .map(([property, value]) => (
+            <label className="field" key={property}>
+              Masque {property}
+              <input
+                aria-label={`Masque ${property}`}
+                type="number"
+                step="any"
+                key={`${property}-${value}`}
+                defaultValue={value}
+                onBlur={(e) =>
+                  commit({
+                    ...node,
+                    clip: { ...clip, [property]: Number(e.target.value) },
+                  })
+                }
+              />
+            </label>
+          ))
+      )}
     </section>
   );
 }

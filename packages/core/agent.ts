@@ -44,6 +44,9 @@ export function agentSchema() {
       "Clés triées strictement par temps et limitées à la durée de scène",
       "Les remplacements exigent un objet complet",
       "Un lot est atomique",
+      "path : commandes SVG M/L/H/V/C/S/Q/T/A/Z, 500 segments et 16000 caractères maximum ; fill apparaît à draw=1",
+      "group.clip : rect, ellipse ou path statique en coordonnées locales",
+      "text.number : remplace {n} selon progress ; decimals entre 0 et 6",
     ],
     note: "Les contraintes entre champs ne sont pas exprimables en JSON Schema draft-07 : utiliser validate().",
   };

@@ -19,6 +19,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sharp": "^0.35.4",
+    "svg-path-properties": "2.1.0",
     "zod": "^3.25.76",
     "zod-to-json-schema": "3.25.2"
   },
