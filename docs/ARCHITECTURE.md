@@ -57,3 +57,7 @@ Voir [FORMAT-V2.md](FORMAT-V2.md) pour le contrat détaillé et l’exception de
 Les groupes forment des couches indivisibles, leurs enfants sont ordonnés localement. Le renderer échappe le texte et génère lui-même le SVG ; il n’accepte ni balisage arbitraire ni URL de média. L’éditeur propose un panneau de formes et un éditeur d’images clés ; toutes les mutations passent par les commandes du core. Les images clés des personnages sont actuellement éditables par API ; leurs valeurs de base restent dans l’inspecteur.
 
 Les clés localStorage v2 évitent de charger les anciens projets. Les anciens fichiers et données v1 ne sont pas supprimés automatiquement. Aucune migration n’est livrée.
+
+## Compilation de quiz
+
+`packages/core/quiz.ts` valide un script haut niveau puis produit des scènes v2 avec des éléments et pistes existants. Aucun nouveau type de rendu ni changement de schéma du projet. Compilation pure, ID stable `quiz_compiled`, calendrier global ; `loadQuiz` côté navigateur attribue un nouvel ID avant le chargement validé dans le store. Le MCP expose une compilation sans mutation, puis utilise son chargement avec révision habituel. L’aide intégrée reprend `docs/QUIZ.md` via `quiz-guide.ts` ; un test garantit leur égalité. Les scripts ne sont pas stockés dans le projet produit : l’éditeur modifie les primitives, pas une référence au script.

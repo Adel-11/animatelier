@@ -1001,3 +1001,22 @@ input[type="color"] {
   font-size: 11px;
   align-items: center;
 }
+
+.quiz-modal {
+  width: 100%;
+  max-width: 760px;
+}
+.quiz-modal textarea {
+  width: 100%;
+  font-family: monospace;
+  resize: vertical;
+}
+.quiz-guide {
+  margin: 18px 0;
+}
+.quiz-guide pre {
+  max-height: 420px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

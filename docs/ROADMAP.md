@@ -74,3 +74,7 @@ La démonstration pédagogique doit être construite uniquement avec ces briques
 
 
 Lot 2 implémenté : path/draw, masques de groupe et nombres animés. Prochaine mission : lot 3, timeline d’actions, gestes hold/point, attache main et wobble. L’export en arrière-plan reste à réaliser au lot 6.
+
+## Lot quiz livré — septembre 2026
+
+Ajout prioritaire demandé par l’utilisateur : compilateur de QCM et de listes cumulatives, délai réglable (3 s par défaut), calendrier inspectable, API navigateur/MCP, création et guide intégrés à l’application. Projet v2 générique et export WebM existant. Voir QUIZ.md. Le lot personnages (timeline d’actions, hold/point, attache main et wobble) reste la prochaine mission ; il n’est pas inclus dans ce lot quiz.

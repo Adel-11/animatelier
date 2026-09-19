@@ -1,3 +1,5 @@
+import { quizSchema, quizExamples } from "./quiz";
+import { quizGuide } from "./quiz-guide";
 import { z } from "zod";
 import { elementStates } from "./element-state";
 import { elementTypes, newElement } from "./elements";
@@ -8,6 +10,14 @@ import { clamp, locateTime, poseAt, totalDuration } from "./engine";
 
 export function agentSchema() {
   return {
+    quiz: {
+      schema: zodToJsonSchema(quizSchema, {
+        name: "Quiz",
+        $refStrategy: "root",
+      }),
+      examples: structuredClone(quizExamples),
+      guide: quizGuide,
+    },
     project: zodToJsonSchema(projectSchema, {
       name: "Project",
       $refStrategy: "root",

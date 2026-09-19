@@ -166,6 +166,40 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
       }),
     );
     expect(opened.project.name).toBe("Projet agent");
+    const compiled = unpack(
+      await client.callTool({
+        name: "quiz_compile",
+        arguments: { spec: capabilities.schema.quiz.examples.list },
+      }),
+    );
+    expect(compiled.schedule[0].reveal).toBe(3);
+    expect(
+      unpack(await client.callTool({ name: "project_get", arguments: {} })),
+    ).toEqual(opened);
+    const quiz = unpack(
+      await client.callTool({
+        name: "project_load_data",
+        arguments: {
+          expectedRevision: opened.revision,
+          project: compiled.project,
+        },
+      }),
+    );
+    expect(quiz.project.scenes).toHaveLength(10);
+    const revealed = unpack(
+      await client.callTool({
+        name: "project_state_at",
+        arguments: { time: 3 },
+      }),
+    );
+    expect(
+      revealed.elements.find((e: any) => e.element.id === "list_answer_1"),
+    ).toMatchObject({ visible: true, displayText: "Paris" });
+    const quizPng: any = await client.callTool({
+      name: "render_frame",
+      arguments: { time: 3 },
+    });
+    expect(quizPng.content[1].mimeType).toBe("image/png");
   } finally {
     await client.close();
   }

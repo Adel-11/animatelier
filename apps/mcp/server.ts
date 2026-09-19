@@ -1,3 +1,4 @@
+import { compileQuiz, quizSchema } from "../../packages/core/quiz";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -125,6 +126,15 @@ server.registerTool(
         "Pas de synchronisation automatique avec un navigateur.",
       ],
     }),
+);
+server.registerTool(
+  "quiz_compile",
+  {
+    description:
+      "Compiler un QCM ou une liste à révélations différées en projet v2 et calendrier, sans modifier la session. Lire capabilities pour les exemples et le guide.",
+    inputSchema: { spec: quizSchema },
+  },
+  async ({ spec }) => safe(() => text(compileQuiz(spec))),
 );
 server.registerTool(
   "project_validate",

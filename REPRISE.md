@@ -1,5 +1,24 @@
 # Point de reprise — 19 septembre 2026
 
+## Lot quiz terminé : questions et révélations génériques
+
+Priorité ajoutée par l’utilisateur avant le lot personnages : QCM à 2–4 choix ou liste cumulative de 1–10 cases ; révélation après 3 secondes par défaut, durée de réponse réglable, couleurs personnalisables. Compilation pure vers les primitives v2 existantes (sans changement du format). Les réponses précédentes persistent dans les scènes suivantes ; un calendrier donne les instants globaux de chaque révélation.
+
+- API navigateur : `compileQuiz(spec)` sans mutation ; `loadQuiz(spec)` charge un projet validé avec un nouvel ID et permet l’annulation. `help().quiz` contient guide complet, exemples et JSON Schema.
+- Application : bouton Quiz, exemples QCM/liste de dix questions, script JSON éditable, vérification sans chargement. Guide complet dans Quiz et Agents, utilisable sur mobile.
+- MCP : `quiz_compile`, pure compilation ; chargement par `project_load_data` avec révision. Guide et schémas dans capabilities. Toujours aucun pont live.
+- Documentation : docs/QUIZ.md et copie intégrée quiz-guide.ts (égalité testée). Exemples prêts à ouvrir : examples/quiz-list.animatelier.json (50 s), examples/quiz-choices.animatelier.json (5 s).
+
+Vérifications : 26 tests moteur/SDK MCP réussis ; les 11 parcours Chrome passent (9 parcours existants, 2 nouveaux parcours quiz). Un sélecteur de test ambigu a été corrigé puis les tests quiz rejoués avec succès. Compilation réussie. Captures liste vide/complète, QCM révélé et formulaires/aide mobile inspectées. Export d’un quiz de 1 s décodé en WebM 1280 × 720. Révélations aux frontières vérifiées pour les dix questions ; erreurs de chargement sans mutation et nouveaux IDs vérifiés.
+
+Limites : export WebM silencieux en temps réel, onglet visible ; pas de MP4 ni d’export vidéo MCP. Quiz vidéo, sans interaction ni score. Retouches sur les primitives indépendantes par scène ; régénérer remplace ces retouches. Retours à la ligne déterministes mais rendu typographique à inspecter avec les polices de repli. Aucun déploiement Netlify vérifié.
+
+Prochaine mission conservée : lot personnages (timeline d’actions, hold/point, attache main, wobble), puis transitions/freeze/caméra. Le présent lot ajoute le quiz demandé, sans annoncer ces fonctions comme livrées. Le document utilisateur non suivi animatelier-evolutions-integrale.md reste intact et exclu du commit.
+
+Dernier quota avant finalisation : 67 % de session et 95 % hebdomadaire restants. Aucun crédit de réinitialisation utilisé. Relire au prochain démarrage ; seuil d’arrêt 15 %.
+
+## Historique du lot 2
+
 ## Lot 2 terminé : tracés, masques et compteurs
 
 Ajouts compatibles avec les projets v2 du lot 1 : path/draw et contours SVG validés (500 segments, 16 000 caractères), group.clip rect/ellipse/path, text.number et piste progress. getStateAt fournit displayText/numberValue et pathLength/drawnLength. Le panneau Éléments permet de modifier le tracé, les masques et les compteurs. Les exemples et schémas de l’API sont actualisés.

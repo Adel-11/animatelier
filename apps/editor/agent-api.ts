@@ -1,3 +1,4 @@
+import { compileQuiz } from "../../packages/core/quiz";
 import { ProjectStore, type Command } from "../../packages/core/commands";
 import { parseProject, uid, type Project } from "../../packages/core/schema";
 import {
@@ -41,6 +42,10 @@ export function createBrowserApi(
       apiVersion: 2,
       schemaVersion: 2,
       methods: {
+        compileQuiz:
+          "compileQuiz(spec) : projet v2 et schedule des révélations, sans mutation",
+        loadQuiz:
+          "loadQuiz(spec) : compile puis charge avec nouvel ID ; retourne aussi schedule",
         help: "help() : documentation et schémas",
         schema:
           "schema() : JSON Schema du projet et des commandes, unités et contraintes",
@@ -79,6 +84,15 @@ export function createBrowserApi(
       ],
       ...agentSchema(),
     }),
+    compileQuiz,
+    loadQuiz: (spec: unknown) => {
+      editable();
+      const built = compileQuiz(spec);
+      return {
+        ...api.load({ ...built.project, id: uid("project") }),
+        schedule: built.schedule,
+      };
+    },
     schema: agentSchema,
     validate: validateProject,
     getProject: () => store.get(),

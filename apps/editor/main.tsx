@@ -1,3 +1,4 @@
+import { QuizPanel, QuizGuide } from "./quiz-panel";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -118,6 +119,7 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [apiOpen, setApiOpen] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<{
@@ -314,6 +316,7 @@ function App() {
           <small>1280 × 720 · 30 i/s</small>
         </div>
         <div className="header-actions">
+          <button onClick={() => setQuizOpen(true)}>Quiz</button>
           <button onClick={() => setApiOpen(true)}>⌘ Agents</button>
           <button disabled={busy} onClick={() => file.current?.click()}>
             Ouvrir
@@ -1016,6 +1019,7 @@ function App() {
           </div>
         </div>
       )}
+      {quizOpen && !busy && <QuizPanel onClose={() => setQuizOpen(false)} />}
       {apiOpen && (
         <div className="overlay" onClick={() => setApiOpen(false)}>
           <div
@@ -1039,6 +1043,7 @@ const résultat = api.load(projet); // ok, project, duration, warnings
 api.getStateAt(2); // positions, visibilité, actions et bulles
 api.saveAs("Mon histoire — variante");
 // await api.exportVideo(); puis api.getExportState()`}</pre>
+            <QuizGuide />
             <details>
               <summary>Référence complète de l’API</summary>
               <pre

@@ -19,6 +19,10 @@ Les projets utilisent désormais `schemaVersion: 2`. Les anciens fichiers v1 ne 
 
 Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` avec le bouton « Ouvrir » : trois scènes et trente secondes d’animation éditables.
 
+## Quiz animés
+
+Le bouton **Quiz** propose un QCM et une liste de dix réponses révélées progressivement. Le délai vaut trois secondes par défaut. Un agent utilise `window.animatelier.help().quiz`, `compileQuiz(spec)` puis `loadQuiz(spec)`. Le guide complet est intégré aux panneaux **Quiz** et **Agents**, avec les schémas, exemples, vérifications et l’export WebM. [Guide quiz](docs/QUIZ.md). Projets prêts à ouvrir : `examples/quiz-list.animatelier.json` (50 s) et `examples/quiz-choices.animatelier.json` (5 s).
+
 ## Disponible
 
 - Quatre variantes de personnages originaux articulés, cinq mouvements procéduraux, quatre décors.

@@ -41,6 +41,7 @@ Ne pas ouvrir ce processus aux utilisateurs distants : il n’existe pas encore 
 
 | Outil               | Arguments principaux                       | Résultat                                |
 | ------------------- | ------------------------------------------ | --------------------------------------- |
+| `quiz_compile` | `spec` | Projet v2 et calendrier des révélations, sans mutation |
 | `project_validate` | `project` | Validation sans mutation, erreurs structurées |
 | `project_state_at` | `time` | Scène et état calculé des personnages, révision |
 | `capabilities`      | Aucun                                      | Actions, décors, conventions et limites |
@@ -197,3 +198,7 @@ const compteur = {id:"volume",type:"text",end:10,text:"V = {n} mL",number:{from:
 ```
 
 Le champ `clip` appartient au groupe, `number` au texte. Le moteur ne calcule aucune grandeur physique ; il anime uniquement les valeurs fournies. Les nouveaux éléments passent par le même rendu pour l’aperçu, les PNG navigateur/MCP et le WebM.
+
+## Quiz et listes progressives
+
+Voir [QUIZ.md](QUIZ.md). Le même guide est disponible dans `capabilities.schema.quiz.guide` et `window.animatelier.help().quiz.guide`. Les schémas et exemples sont à côté (`quiz.schema`, `quiz.examples`). `compileQuiz` ne modifie pas le projet ; `loadQuiz` le charge avec un nouvel ID. `quiz_compile` côté MCP ne modifie pas la révision : charger ensuite par `project_load_data` avec une révision attendue.
