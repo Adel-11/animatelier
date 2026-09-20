@@ -1,3 +1,4 @@
+import { wrapText } from "../core/text";
 import type { Actor, Project, Scene } from "../core/schema";
 import { locateTime, poseAt } from "../core/engine";
 import { sceneElementStates } from "../core/scene-state";
@@ -16,26 +17,6 @@ const esc = (v: string) =>
         "'": "&apos;",
       })[c]!,
   );
-function lines(text: string, max: number) {
-  const result: string[] = [];
-  let line = "";
-  for (const word of text.split(/\s+/)) {
-    if ((line + " " + word).length > max && line) {
-      result.push(line);
-      line = "";
-    }
-    if (word.length > max) {
-      if (line) {
-        result.push(line);
-        line = "";
-      }
-      for (let i = 0; i < word.length; i += max)
-        result.push(word.slice(i, i + max));
-    } else line += (line ? " " : "") + word;
-  }
-  if (line) result.push(line);
-  return result;
-}
 function background(kind: Scene["background"]) {
   const colors = {
     studio: ["#f2eee5", "#dedace"],
@@ -54,7 +35,12 @@ function background(kind: Scene["background"]) {
     detail = `<circle cx="1050" cy="130" r="45" fill="#f3e9b9"/>${[100, 260, 420, 640, 810, 1160].map((x, i) => `<circle cx="${x}" cy="${80 + (i % 3) * 60}" r="3" fill="#e6e5fa"/>`).join("")}<path d="M0 530V360h130v90h90V300h100v230h700V350h140v80h120v100" fill="#30394f"/>`;
   return `<rect width="1280" height="720" fill="${colors[0]}"/>${detail}<path d="M0 565H1280V720H0Z" fill="${colors[1]}"/><path d="M0 565H1280" stroke="#000" opacity=".04" stroke-width="2"/>`;
 }
-function actor(a: Actor, t: number, selected?: string) {
+function actor(
+  a: Actor,
+  t: number,
+  selected?: string,
+  fontFamily = "DejaVu Sans",
+) {
   const bodyMatrix = actorMatrix(a, t);
   const p = poseAt(a, t);
   if (!p.visible) return "";
@@ -70,7 +56,7 @@ function actor(a: Actor, t: number, selected?: string) {
     `<g transform="translate(${x} ${y}) rotate(${angle})"><path d="M0 0v${length}" stroke="${color}" stroke-width="${width}" stroke-linecap="round"/></g>`;
   const leg = (x: number, angle: number) =>
     `<g transform="translate(${x} -110) rotate(${angle})"><path d="M0 0v95" stroke="#34445b" stroke-width="25" stroke-linecap="round"/><path d="M-10 97h20" stroke="#202b3d" stroke-width="20" stroke-linecap="round"/></g>`;
-  const bubbleLines = lines(a.dialogue, 30).slice(0, 9);
+  const bubbleLines = wrapText(a.dialogue, 20, 320, fontFamily).slice(0, 9);
   const bh = bubbleLines.length * 25 + 28;
   const bubble = a.dialogue
     ? `<g transform="translate(${p.x} ${p.y - 345 * a.scale - bh})"><rect x="-180" width="360" height="${bh}" rx="18" fill="white"/><path d="m-10 ${bh} 10 15 10-15" fill="white"/><text text-anchor="middle" fill="#303440" font-size="20">${bubbleLines.map((l, i) => `<tspan x="0" y="${30 + i * 25}">${esc(l)}</tspan>`).join("")}</text></g>`
@@ -92,15 +78,28 @@ export function renderSceneSvg(
   scene: Scene,
   time: number,
   selected?: string,
+  canvas: { width: number; height: number; fontFamily?: string } = {
+    width: 1280,
+    height: 720,
+  },
 ): string {
-  const titleLines = lines(scene.title, 52);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="${esc(scene.name)}"><g font-family="Arial, sans-serif">${background(scene.background)}<text x="640" y="78" text-anchor="middle" font-size="36" font-weight="700" fill="${scene.background === "night" ? "#f6f2e9" : "#3c4050"}">${titleLines.map((l, i) => `<tspan x="640" dy="${i === 0 ? 0 : 43}">${esc(l)}</tspan>`).join("")}</text>${[
+  const titleLines = wrapText(
+    scene.title,
+    36,
+    canvas.width - 80,
+    canvas.fontFamily,
+    true,
+  );
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}" role="img" aria-label="${esc(scene.name)}"><g style="font-kerning:none;font-variant-ligatures:none" font-family="${esc(canvas.fontFamily ?? "DejaVu Sans")}"><svg width="${canvas.width}" height="${canvas.height}" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">${background(scene.background)}</svg><text x="${canvas.width / 2}" y="78" text-anchor="middle" font-size="36" font-weight="700" fill="${scene.background === "night" ? "#f6f2e9" : "#3c4050"}">${titleLines.map((l, i) => `<tspan x="${canvas.width / 2}" dy="${i === 0 ? 0 : 43}">${esc(l)}</tspan>`).join("")}</text>${[
     ...[...scene.actors]
       .sort((a, b) => poseAt(a, time).y - poseAt(b, time).y)
-      .map((a) => ({ z: poseAt(a, time).z, svg: actor(a, time, selected) })),
+      .map((a) => ({
+        z: poseAt(a, time).z,
+        svg: actor(a, time, selected, canvas.fontFamily),
+      })),
     ...sceneElementStates(scene, time).map((e) => ({
       z: e.element.z,
-      svg: renderElement(e, selected),
+      svg: renderElement(e, selected, canvas.fontFamily),
     })),
   ]
     .sort((a, b) => a.z - b.z)
@@ -109,7 +108,7 @@ export function renderSceneSvg(
 }
 export function renderProjectSvg(project: Project, time: number) {
   const located = locateTime(project, time);
-  return renderSceneSvg(located.scene, located.time);
+  return renderSceneSvg(located.scene, located.time, undefined, project);
 }
 export function renderCharacterSvg(a: Actor) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-110 -340 220 370" aria-hidden="true"><rect x="-110" y="-340" width="220" height="370" fill="#e8e2f2"/>${actor({ ...a, x: 0, y: 0, scale: 1, dialogue: "", action: "idle", timeline: [], keyframes: {}, wobble: {} }, 0)}</svg>`;

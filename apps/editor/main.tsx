@@ -304,8 +304,16 @@ function App() {
     if (!d) return;
     setDragActor({
       ...d.actor,
-      x: clamp(Math.round(d.actor.x + (e.clientX - d.px) * d.scale), 0, 1280),
-      y: clamp(Math.round(d.actor.y + (e.clientY - d.py) * d.scale), 100, 710),
+      x: clamp(
+        Math.round(d.actor.x + (e.clientX - d.px) * d.scale),
+        0,
+        project.width,
+      ),
+      y: clamp(
+        Math.round(d.actor.y + (e.clientY - d.py) * d.scale),
+        0,
+        project.height,
+      ),
     });
   };
   return (
@@ -318,7 +326,9 @@ function App() {
         <div className="project-title">
           <span className="saved-dot" />
           {project.name}
-          <small>1280 × 720 · 30 i/s</small>
+          <small>
+            {project.width} × {project.height} · {project.fps} i/s
+          </small>
         </div>
         <div className="header-actions">
           <button onClick={() => setQuizOpen(true)}>Quiz</button>
@@ -548,12 +558,15 @@ function App() {
               >
                 Image PNG
               </button>
-              <span className="ratio">16:9</span>
+              <span className="ratio">
+                {project.width} × {project.height}
+              </span>
             </div>
           </div>
           <div className="canvas-area">
             <div
               className="stage"
+              style={{ aspectRatio: `${project.width}/${project.height}` }}
               ref={stage}
               onPointerDown={(e) => {
                 if (busy || playing) return;
@@ -587,7 +600,8 @@ function App() {
                   sceneId: scene.id,
                   px: e.clientX,
                   py: e.clientY,
-                  scale: 1280 / stage.current.getBoundingClientRect().width,
+                  scale:
+                    project.width / stage.current.getBoundingClientRect().width,
                 };
                 stage.current.setPointerCapture(e.pointerId);
               }}
@@ -616,6 +630,7 @@ function App() {
                   previewScene,
                   located.time,
                   playing ? undefined : (selected ?? undefined),
+                  project,
                 ),
               }}
             />
@@ -626,7 +641,9 @@ function App() {
                   ? "Votre histoire prend vie"
                   : "Cliquez et glissez un personnage pour le placer"}
               </span>
-              <span>HD · 720p</span>
+              <span>
+                {project.width} × {project.height}
+              </span>
             </div>
           </div>
           <section className="timeline">
@@ -922,7 +939,7 @@ function App() {
                       ...actor,
                       id: uid("actor"),
                       name: actor.name + " copie",
-                      x: clamp(actor.x + 120, 0, 1280),
+                      x: clamp(actor.x + 120, 0, project.width),
                     })
                   }
                 >

@@ -23,6 +23,16 @@ Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` a
 
 Le bouton **Quiz** propose un QCM et une liste de dix réponses révélées progressivement. Le délai vaut trois secondes par défaut. Un agent utilise `window.animatelier.help().quiz`, `compileQuiz(spec)` puis `loadQuiz(spec)`. Le guide complet est intégré aux panneaux **Quiz** et **Agents**, avec les schémas, exemples, vérifications et l’export WebM. [Guide quiz](docs/QUIZ.md). Projets prêts à ouvrir : `examples/quiz-list.animatelier.json` (50 s) et `examples/quiz-choices.animatelier.json` (5 s).
 
+## Export sans navigateur
+
+```sh
+npm ci
+node apps/cli/render.js examples/quiz-list.animatelier.json --out sortie.mp4 --jobs 4 --emit-timeline timeline.json
+node apps/cli/quiz.js spec.json -o projet.json
+```
+
+Node 22.12+, resvg CPU et ffmpeg. Après installation depuis npm/GitHub, aucun réseau requis. Vidéos silencieuses ; montage audio externe avec le manifeste. [Options et limites](docs/HEADLESS.md).
+
 ## Disponible
 
 - Quatre variantes de personnages originaux articulés, sept mouvements procéduraux, quatre décors.
@@ -32,18 +42,20 @@ Le bouton **Quiz** propose un QCM et une liste de dix réponses révélées prog
 - Plusieurs scènes, titre, bulles de dialogue, déplacement horizontal, échelle, orientation, couleurs et plages temporelles.
 - Lecture et recherche temporelle, déplacement à la souris, annuler/rétablir.
 - Sauvegarde automatique dans le navigateur et import/export JSON versionné.
-- Capture PNG et export WebM 720p dans le navigateur, en temps réel et sans audio.
+- Capture PNG et export WebM dans le navigateur, en temps réel et sans audio.
+- Export CLI CPU MP4/WebM image par image, workers, recadrage, taille finale et manifeste de minutage ; rendu vidéo MCP asynchrone. [Guide headless](docs/HEADLESS.md).
+- Canevas portrait/paysage, polices embarquées, flou animé et texte à largeur mesurée.
 - API `window.animatelier` v2 : aide et schémas intégrés, validation, inspection à un instant, copies locales et export vidéo avec progression.
 - Serveur MCP local avec commandes, contrôle de révision, validation, inspection temporelle, images PNG et sauvegarde.
 - Validation des données, tests unitaires, intégration MCP et parcours navigateur.
 
 ## Limites assumées
 
-C’est un socle fonctionnel, pas encore un équivalent complet de Vyond. Pas encore d’import de rigs externes, d’éditeur d’os, de voix, de synchronisation labiale audio, de MP4, de comptes ou de partage cloud. Les variantes du casting utilisent le même rig procédural.
+C’est un socle fonctionnel, pas encore un équivalent complet de Vyond. Pas encore d’import de rigs externes, d’éditeur d’os, de voix, de synchronisation labiale audio, de comptes ou de partage cloud. Les variantes du casting utilisent le même rig procédural.
 
 Le projet reste dans le navigateur concerné. Effacer ses données efface cette copie ; télécharger le JSON pour une sauvegarde durable. L’enregistrement n’est pas partagé entre onglets, navigateurs ou appareils. Le MCP conserve sa session en mémoire : sauvegarder explicitement avant de l’arrêter.
 
-L’export WebM dépend des performances du navigateur ; ce n’est pas encore un export image par image à cadence garantie. Garder l’onglet visible pendant l’export. Aucun service payant ni clé IA n’est requis par cette version.
+L’export WebM dépend des performances du navigateur ; utiliser le CLI pour un export image par image à cadence garantie. Garder l’onglet visible pendant l’export. Aucun service payant ni clé IA n’est requis par cette version.
 
 ## Guides
 
@@ -78,6 +90,8 @@ npm run test:e2e
 ```text
 apps/editor/          Interface React, stockage local, exports navigateur
 apps/mcp/             Serveur MCP stdio local
+apps/cli/             Rendu vidéo et compilation quiz
+packages/headless/    Rasterisation resvg, workers et encodage ffmpeg
 packages/core/        Schémas, commandes transactionnelles, historique, moteur
 packages/renderer/    Production SVG indépendante du DOM
 tests/                Contrats, intégration MCP, parcours navigateur

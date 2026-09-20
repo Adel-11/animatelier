@@ -1,3 +1,4 @@
+import { wrapText } from "./text";
 import { z } from "zod";
 import { color, parseProject } from "./schema";
 import { newElement, type SceneElement } from "./elements";
@@ -73,24 +74,16 @@ export const quizSchema = z
     });
   });
 
-// Conservative, deterministic wrapping without DOM or platform font metrics.
-function fit(text: string, width: number, height: number, maximum: number) {
+// Shared bundled-font advances; no platform font lookup.
+function fit(
+  text: string,
+  width: number,
+  height: number,
+  maximum: number,
+  bold: boolean,
+) {
   for (let fontSize = maximum; fontSize >= 8; fontSize--) {
-    const capacity = Math.max(1, Math.floor(width / fontSize));
-    const lines: string[] = [];
-    let line = "";
-    for (const word of text.trim().split(/\s+/u)) {
-      const chunks = Array.from(word);
-      if (line && Array.from(line).length + chunks.length + 1 <= capacity) {
-        line += " " + word;
-        continue;
-      }
-      if (line) lines.push(line);
-      while (chunks.length > capacity)
-        lines.push(chunks.splice(0, capacity).join(""));
-      line = chunks.join("");
-    }
-    if (line) lines.push(line);
+    const lines = wrapText(text, fontSize, width, "DejaVu Sans", bold);
     if (lines.length * fontSize * 1.2 <= height || fontSize === 8)
       return { text: lines.join("\n"), fontSize };
   }
@@ -141,7 +134,13 @@ export function compileQuiz(input: unknown) {
       size: number,
       extra = {},
     ) => {
-      const fitted = fit(value, w, h, size);
+      const fitted = fit(
+        value,
+        w,
+        h,
+        size,
+        "bold" in extra && extra.bold === true,
+      );
       elements.push(
         newElement("text", duration, {
           id,

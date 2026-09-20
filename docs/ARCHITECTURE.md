@@ -19,13 +19,13 @@ flowchart LR
 
 ## Contrats
 
-`schema.ts` définit le schéma Zod, les types TypeScript et les plafonds. Un projet contient des scènes ordonnées ; une scène contient des personnages et des éléments génériques. IDs stables au sein de leur portée, `schemaVersion: 2`, format 1280 × 720 à 30 i/s. Les temps des personnages sont relatifs à leur scène ; le rendu du projet reçoit un temps global.
+`schema.ts` définit le schéma Zod, les types TypeScript et les plafonds. Un projet contient des scènes ordonnées ; une scène contient des personnages et des éléments génériques. IDs stables au sein de leur portée, `schemaVersion: 2`, canevas de 16 à 4096 pixels par axe et cadence de 1 à 60 i/s. Les temps des personnages sont relatifs à leur scène ; le rendu du projet reçoit un temps global.
 
 `commands.ts` expose dix commandes. Chaque lot est appliqué à une copie, puis validé entièrement ; une erreur ne modifie pas la source. Le store conserve jusqu’à cent états pour annuler/rétablir. Les mutations exposées par l’éditeur et le MCP passent par ce store. Le MCP ajoute un contrôle de révision pour les mutations de session.
 
 `engine.ts` calcule la scène active et les articulations sans horloge cachée. Les angles des bras et jambes, la bouche et le déplacement se déduisent du temps explicite. Les frontières de scène appartiennent à la scène suivante ; la fin du projet affiche la dernière pose.
 
-`svg.ts` transforme la scène en SVG sans accès au DOM. Les textes sont échappés. Les positions sont validées ; aucune URL de média ni SVG arbitraire n’est accepté. Le même SVG alimente l’interface, le PNG navigateur et le PNG MCP. Les moteurs typographiques natifs peuvent produire de petites différences entre le navigateur et Sharp.
+`svg.ts` transforme la scène en SVG sans accès au DOM. Les textes sont échappés. Les positions sont validées ; aucune URL de média ni SVG arbitraire n’est accepté. Le même SVG alimente l’interface, le PNG navigateur et le PNG MCP. Les moteurs typographiques natifs peuvent produire de petites différences entre le navigateur et resvg.
 
 ## Décisions et compromis
 
@@ -65,3 +65,7 @@ Les clés localStorage v2 évitent de charger les anciens projets. Les anciens f
 ## Pistes et attaches — lot personnages
 
 Champs v2 additifs : actor.timeline, wobble et element.attachment. `poseAt` évalue action, dialogue et déplacement à un temps donné. `rig.ts` partage les matrices du corps et des mains avec le renderer. `scene-state.ts` compose les éléments racines attachés et leurs enfants avec les mêmes matrices pour SVG et inspection. La validation de scène rejette les attaches imbriquées ou les personnages absents. Aucun accès DOM dans ces modules. Contrat complet : [PERSONNAGES.md](PERSONNAGES.md), repris dans l’aide intégrée et vérifié par test.
+
+## Rendu hors navigateur
+
+`packages/headless` dépend du core et du renderer ; il ajoute resvg, worker_threads et ffmpeg. CLI et MCP utilisent le même encodeur. Core conserve les métriques typographiques pures ; renderer produit le SVG déterministe. Polices embarquées, images calculées à f/fps, ordre conservé sous contre-pression, publication atomique de la vidéo achevée. Voir [HEADLESS.md](HEADLESS.md).

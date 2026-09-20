@@ -2,7 +2,8 @@ import { compileQuiz, quizSchema } from "../../packages/core/quiz";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import sharp from "sharp";
+import { rasterFrame } from "../../packages/headless/frame";
+import { renderVideo, readProject } from "../../packages/headless/video";
 import {
   mkdir,
   readFile,
@@ -64,10 +65,7 @@ const checkRevision = (expected: number) => {
 };
 const nameSchema = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}\.json$/);
 const preview = async (project: Project, time: number) =>
-  sharp(Buffer.from(renderProjectSvg(project, time)))
-    .resize(960, 540)
-    .png()
-    .toBuffer();
+  rasterFrame(project, time).asPng();
 
 server.registerTool(
   "project_get",
@@ -90,8 +88,8 @@ server.registerTool(
       schemaVersion: 2,
       actions,
       backgrounds,
-      resolution: [1280, 720],
-      fps: 30,
+      resolution: [store.get().width, store.get().height],
+      fps: store.get().fps,
       coordinateSystem:
         "x vers la droite, y vers le bas, position du personnage aux pieds ; temps des acteurs relatif à la scène ; temps de rendu global au projet",
       commandTypes: [
@@ -122,6 +120,7 @@ server.registerTool(
       notes: [
         "Rigs et décors originaux intégrés.",
         "Pas de voix ni de synchronisation labiale audio.",
+        "project_render_video démarre un rendu CPU ; render_status suit le job. Un rendu actif, aucun écrasement.",
         "Les fichiers sauvegardés peuvent être importés dans l’éditeur.",
         "Pas de synchronisation automatique avec un navigateur.",
       ],
@@ -307,6 +306,95 @@ server.registerTool(
       store.replace(project);
       revision++;
       return text(snapshot());
+    }),
+);
+
+const renderJobs = new Map<
+  string,
+  {
+    status: string;
+    frame: number;
+    total: number;
+    result?: unknown;
+    error?: string;
+  }
+>();
+let renderActive = false;
+server.registerTool(
+  "project_render_video",
+  {
+    description:
+      "Démarrer un rendu CPU asynchrone dans le dossier autorisé. Source : filename, project, ou session courante. Consulter render_status. Aucun écrasement.",
+    inputSchema: {
+      filename: nameSchema.optional(),
+      project: projectSchema.optional(),
+      out: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}\.(mp4|webm)$/),
+      fps: z.number().int().min(1).max(60).optional(),
+      format: z.enum(["mp4", "webm"]).default("mp4"),
+      jobs: z.number().int().min(1).max(4).default(1),
+    },
+  },
+  async ({ filename, project, out, fps, format, jobs }) =>
+    safe(async () => {
+      if (renderActive) throw new Error("Un rendu est déjà actif.");
+      if (filename && project) throw new Error("Choisir filename ou project.");
+      if (!out.endsWith("." + format))
+        throw new Error("Extension incompatible avec format.");
+      renderActive = true;
+      try {
+        let source = project ?? store.get();
+        if (filename) {
+          const input = path.join(root, filename);
+          if ((await lstat(input)).isSymbolicLink())
+            throw new Error("Liens symboliques non autorisés.");
+          source = await readProject(input);
+        }
+        const id = crypto.randomUUID();
+        if (renderJobs.size >= 20)
+          renderJobs.delete(renderJobs.keys().next().value!);
+        const job = {
+          status: "running",
+          frame: 0,
+          total: Math.ceil(totalDuration(source) * (fps ?? source.fps)),
+        } as {
+          status: string;
+          frame: number;
+          total: number;
+          result?: unknown;
+          error?: string;
+        };
+        renderJobs.set(id, job);
+        void renderVideo(
+          source,
+          { out: path.join(root, out), fps, format, jobs },
+          (frame, total) => Object.assign(job, { frame, total }),
+        )
+          .then((result) => Object.assign(job, { status: "completed", result }))
+          .catch((error) =>
+            Object.assign(job, { status: "failed", error: String(error) }),
+          )
+          .finally(() => {
+            renderActive = false;
+          });
+        return text({ jobId: id, ...job });
+      } catch (error) {
+        renderActive = false;
+        throw error;
+      }
+    }),
+);
+server.registerTool(
+  "render_status",
+  {
+    description:
+      "Lire la progression ou le résultat d’un rendu vidéo de cette session.",
+    inputSchema: { jobId: z.string().uuid() },
+  },
+  async ({ jobId }) =>
+    safe(() => {
+      const job = renderJobs.get(jobId);
+      if (!job) throw new Error("Job introuvable.");
+      return text({ jobId, ...job });
     }),
 );
 await server.connect(new StdioServerTransport());

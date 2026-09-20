@@ -118,9 +118,10 @@ export const projectSchema = z
     schemaVersion: z.literal(2),
     id,
     name: z.string().min(1).max(100),
-    width: z.literal(1280),
-    height: z.literal(720),
-    fps: z.literal(30),
+    width: z.number().int().min(16).max(4096),
+    height: z.number().int().min(16).max(4096),
+    fps: z.number().int().min(1).max(60),
+    fontFamily: z.enum(["DejaVu Sans", "DejaVu Sans Mono"]).optional(),
     scenes: z.array(sceneSchema).min(1).max(30),
   })
   .strict()

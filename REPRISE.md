@@ -1,3 +1,20 @@
+# Point de reprise — 20 septembre 2026
+
+## Rendu headless livré
+
+CLI `node apps/cli/render.js projet.json --out film.mp4 --jobs 4 --emit-timeline timeline.json`, MP4 H.264/WebM VP9, resvg CPU avec polices DejaVu embarquées, temps f/fps, recadrage et taille finale. CLI quiz autonome. MCP project_render_video et render_status partagent l’encodeur, avec un job actif et sorties limitées au dossier autorisé. render_frame utilise le même rasteriseur à résolution native.
+
+Extensions v2 compatibles : canevas 16–4096 px, fps 1–60, fontFamily DejaVu Sans/Mono, blur 0–50 animé sur tous les éléments/groupes, maxWidth du texte. Les décors sont cadrés au centre ; les objets restent en pixels natifs. Aperçu, export navigateur et renderer partagent police et SVG. Titres, bulles et nouveaux quiz emploient les avances réelles des TTF. Provenance et licences dans docs/ASSETS.md ; options et limites dans docs/HEADLESS.md.
+
+Vérifications locales Windows/Node 24 : 34 tests passent (moteur, hashes de trois images, MP4/WebM avec ffprobe, timestamps, deux rendus à 1/2 workers identiques après décodage, CLI quiz et vrai SDK MCP). Compilation réussie. Les 12 parcours navigateur existants passent ; nouveau parcours portrait passé après correction de la validation blur sur tous les types, puis repassé après les retouches finales. Captures portrait desktop/mobile inspectées. Vite signale les gros chunks de polices ; les données base64 d’export sont chargées à la demande.
+
+Critère complet local : examples/quiz-list.animatelier.json rendu avec 4 workers, ffprobe confirme H.264 1280×720, 30/1 i/s, 1500 images, durée 50.000000 s. Sorties de contrôle ignorées dans agent-projects/quiz-headless.mp4 et quiz-timeline.json. La CI existante Ubuntu/Node 22 exécute aussi les nouveaux tests via npm test ; son résultat distant reste à vérifier après push.
+
+Limites : vidéos silencieuses (option manifeste retenue, mixage audio intégré non livré) ; manifeste de présence start/end, pas détection de visibilité optique ; reconnaissance des quiz par IDs stables. Rasterisation Chrome/resvg peut différer en anticrénelage. Resvg-js ne partage pas une base de polices entre constructeurs. Pas de reprise durable ni annulation MCP. Rendu de scripts complexes et polices externes non pris en charge. Les anciens projets restent valides, mais la police par défaut et les retours des nouveaux quiz peuvent changer. Pas de déploiement Netlify vérifié.
+
+Quotas avant vérification finale : 60 % restants sur cinq heures, 76 % hebdomadaire ; aucun crédit de réinitialisation utilisé. Aucun suivi automatique. Fichiers utilisateur préexistants animatelier-evolutions-integrale.md, docs/RENDU-HEADLESS.md et projets-videos/ laissés hors commit.
+
+---
 # Point de reprise — 19 septembre 2026
 
 ## Lot personnages terminé : pistes, mains et oscillations
@@ -166,3 +183,4 @@ Vérifications finales : npm test (13 réussis), npm run build et six parcours P
 Non livrés dans ce lot : pistes d’actions, casting partagé, hors champ, orientation automatique/profil, vitesse de marche, dialogues indépendants, décors/objets/transitions supplémentaires et script haut niveau. Les remarques 2–4 et 9–13 sont détaillées dans docs/ROADMAP.md ; commencer par un contrat versionné et une migration v1 testée.
 
 Quota avant les vérifications finales : 66 % de la fenêtre cinq heures et 41 % hebdomadaire restants. Aucun crédit de réinitialisation utilisé.
+

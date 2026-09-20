@@ -1,3 +1,4 @@
+import { wrapText } from "../core/text";
 import { pathMetrics } from "../core/paths";
 import type { Clip } from "../core/elements";
 import type { ElementState } from "../core/element-state";
@@ -13,7 +14,11 @@ const esc = (value: string) =>
         "'": "&apos;",
       })[c]!,
   );
-export function renderElement(state: ElementState, selected?: string): string {
+export function renderElement(
+  state: ElementState,
+  selected?: string,
+  fontFamily = "DejaVu Sans",
+): string {
   if (!state.visible) return "";
   const e = state.element;
   let content = "";
@@ -50,10 +55,13 @@ export function renderElement(state: ElementState, selected?: string): string {
       content += arrow(e.x2, e.y2, angle);
   }
   if (e.type === "text")
-    content = `<text fill="${e.color}" font-size="${e.fontSize}" text-anchor="${{ left: "start", center: "middle", right: "end" }[e.align]}" font-weight="${e.bold ? 700 : 400}">${(
-      state.displayText ?? e.text
+    content = `<text fill="${e.color}" font-size="${e.fontSize}" text-anchor="${{ left: "start", center: "middle", right: "end" }[e.align]}" font-weight="${e.bold ? 700 : 400}">${wrapText(
+      state.displayText ?? e.text,
+      e.fontSize,
+      e.maxWidth,
+      fontFamily,
+      e.bold,
     )
-      .split("\n")
       .map(
         (line, i) =>
           `<tspan x="0" dy="${i ? e.fontSize * 1.2 : 0}">${esc(line)}</tspan>`,
@@ -62,7 +70,7 @@ export function renderElement(state: ElementState, selected?: string): string {
   if (e.type === "group")
     content = [...state.children]
       .sort((a, b) => a.element.z - b.element.z)
-      .map((child) => renderElement(child, selected))
+      .map((child) => renderElement(child, selected, fontFamily))
       .join("");
   if (e.type === "group" && e.clip) {
     const serialized = JSON.stringify(e.clip);
@@ -72,6 +80,8 @@ export function renderElement(state: ElementState, selected?: string): string {
     const clipId = `clip-${e.id}-${(hash >>> 0).toString(16)}`;
     content = `<defs><clipPath id="${clipId}" clipPathUnits="userSpaceOnUse">${clipShape(e.clip)}</clipPath></defs><g clip-path="url(#${clipId})">${content}</g>`;
   }
+  if (e.blur)
+    content = `<defs><filter id="blur-${e.id}" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="${e.blur}"/></filter></defs><g filter="url(#blur-${e.id})">${content}</g>`;
   if (e.id === selected)
     content += `<circle cx="${e.anchor.x}" cy="${e.anchor.y}" r="7" fill="none" stroke="#7051d8" stroke-width="2"/><path d="M${e.anchor.x - 11} ${e.anchor.y}h22M${e.anchor.x} ${e.anchor.y - 11}v22" stroke="#7051d8" stroke-width="1"/>`;
   return `<g data-element-id="${esc(e.id)}" transform="matrix(${state.transform.join(" ")})" opacity="${e.opacity}">${content}</g>`;

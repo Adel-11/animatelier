@@ -27,3 +27,11 @@ Le choix du premier format externe sera fait après le contrat de rig interne. N
 
 
 `svg-path-properties` 2.1.0 (MIT), ajouté le 19 septembre 2026 depuis https://www.npmjs.com/package/svg-path-properties/v/2.1.0 ; source et documentation : https://github.com/rveciana/svg-path-properties. Sert au calcul pur JavaScript des longueurs SVG, sans DOM. Version et intégrité verrouillées dans package-lock.json. Aucun média téléchargé.
+
+## Polices et rendu headless — 20 septembre 2026
+
+- DejaVu Sans et DejaVu Sans Mono 2.37, regular/bold : fichiers TTF inchangés provenant du paquet npm `dejavu-fonts-ttf` 2.37.3, https://www.npmjs.com/package/dejavu-fonts-ttf/v/2.37.3 ; dépôt source https://github.com/senotrusov/dejavu-fonts-ttf. Copyright Bitstream et contributeurs DejaVu/Arev ; licence complète conservée dans `assets/fonts/LICENSE`. Redistribution avec notices, polices non vendables seules ; modifications DejaVu dans le domaine public selon la notice. Pas de rig ou média externe ajouté.
+- `scripts/generate-fonts.mjs` copie les quatre TTF et leur licence et dérive `metrics.json` (avances normalisées) et `data.json` (mêmes octets en base64 pour export navigateur) à l’aide d’opentype.js. Les intégrités npm et versions sont verrouillées dans package-lock.json.
+- `@resvg/resvg-js` : binding CPU depuis npm et paquets natifs npm ; https://github.com/yisibl/resvg-js (MPL-2.0 selon le paquet).
+- `ffmpeg-static` 5.3.0 : paquet npm, binaire release b6.1.1 depuis https://github.com/eugeneware/ffmpeg-static/releases ; licence du paquet GPL-3.0-or-later, notices du binaire dans son installation. Le binaire n’est pas commité ni incorporé au bundle web.
+- `@ffprobe-installer/ffprobe` : outil de vérification en dépendance de développement, binaire spécifique à la plateforme distribué sur npm. Aucun domaine de modèles, aucune API payante.

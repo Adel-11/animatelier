@@ -1,3 +1,5 @@
+import { rasterFrame } from "../packages/headless/frame";
+import { parseProject } from "../packages/core/schema";
 import motionExample from "../examples/personnage-et-objet.animatelier.json";
 import { it, expect } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -201,6 +203,57 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
       arguments: { time: 3 },
     });
     expect(quizPng.content[1].mimeType).toBe("image/png");
+    for (const time of [0, 1.5, 3]) {
+      const frame: any = await client.callTool({
+        name: "render_frame",
+        arguments: { time },
+      });
+      expect(
+        Buffer.from(frame.content[1].data, "base64").equals(
+          rasterFrame(parseProject(quiz.project), time).asPng(),
+        ),
+      ).toBe(true);
+    }
+    const small = {
+      ...quiz.project,
+      width: 320,
+      height: 180,
+      scenes: [{ ...quiz.project.scenes[0], duration: 1, elements: [] }],
+    };
+    const launched = unpack(
+      await client.callTool({
+        name: "project_render_video",
+        arguments: { project: small, out: "render.mp4", fps: 2, jobs: 2 },
+      }),
+    );
+    expect(launched.jobId).toBeDefined();
+    let status;
+    for (let i = 0; i < 100; i++) {
+      status = unpack(
+        await client.callTool({
+          name: "render_status",
+          arguments: { jobId: launched.jobId },
+        }),
+      );
+      if (status.status !== "running") break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    expect(status).toMatchObject({
+      status: "completed",
+      frame: 2,
+      result: { frames: 2 },
+    });
+    expect(
+      (await readFile(path.join(directory, "render.mp4"))).length,
+    ).toBeGreaterThan(100);
+    const escaped = await client.callTool({
+      name: "project_render_video",
+      arguments: { out: "../escape.mp4" },
+    });
+    expect(escaped.isError).toBe(true);
+    expect(
+      unpack(await client.callTool({ name: "project_get", arguments: {} })),
+    ).toEqual(quiz);
     expect(capabilities.schema.motion.guide).toContain("timeline");
     await client.callTool({
       name: "project_load_data",

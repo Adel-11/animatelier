@@ -46,6 +46,7 @@ export const transformShape = {
   wobble: wobbleSchema,
 };
 type Common = {
+  blur?: number;
   id: string;
   x: number;
   y: number;
@@ -114,6 +115,7 @@ export type SceneElement = Common &
     | {
         type: "text";
         text: string;
+        maxWidth?: number;
         fontSize: number;
         color: string;
         align: "left" | "center" | "right";
@@ -134,6 +136,7 @@ export type SceneElement = Common &
 export const elementBounds: Record<SceneElement["type"], Bounds> = {
   rect: {
     ...transformBounds,
+    blur: [0, 50],
     w: [0, 5000],
     h: [0, 5000],
     radius: [0, 2500],
@@ -141,21 +144,34 @@ export const elementBounds: Record<SceneElement["type"], Bounds> = {
   },
   ellipse: {
     ...transformBounds,
+    blur: [0, 50],
     w: [0, 5000],
     h: [0, 5000],
     strokeWidth: [0, 100],
   },
   line: {
     ...transformBounds,
+    blur: [0, 50],
     x2: [-10000, 10000],
     y2: [-10000, 10000],
     strokeWidth: [0, 100],
   },
-  text: { ...transformBounds, fontSize: [1, 400], progress: [0, 1] },
-  group: transformBounds,
-  path: { ...transformBounds, draw: [0, 1], strokeWidth: [0, 100] },
+  text: {
+    ...transformBounds,
+    blur: [0, 50],
+    fontSize: [1, 400],
+    progress: [0, 1],
+  },
+  group: { ...transformBounds, blur: [0, 50] },
+  path: {
+    ...transformBounds,
+    blur: [0, 50],
+    draw: [0, 1],
+    strokeWidth: [0, 100],
+  },
 };
 const common = {
+  blur: z.number().finite().min(0).max(50).default(0),
   attachment: z
     .object({ actorId: identifier, hand: z.enum(["left", "right"]) })
     .strict()
@@ -217,6 +233,7 @@ const recursive: z.ZodType<SceneElement, z.ZodTypeDef, any> = z.lazy(() =>
           ...common,
           type: z.literal("text"),
           text: z.string().max(2000).default("Votre texte"),
+          maxWidth: z.number().finite().min(1).max(10000).optional(),
           fontSize: z.number().min(1).max(400).default(32),
           color: z
             .string()

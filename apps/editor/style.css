@@ -1,3 +1,23 @@
+@font-face {
+  font-family: "DejaVu Sans";
+  font-weight: 400;
+  src: url("../../assets/fonts/DejaVuSans.ttf");
+}
+@font-face {
+  font-family: "DejaVu Sans";
+  font-weight: 700;
+  src: url("../../assets/fonts/DejaVuSans-Bold.ttf");
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  font-weight: 400;
+  src: url("../../assets/fonts/DejaVuSansMono.ttf");
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  font-weight: 700;
+  src: url("../../assets/fonts/DejaVuSansMono-Bold.ttf");
+}
 :root {
   font-family: Inter, "Segoe UI", Arial, sans-serif;
   color: #eceef5;

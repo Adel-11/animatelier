@@ -206,3 +206,7 @@ Voir [QUIZ.md](QUIZ.md). Le même guide est disponible dans `capabilities.schema
 ## Pistes de personnages et objets attachés
 
 Voir [PERSONNAGES.md](PERSONNAGES.md), aussi exposé par `help().motion.guide` et `capabilities.schema.motion.guide`. Pas de nouvelle commande : actor.replace pour timeline/wobble, element.replace pour attachment/wobble. project_state_at et getStateAt renvoient l’action et la réplique évaluées, les matrices hands.left/right et les transformations mondiales des objets. Les mutations MCP gardent leur révision attendue.
+
+## Vidéo CPU asynchrone
+
+`project_render_video({out:"film.mp4",fps:30,format:"mp4",jobs:2})` capture la session ; `project` ou `filename` permettent une autre source. Suivre le `jobId` avec `render_status`. Aucun écrasement ; un seul rendu actif. `render_frame` utilise désormais resvg et les polices embarquées à la résolution native. [Contrat et limites](HEADLESS.md).

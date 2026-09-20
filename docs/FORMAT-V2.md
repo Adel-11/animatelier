@@ -4,7 +4,7 @@ Décision du 19 septembre 2026 : l’utilisateur autorise l’abandon des projet
 
 ## Contrat
 
-- `schemaVersion: 2`, résolution 1280 × 720, 30 images/s. Les scènes possèdent `actors` et `elements` (tableau vide par défaut).
+- `schemaVersion: 2`, width/height de 16 à 4096 pixels, fps de 1 à 60 (projets existants : 1280 × 720, 30 images/s). Les scènes possèdent `actors` et `elements` (tableau vide par défaut).
 - Éléments : `rect`, `ellipse`, `line`, `text`, `group`. Identifiants uniques parmi personnages et éléments d’une scène, y compris les enfants des groupes.
 - Commun : id, x/y (coordonnées locales, pixels), rotation (degrés), scale, opacity, z, start/end (secondes de scène), anchor `{x,y}` (pivot en pixels locaux), keyframes. Les formes partent de leur coin supérieur gauche ; les lignes vont de (0,0) à (x2,y2) ; le texte est posé sur sa ligne de base. Transformation : translation x/y, translation au pivot, rotation, échelle, translation inverse du pivot.
 - Les enfants sont relatifs au groupe pour la géométrie, mais utilisent le même temps de scène. La visibilité et l’opacité du groupe affectent ses enfants. Un groupe est une couche indivisible : le z d’un enfant reste local. À z égal, ordre du tableau conservé ; les personnages sont ordonnés selon y puis placés avant les éléments.
@@ -34,3 +34,7 @@ Exemple complet : `examples/trace-masque-compteur.animatelier.json`. Les fichier
 ## Extensions compatibles : actions, attaches et oscillations
 
 Voir [PERSONNAGES.md](PERSONNAGES.md) pour les contrats de timeline, toX, attachment et wobble. Les valeurs par défaut préservent les projets précédents. Les actions hold/point sont ajoutées ; les clés x restent prioritaires sur le déplacement. Les références d’attache sont validées à la fin d’un lot atomique. Les nouvelles données ne seront pas comprises par les anciennes versions de l’application.
+
+## Rendu CPU et extensions compatibles
+
+Voir [HEADLESS.md](HEADLESS.md) : fontFamily optionnel, blur animé des éléments/groupes, maxWidth des textes, formats portrait, export vidéo et manifeste.

@@ -14,6 +14,14 @@ export async function svgImage(
   svg: string,
   signal?: AbortSignal,
 ): Promise<HTMLImageElement> {
+  const { default: fontData } = await import("../../assets/fonts/data.json");
+  const faces = Object.entries(fontData)
+    .map(
+      ([name, data]) =>
+        `@font-face{font-family:'${name.includes("Mono") ? "DejaVu Sans Mono" : "DejaVu Sans"}';font-weight:${name.includes("Bold") ? 700 : 400};src:url(data:font/ttf;base64,${data})}`,
+    )
+    .join("");
+  svg = svg.replace(/(<svg[^>]*>)/, `$1<style>${faces}</style>`);
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const image = new Image();
@@ -58,8 +66,8 @@ function bounded<T>(
 }
 export async function pngFrame(project: Project, time: number) {
   const canvas = document.createElement("canvas");
-  canvas.width = 1280;
-  canvas.height = 720;
+  canvas.width = project.width;
+  canvas.height = project.height;
   canvas
     .getContext("2d")!
     .drawImage(await svgImage(renderProjectSvg(project, time)), 0, 0);
@@ -91,8 +99,8 @@ export async function exportVideo(
       "Export WebM indisponible dans ce navigateur. Essayez Chrome ou Edge.",
     );
   const canvas = document.createElement("canvas");
-  canvas.width = 1280;
-  canvas.height = 720;
+  canvas.width = project.width;
+  canvas.height = project.height;
   const ctx = canvas.getContext("2d")!;
   const drawFrame = async (time: number) => {
     ctx.drawImage(
