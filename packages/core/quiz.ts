@@ -175,11 +175,11 @@ export function compileQuiz(input: unknown, baseTheme?: unknown) {
           id: "brand_logo",
           src: l.src,
           x: l.placement.endsWith("right")
-            ? 1280 - l.margin - l.size
-            : l.margin,
+            ? 1280 - (l.marginX ?? l.margin) - l.size
+            : (l.marginX ?? l.margin),
           y: l.placement.startsWith("bottom")
-            ? 720 - l.margin - l.size
-            : l.margin,
+            ? 720 - (l.marginY ?? l.margin) - l.size
+            : (l.marginY ?? l.margin),
           w: l.size,
           h: l.size,
           fit: "contain",
