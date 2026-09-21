@@ -3,14 +3,28 @@ import { Worker } from "node:worker_threads";
 import { mkdir, link, rename, rm, stat, readFile } from "node:fs/promises";
 import path from "node:path";
 import ffmpeg from "ffmpeg-static";
-import { parseProject } from "../core/schema";
+
 import { totalDuration } from "../core/engine";
 import { z } from "zod";
+import { availableParallelism, freemem } from "node:os";
+import { resolveProjectAssets } from "./assets";
+export function defaultRenderJobs(width: number, height: number) {
+  return Math.max(
+    1,
+    Math.min(
+      16,
+      availableParallelism(),
+      Math.floor(freemem() / (128 * 1024 * 1024 + width * height * 24)),
+    ),
+  );
+}
 export const renderOptionsSchema = z.object({
   out: z.string().min(1),
   fps: z.number().int().min(1).max(60).optional(),
   format: z.enum(["mp4", "webm"]).default("mp4"),
-  jobs: z.number().int().min(1).max(16).default(1),
+  jobs: z.number().int().min(1).max(16).optional(),
+  assetsDir: z.string().optional(),
+  target: z.enum(["instagram-reel"]).optional(),
   crop: z
     .tuple([
       z.number().int().min(0),
@@ -28,19 +42,24 @@ export const renderOptionsSchema = z.object({
   overwrite: z.boolean().default(false),
 });
 export type RenderOptions = z.input<typeof renderOptionsSchema>;
-export async function readProject(filename: string) {
-  if ((await stat(filename)).size > 5_000_000)
-    throw new Error("Projet supérieur à 5 Mo.");
-  return parseProject(JSON.parse(await readFile(filename, "utf8")));
+export async function readProject(filename: string, assetsDir?: string) {
+  if ((await stat(filename)).size > 45_000_000)
+    throw new Error("Projet supérieur à 45 Mo.");
+  return resolveProjectAssets(
+    JSON.parse(await readFile(filename, "utf8")),
+    assetsDir,
+  );
 }
 export async function renderVideo(
   input: unknown,
   options: RenderOptions,
   progress: (frame: number, total: number) => void = () => {},
 ) {
-  const project = parseProject(input),
-    opts = renderOptionsSchema.parse(options);
-  const fps = opts.fps ?? project.fps,
+  const opts = renderOptionsSchema.parse(options);
+  const project = await resolveProjectAssets(input, opts.assetsDir);
+  if (opts.target && opts.format !== "mp4")
+    throw new Error("Instagram exige MP4.");
+  const fps = opts.target ? 30 : (opts.fps ?? project.fps),
     frames = Math.ceil(totalDuration(project) * fps);
   const crop = opts.crop;
   if (
@@ -94,7 +113,30 @@ export async function renderVideo(
     "-threads",
     "1",
     ...(opts.format === "mp4"
-      ? ["-movflags", "+faststart", "-crf", "18"]
+      ? [
+          "-movflags",
+          "+faststart",
+          ...(opts.target
+            ? [
+                "-use_editlist",
+                "0",
+                "-profile:v",
+                "high",
+                "-crf",
+                "27",
+                "-tune",
+                "animation",
+                "-g",
+                "60",
+                "-flags",
+                "+cgop",
+                "-bf",
+                "0",
+                "-fps_mode",
+                "cfr",
+              ]
+            : ["-crf", "18"]),
+        ]
       : ["-crf", "28", "-b:v", "0"]),
     "-frames:v",
     String(frames),
@@ -120,7 +162,15 @@ export async function renderVideo(
   void done.catch(() => {});
   child.stdin.on("error", () => {});
   try {
-    for (let i = 0; i < Math.min(opts.jobs, frames); i++)
+    for (
+      let i = 0;
+      i <
+      Math.min(
+        opts.jobs ?? defaultRenderJobs(project.width, project.height),
+        frames,
+      );
+      i++
+    )
       workers.push(
         new Worker(new URL("./worker.js", import.meta.url), {
           workerData: project,
