@@ -1,3 +1,4 @@
+import { animated } from "../packages/core/keyframes";
 import { expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { compileQuiz } from "../packages/core/quiz";
@@ -46,7 +47,7 @@ it("uses the supplied QFF reference questions and exact generator timing", () =>
 it("merges nested theme fields and preserves older correct override", () => {
   const t = resolveTheme({ shapes: { radius: 9 }, correct: "#123456" }, "qff");
   expect(t.background).toBe("#07275F");
-  expect(t.shapes.ringWidth).toBe(14);
+  expect(t.shapes.ringWidth).toBe(22);
   expect(t.shapes.radius).toBe(9);
   expect(t.answer).toBe("#123456");
   expect(() => resolveTheme({ logo: { src: "https://bad" } })).toThrow();
@@ -114,4 +115,85 @@ it("CLI theme overrides named spec theme while keeping field overrides", () => {
     compileQuiz({ ...input, theme: { accent: "#123456" } }, "light").project
       .scenes[0].backdrop?.color,
   ).toBe("#F5F7FA");
+});
+
+it("holds image and question effects through the entire countdown", () => {
+  for (const effect of ["blur", "hide"] as const) {
+    const b = compileQuiz({
+      ...input,
+      questionEffect: effect,
+      levels: [
+        {
+          name: "IMAGE",
+          questions: [
+            { q: "Who?", a: "A", image: "file:a.png", imageEffect: "pixelate" },
+          ],
+        },
+      ],
+    });
+    const timing = b.timeline.questions[0],
+      local = timing.readEnd - timing.start + 2,
+      scene = b.project.scenes.find((s) => s.id === timing.id)!;
+    const text = scene.elements.find((e) => e.id === "question")!,
+      im = scene.elements.find((e) => e.id === "question_image")!;
+    expect(animated(text, local)[effect === "hide" ? "opacity" : "blur"]).toBe(
+      effect === "hide" ? 0 : 16,
+    );
+    expect((animated(im, local) as { pixelate?: number }).pixelate).toBe(25);
+    expect(
+      (
+        animated(im, Math.round((timing.reveal - timing.start) * 30) / 30) as {
+          pixelate?: number;
+        }
+      ).pixelate,
+    ).toBe(0);
+  }
+});
+it("uses remaining reading capacity before warning about the duration cap", () => {
+  const b = compileQuiz({
+    ...input,
+    timing: { answer: 1, answerMin: 1, maxDuration: 29.9 },
+    levels: [
+      {
+        name: "ONE",
+        questions: [
+          {
+            q: "This long question has enough characters to reach the maximum reading duration?",
+            a: "A",
+          },
+          { q: "Short?", a: "B" },
+        ],
+      },
+    ],
+  });
+  expect(b.duration).toBeLessThanOrEqual(29.9 + 1 / 30);
+  expect(b.warnings.some((w) => w.includes("exceeds maxDuration"))).toBe(false);
+});
+it("warns when a spoken answer cannot fit its estimated slot", () => {
+  const b = compileQuiz({
+    ...input,
+    levels: [
+      {
+        name: "ONE",
+        questions: [
+          {
+            q: "?",
+            a: "This is a very long answer which requires many seconds to read aloud clearly.",
+          },
+        ],
+      },
+    ],
+  });
+  expect(
+    b.warnings.some((w) => w.includes("Voice slot question_1_answer")),
+  ).toBe(true);
+});
+it("uses the reference QFF logo sizes and offsets", () => {
+  const b = compileQuiz({ ...input, theme: "qff" }),
+    cover = b.project.scenes[0].elements.find((e) => e.id === "cover_logo")!,
+    logo = b.project.scenes
+      .find((s) => s.id === "question_1")!
+      .elements.find((e) => e.id === "brand_logo")!;
+  expect(cover).toMatchObject({ x: 110, y: 530, w: 860, h: 860 });
+  expect(logo).toMatchObject({ x: 50, y: 165, w: 190, h: 190 });
 });

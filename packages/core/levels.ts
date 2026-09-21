@@ -116,6 +116,8 @@ export function normalizeLevels(input: unknown): unknown {
     return input;
   const raw = input as Record<string, unknown>;
   if (raw.mode !== undefined) return input;
+  if (input.levels.some((l) => !l || typeof l !== "object" || Array.isArray(l)))
+    return input;
   const { id: _, name, ...rest } = raw;
   const names = ["ROOKIE", "MASTER", "GOAT"],
     subs = ["Warm-up time", "Getting harder...", "Only legends survive"];
@@ -213,16 +215,17 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
       all.length * answer -
       t.maxDuration;
   }
-  if (overflow > 0)
-    for (let i = 0; i < reads.length; i++) {
-      const reduction = Math.min(
-        Math.max(0, reads[i] - t.readMin),
-        overflow / (reads.length - i),
-      );
-      const previous = reads[i];
-      reads[i] = Math.ceil((reads[i] - reduction) * 30) / 30;
-      overflow -= previous - reads[i];
-    }
+  // Spend the remaining frame budget wherever reading can still be shortened.
+  // A single equal-share pass strands capacity when a later question is already at its minimum.
+  for (let i = 0; i < reads.length && overflow > 1e-8; i++) {
+    const reducibleFrames = Math.max(
+      0,
+      Math.floor((reads[i] - t.readMin) * 30 + 1e-8),
+    );
+    const frames = Math.min(reducibleFrames, Math.ceil(overflow * 30 - 1e-8));
+    reads[i] = frame(reads[i] - frames / 30);
+    overflow -= frames / 30;
+  }
   if (overflow > 1 / 30)
     warnings.push(
       `Duration exceeds maxDuration by ${overflow.toFixed(2)}s after reducing answer then read to minimums.`,
@@ -246,13 +249,20 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
     start: number,
     maxDuration: number,
     text: string,
-  ) =>
+  ) => {
+    const spoken = spokenNumbers(text, s.language);
+    const estimate = spoken.trim().split(/\s+/).length / 2.6;
+    if (estimate > maxDuration + 0.25)
+      warnings.push(
+        `Voice slot ${id}: estimated ${estimate.toFixed(1)}s exceeds ${maxDuration.toFixed(1)}s; shorten text or adjust speech speed.`,
+      );
     voiceScript.push({
       id,
       start: frame(start),
       maxDuration: frame(maxDuration),
-      text: spokenNumbers(text, s.language),
+      text: spoken,
     });
+  };
   function scene(
     id: string,
     duration: number,
@@ -262,15 +272,16 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
     duration = frame(duration);
     const d = drawing(duration);
     draw(d);
-    if (theme.logo && theme.logo.scenes.includes(kind)) {
+    if (theme.logo && id !== "intro_logo" && theme.logo.scenes.includes(kind)) {
       const l = theme.logo,
         size = l.size * unit,
-        margin = l.margin * unit;
+        marginX = (l.marginX ?? l.margin) * unit,
+        marginY = (l.marginY ?? l.margin) * (safeH / 1640);
       d.image(
         "brand_logo",
         l.src,
-        l.placement.endsWith("right") ? width - margin - size : margin,
-        l.placement.startsWith("bottom") ? safeH - size - margin : margin,
+        l.placement.endsWith("right") ? width - marginX - size : marginX,
+        l.placement.startsWith("bottom") ? safeH - size - marginY : marginY,
         size,
         size,
       );
@@ -380,7 +391,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
         "cover_logo",
         l.src,
         (width - size) / 2,
-        (safeH - size) / 2,
+        (height - size) / 2,
         size,
         size,
         {
@@ -463,14 +474,51 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
       lid = `level_${li + 1}`;
     events.push({ time: ls, type: "level", id: lid });
     scene(lid, t.levelCard, "level", (d) => {
+      s.levels.forEach((l, i) => {
+        const left = (width * 50) / 1080,
+          total = width - left * 2,
+          groupW = total / s.levels.length,
+          cell = (groupW - 16) / l.questions.length;
+        l.questions.forEach((_, j) =>
+          d.rect(
+            `card_progress_${i}_${j}`,
+            left + i * groupW + j * cell,
+            (safeH * 400) / 1640,
+            cell - 4,
+            22 * unit,
+            i < li ? theme.levels[i % theme.levels.length] : theme.track,
+            { radius: 11 },
+          ),
+        );
+        d.text(
+          `card_progress_label_${i}`,
+          l.name,
+          left + i * groupW,
+          (safeH * 430) / 1640,
+          groupW,
+          48 * unit,
+          28 * unit,
+          theme.levels[i % theme.levels.length],
+        );
+      });
+      d.text(
+        "level_number",
+        `${s.language === "fr" ? "NIVEAU" : "LEVEL"} ${li + 1}`,
+        width * 0.08,
+        safeH * 0.39,
+        width * 0.84,
+        safeH * 0.12,
+        90 * unit,
+      );
+
       d.text(
         "level_name",
         level.name,
         width * 0.08,
-        safeH * 0.35,
+        safeH * 0.5,
         width * 0.84,
-        safeH * 0.2,
-        95 * unit,
+        safeH * 0.15,
+        200 * unit,
         levelColor,
       );
       if (level.subtitle)
@@ -478,10 +526,10 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
           "level_subtitle",
           level.subtitle,
           width * 0.08,
-          safeH * 0.58,
+          safeH * 0.64,
           width * 0.84,
-          safeH * 0.15,
-          42 * unit,
+          safeH * 0.1,
+          50 * unit,
           theme.muted,
         );
     });
@@ -525,13 +573,15 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
       voice(`${id}_answer`, start + reveal, answer, answerText);
       scene(id, duration, "question", (d) => {
         const landscape = s.format === "landscape",
-          margin = width * 0.06,
-          contentW = width * 0.88;
+          margin = width * (50 / 1080),
+          contentW = width - 2 * margin,
+          headerX = landscape ? margin : width * (300 / 1080),
+          headerW = landscape ? contentW : width * (700 / 1080);
         d.rect(
           "level_badge_panel",
-          margin,
-          safeH * 0.1,
-          contentW,
+          headerX,
+          safeH * (178 / 1640),
+          headerW,
           84 * unit,
           levelColor,
         );
@@ -548,9 +598,9 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
         d.text(
           "question_number",
           `QUESTION ${number} OF ${all.length}`,
-          margin,
+          headerX,
           safeH * 0.175,
-          contentW,
+          headerW,
           50 * unit,
           36 * unit,
           theme.muted,
@@ -610,7 +660,11 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
                       v: s.questionEffect === "hide" ? 0 : 16,
                       ease: "step",
                     },
-                    { t: reveal, v: s.questionEffect === "hide" ? 1 : 0 },
+                    {
+                      t: reveal,
+                      v: s.questionEffect === "hide" ? 1 : 0,
+                      ease: "step",
+                    },
                   ],
                 },
               };
@@ -655,7 +709,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
                       [prop]: [
                         { t: 0, v: prop === "zoom" ? 1 : 0, ease: "step" },
                         { t: read, v, ease: "step" },
-                        { t: reveal, v: prop === "zoom" ? 1 : 0 },
+                        { t: reveal, v: prop === "zoom" ? 1 : 0, ease: "step" },
                       ],
                     },
                   }),
@@ -664,7 +718,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
         }
         const rx = landscape ? width * 0.79 : width / 2,
           ry = landscape ? height * 0.46 : safeH * 0.787,
-          r = landscape ? 65 : 130;
+          r = landscape ? 65 : 150 * (safeH / 1640);
         d.add("ellipse", {
           id: "countdown_ring",
           x: rx - r,
@@ -684,7 +738,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
           y: 0,
           d: `M ${rx} ${ry - r} A ${r} ${r} 0 1 1 ${rx - 0.01} ${ry - r}`,
           fill: "none",
-          stroke: levelColor,
+          stroke: theme.accent,
           strokeWidth: theme.shapes.ringWidth,
           start: read,
           end: reveal,
@@ -707,9 +761,9 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
             theme.text,
             { start: read + k, end: read + k + 1 },
           );
-        const ax = landscape ? width * 0.64 : margin,
+        const ax = landscape ? width * 0.64 : width * (110 / 1080),
           ay = landscape ? height * 0.64 : safeH * 0.665,
-          aw = landscape ? width * 0.3 : contentW,
+          aw = landscape ? width * 0.3 : width * (860 / 1080),
           ah = landscape ? height * 0.23 : safeH * 0.23;
         if (q.choices) {
           const cy = landscape ? height * 0.2 : safeH * 0.58,
@@ -731,14 +785,28 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
             );
           });
         }
-        d.rect("answer_panel", ax, ay, aw, ah, levelColor, { start: reveal });
+        d.rect("answer_panel", ax, ay, aw, ah, levelColor, {
+          start: reveal,
+          radius: (theme.shapes.radius * 7) / 6,
+        });
+        d.text(
+          "answer_label",
+          s.language === "fr" ? "R�PONSE" : "ANSWER",
+          ax + 24,
+          ay + 15,
+          aw - 48,
+          ah * 0.22,
+          42 * unit,
+          theme.background,
+          { start: reveal },
+        );
         d.text(
           "answer",
           answerText,
           ax + 24,
-          ay + 20,
+          ay + ah * 0.26,
           aw - 48,
-          ah - 40,
+          ah * 0.65,
           84 * unit,
           theme.background,
           { start: reveal },
@@ -758,23 +826,41 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
       70 * unit,
       theme.accent,
     );
-    d.text(
-      "outro_tiers",
-      s.outro.tiers.join("\n"),
-      width * 0.08,
-      safeH * 0.4,
-      width * 0.84,
-      safeH * 0.28,
-      40 * unit,
-    );
+    s.outro.tiers.forEach((tier, i) => {
+      const step = Math.min(
+          135 * unit,
+          (safeH * 0.3) / Math.max(1, s.outro.tiers.length),
+        ),
+        rowH = step * 0.77,
+        y = safeH * 0.42 + i * step;
+      d.rect(
+        `outro_tier_panel_${i}`,
+        width * 0.2,
+        y,
+        width * 0.6,
+        rowH,
+        theme.levels[i % theme.levels.length],
+        { radius: rowH / 2 },
+      );
+      d.text(
+        `outro_tier_${i}`,
+        tier,
+        width * 0.22,
+        y,
+        width * 0.56,
+        rowH,
+        54 * unit,
+        theme.background,
+      );
+    });
     d.text(
       "outro_cta",
       s.outro.cta.join("\n"),
       width * 0.08,
-      safeH * 0.75,
+      safeH * 0.72,
       width * 0.84,
-      safeH * 0.2,
-      32 * unit,
+      safeH * 0.15,
+      44 * unit,
       theme.muted,
     );
   });
