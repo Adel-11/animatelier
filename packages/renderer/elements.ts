@@ -1,3 +1,5 @@
+import { imageSvg } from "./images";
+import type { Assets } from "../core/assets";
 import { wrapText } from "../core/text";
 import { pathMetrics } from "../core/paths";
 import type { Clip } from "../core/elements";
@@ -18,10 +20,11 @@ export function renderElement(
   state: ElementState,
   selected?: string,
   fontFamily = "DejaVu Sans",
+  assets: Assets = {},
 ): string {
   if (!state.visible) return "";
   const e = state.element;
-  let content = "";
+  let content = e.type === "image" ? imageSvg(e, assets) : "";
   if (e.type === "path" && e.draw > 0) {
     if (e.draw >= 1)
       content = `<path d="${esc(pathMetrics(e.d).d)}" fill="${e.fill}" stroke="${e.stroke}" stroke-width="${e.strokeWidth}"/>`;
@@ -70,7 +73,7 @@ export function renderElement(
   if (e.type === "group")
     content = [...state.children]
       .sort((a, b) => a.element.z - b.element.z)
-      .map((child) => renderElement(child, selected, fontFamily))
+      .map((child) => renderElement(child, selected, fontFamily, assets))
       .join("");
   if (e.type === "group" && e.clip) {
     const serialized = JSON.stringify(e.clip);

@@ -39,3 +39,9 @@ Le manifeste permet le montage audio externe avec ffmpeg. La variante de mixage 
 `project_render_video` accepte `filename` (JSON dans le dossier autorisé) OU `project`, ou utilise la session courante si les deux sont absents ; `out`, `fps`, `format` et `jobs` (1–4) configurent le rendu. Les noms de sortie sont simples, terminés par `.mp4`/`.webm`, et ne sont jamais écrasés. Le projet est capturé et validé au lancement, sans modifier la révision de session.
 
 Réponse immédiate `{jobId,status,frame,total}`. Appeler `render_status({jobId})` jusqu’à `completed` (avec `result.path`) ou `failed` (avec `error`). Un seul rendu actif par serveur ; les 20 derniers jobs restent en mémoire. Garder le serveur connecté jusqu’à la fin. Pas de reprise durable ni d’annulation MCP. Le CLI et le MCP appellent `packages/headless/video.ts` ; aucune dépendance Node n’entre dans core ou renderer.
+
+## Extension quiz vidéo — 21 septembre 2026
+
+Le pipeline complet est maintenant `node apps/cli/quiz-video.js spec.json --out out/ --theme qff` : vidéo, projet autonome, minutage, script vocal, couverture et planche contact. Audio fourni/SFX synthétiques en option. [Contrat complet](QUIZ-VIDEO.md).
+
+`render.js` accepte maintenant `--assets-dir` et choisit par défaut les workers selon CPU/mémoire ; les images répétées sont réutilisées. Images PNG/JPEG/WebP génériques, 5 Mo/image, 30 Mo/projet, JSON45Mo, décodage réel avant rendu. Ces capacités remplacent les anciennes limites « 5 Mo par projet », « jobs1 par défaut » et « pas de mixage intégré » décrites plus haut. Le pipeline dédié produit un profil MP4 sans elst ; les exports navigateur restent en temps réel.

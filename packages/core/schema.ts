@@ -1,3 +1,4 @@
+import { assetsSchema } from "./assets";
 import { z } from "zod";
 import { elementsSchema, flattenElements, transformShape } from "./elements";
 import { transformBounds, validateTracks, validateWobble } from "./keyframes";
@@ -73,6 +74,16 @@ export const sceneSchema = z
     name: z.string().min(1).max(80),
     duration: z.number().min(1).max(120),
     background: z.enum(backgrounds),
+    backdrop: z
+      .object({
+        type: z.enum(["solid", "linear", "pattern"]),
+        color,
+        color2: color.optional(),
+        angle: z.number().min(-360).max(360).optional(),
+        spacing: z.number().min(4).max(500).optional(),
+      })
+      .strict()
+      .optional(),
     title: z.string().max(120),
     actors: z.array(actorSchema).max(40),
     elements: elementsSchema,
@@ -122,10 +133,19 @@ export const projectSchema = z
     height: z.number().int().min(16).max(4096),
     fps: z.number().int().min(1).max(60),
     fontFamily: z.enum(["DejaVu Sans", "DejaVu Sans Mono"]).optional(),
-    scenes: z.array(sceneSchema).min(1).max(30),
+    assets: assetsSchema.optional(),
+    scenes: z.array(sceneSchema).min(1).max(100),
   })
   .strict()
   .superRefine((p, ctx) => {
+    for (const scene of p.scenes)
+      for (const e of flattenElements(scene.elements))
+        if (
+          e.type === "image" &&
+          e.src.startsWith("asset:") &&
+          (!p.assets || !Object.hasOwn(p.assets, e.src.slice(6)))
+        )
+          ctx.addIssue({ code: "custom", message: `Image absente : ${e.src}` });
     if (new Set(p.scenes.map((s) => s.id)).size !== p.scenes.length)
       ctx.addIssue({
         code: "custom",

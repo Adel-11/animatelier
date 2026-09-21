@@ -13,6 +13,7 @@ import {
 import { animated, easings } from "../../packages/core/keyframes";
 
 const labels = {
+  image: "Image",
   rect: "Rectangle",
   path: "Tracé",
   ellipse: "Ellipse",
@@ -68,30 +69,32 @@ export function ElementsPanel({
           : "Ajoutez des formes et animez leurs propriétés."}
       </p>
       <div className="element-buttons">
-        {elementTypes.map((type) => (
-          <button
-            key={type}
-            disabled={busy}
-            onClick={() => {
-              const element = newElement(
-                type,
-                scene.duration,
-                node?.type === "group" ? { x: 0, y: 0 } : {},
-              );
-              dispatch([
-                {
-                  type: "element.add",
-                  sceneId: scene.id,
-                  parentId: node?.type === "group" ? node.id : undefined,
-                  element,
-                },
-              ]);
-              select(element.id);
-            }}
-          >
-            ＋ {labels[type]}
-          </button>
-        ))}
+        {elementTypes
+          .filter((type) => type !== "image")
+          .map((type) => (
+            <button
+              key={type}
+              disabled={busy}
+              onClick={() => {
+                const element = newElement(
+                  type,
+                  scene.duration,
+                  node?.type === "group" ? { x: 0, y: 0 } : {},
+                );
+                dispatch([
+                  {
+                    type: "element.add",
+                    sceneId: scene.id,
+                    parentId: node?.type === "group" ? node.id : undefined,
+                    element,
+                  },
+                ]);
+                select(element.id);
+              }}
+            >
+              ＋ {labels[type]}
+            </button>
+          ))}
       </div>
       <button disabled={busy} onClick={() => select(null)}>
         Ajouter hors du groupe
@@ -226,6 +229,19 @@ export function ElementsPanel({
               />
             </label>
           ))}
+          {node.type === "image" && (
+            <label className="field">
+              Cadrage de l’image
+              <select
+                aria-label="Cadrage de l’image"
+                value={node.fit}
+                onChange={(e) => commit({ ...node, fit: e.target.value })}
+              >
+                <option value="contain">Contenir</option>
+                <option value="cover">Remplir</option>
+              </select>
+            </label>
+          )}
           {node.type === "path" && (
             <label className="field">
               Tracé SVG (d)

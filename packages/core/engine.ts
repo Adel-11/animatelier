@@ -7,7 +7,12 @@ export function locateTime(project: Project, time: number) {
   let remaining = clamp(time, 0, totalDuration(project));
   for (let i = 0; i < project.scenes.length; i++) {
     const scene = project.scenes[i];
-    if (remaining < scene.duration || i === project.scenes.length - 1)
+    // Suppress subtraction noise at frame/scene boundaries (one nanosecond precision).
+    remaining = Math.max(0, Math.round(remaining * 1e9) / 1e9);
+    if (
+      remaining < Math.round(scene.duration * 1e9) / 1e9 ||
+      i === project.scenes.length - 1
+    )
       return { scene, time: remaining, index: i };
     remaining -= scene.duration;
   }

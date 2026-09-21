@@ -1,3 +1,5 @@
+import { resolveProjectAssets } from "../../packages/headless/assets";
+import { MAX_PROJECT_BYTES } from "../../packages/core/assets";
 import { compileQuiz, quizSchema } from "../../packages/core/quiz";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -65,7 +67,7 @@ const checkRevision = (expected: number) => {
 };
 const nameSchema = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}\.json$/);
 const preview = async (project: Project, time: number) =>
-  rasterFrame(project, time).asPng();
+  rasterFrame(await resolveProjectAssets(project, root), time).asPng();
 
 server.registerTool(
   "project_get",
@@ -287,7 +289,7 @@ server.registerTool(
   "project_open",
   {
     description:
-      "Charger un JSON présent dans le dossier de projets autorisé. Le fichier doit être inférieur à 5 Mo.",
+      "Charger un JSON présent dans le dossier de projets autorisé. Le fichier doit être inférieur à 45 Mo.",
     inputSchema: {
       filename: nameSchema,
       expectedRevision: z.number().int().min(0),
@@ -299,7 +301,7 @@ server.registerTool(
       const target = path.join(root, filename);
       if ((await lstat(target)).isSymbolicLink())
         throw new Error("Liens symboliques non autorisés.");
-      if ((await stat(target)).size > 5_000_000)
+      if ((await stat(target)).size > MAX_PROJECT_BYTES)
         throw new Error("Fichier trop volumineux.");
       const project = parseProject(JSON.parse(await readFile(target, "utf8")));
       checkRevision(expectedRevision);
@@ -347,7 +349,7 @@ server.registerTool(
           const input = path.join(root, filename);
           if ((await lstat(input)).isSymbolicLink())
             throw new Error("Liens symboliques non autorisés.");
-          source = await readProject(input);
+          source = await readProject(input, root);
         }
         const id = crypto.randomUUID();
         if (renderJobs.size >= 20)
@@ -366,7 +368,7 @@ server.registerTool(
         renderJobs.set(id, job);
         void renderVideo(
           source,
-          { out: path.join(root, out), fps, format, jobs },
+          { out: path.join(root, out), assetsDir: root, fps, format, jobs },
           (frame, total) => Object.assign(job, { frame, total }),
         )
           .then((result) => Object.assign(job, { status: "completed", result }))

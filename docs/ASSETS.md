@@ -35,3 +35,12 @@ Le choix du premier format externe sera fait après le contrat de rig interne. N
 - `@resvg/resvg-js` : binding CPU depuis npm et paquets natifs npm ; https://github.com/yisibl/resvg-js (MPL-2.0 selon le paquet).
 - `ffmpeg-static` 5.3.0 : paquet npm, binaire release b6.1.1 depuis https://github.com/eugeneware/ffmpeg-static/releases ; licence du paquet GPL-3.0-or-later, notices du binaire dans son installation. Le binaire n’est pas commité ni incorporé au bundle web.
 - `@ffprobe-installer/ffprobe` : outil de vérification en dépendance de développement, binaire spécifique à la plateforme distribué sur npm. Aucun domaine de modèles, aucune API payante.
+
+## Images génériques — 21 septembre 2026
+
+Dépendance prévue : @noble/hashes, source npm officielle https://www.npmjs.com/package/@noble/hashes, dépôt https://github.com/paulmillr/noble-hashes (MIT). Usage : SHA-256 pur JavaScript des images dans core et navigateur, sans téléchargement de média. Version et intégrité seront verrouillées dans package-lock.json après installation.
+
+Logo QFF : fichier fourni par le propriétaire dans projets-videos/qff-brand/qff_logo.png, copié sans modification dans brands/qff/logo.png pour usage demandé dans ses quiz. Cette fourniture ne confère pas une licence générale de réutilisation du logo à des tiers. Aucun logo téléchargé.
+
+
+Validation SHA-256 : @noble/hashes installé depuis npm (version et intégrité package-lock.json). Images QFF copiées uniquement depuis le fichier fourni ; scripts et vidéo de référence consultés dans projets-videos/qff-pipeline et qff-levels-1, non publiés dans ce commit. fetch-assets consigne la provenance de chaque téléchargement dans manifest.lock.json ; la licence de chaque image fournie reste à vérifier par son utilisateur avant diffusion.

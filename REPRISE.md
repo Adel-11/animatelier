@@ -1,3 +1,14 @@
+# Point de reprise, 21 septembre 2026
+
+## Spec QUIZ-VIDEO-SPEC livrée (lots 1 à 6)
+
+Lots 3 à 6 déjà commités (thèmes, gabarit niveaux, commande quiz-video.js, cache raster, workers par défaut). Ce commit ajoute le lot 1 (élément image générique : asset:/file:, fit, radius, blur, pixelate, zoom/focus, décodage réel PNG/JPEG/WebP, plafonds, import éditeur via IndexedDB, render.js --assets-dir) et le lot 2 (brands/qff avec logo fourni, fetch-assets.js avec liens Drive, manifest.lock.json, cache sans écrasement), plus backdrop de scène (uni, dégradé, motif) et la doc (README, HEADLESS, QUIZ-VIDEO, ASSETS, API-MCP, ARCHITECTURE).
+
+Vérifications (Linux, Node 22, ffmpeg 7) : npm test 53/53, npm run build OK. Critère 1 : projets-videos/qff-pipeline/spec-exemple.json rendu par `node apps/cli/quiz-video.js spec-exemple.json --out out --theme qff --preview auto`, six fichiers produits, logo intro et coin compris, mise en page équivalente à qff-levels-1.mp4 à l'oeil (captures comparées à 1 s, 19,1 s, 30 s). ffprobe : H.264 High yuv420p, 30/1 constant, 5343 images, 178,1 s, aucune boîte elst.
+
+Non vérifié : parcours Playwright (tests/browser/images.spec.ts) non lancés dans cette session ; téléchargement réel d'un lien Drive public (conversion et refus non-image couverts par tests) ; différence mineure de largeur de la pastille LEVEL par rapport à la référence. Deux avertissements de débit vocal sur la spec d'exemple (questions 2 et 10).
+
+---
 # Point de reprise — 20 septembre 2026
 
 ## Rendu headless livré

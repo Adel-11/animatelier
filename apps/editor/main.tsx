@@ -1,3 +1,12 @@
+import {
+  initializeAssets,
+  hydrateStoredProject,
+  serializeStoredProject,
+  prepareBrowserProject,
+  decodeBrowserImage,
+} from "./image-assets";
+import { newElement } from "../../packages/core/elements";
+import { MAX_PROJECT_BYTES, MAX_IMAGE_BYTES } from "../../packages/core/assets";
 import { motionGuide } from "../../packages/core/motion-guide";
 import { MotionEditor } from "./motion-editor";
 import { actorSchema } from "../../packages/core/schema";
@@ -31,14 +40,14 @@ let startupWarning = "";
 function initialProject() {
   try {
     const saved = localStorage.getItem(STORAGE);
-    if (saved) return parseProject(JSON.parse(saved));
+    if (saved) return hydrateStoredProject(JSON.parse(saved));
   } catch {
     startupWarning =
       "La sauvegarde locale n’a pas pu être chargée. Exportez vos projets régulièrement.";
   }
   return demoProject();
 }
-const store = new ProjectStore(initialProject());
+let store: ProjectStore;
 const actionNames = {
   idle: "Au repos",
   wave: "Saluer",
@@ -126,6 +135,7 @@ function App() {
   const [apiOpen, setApiOpen] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const imageFile = useRef<HTMLInputElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<{
     actor: Actor;
@@ -205,7 +215,7 @@ function App() {
   };
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE, JSON.stringify(project));
+      localStorage.setItem(STORAGE, serializeStoredProject(project));
     } catch {
       setNotice(
         "Sauvegarde locale indisponible : téléchargez le fichier projet.",
@@ -286,9 +296,11 @@ function App() {
     const f = event.target.files?.[0];
     if (!f) return;
     try {
-      if (f.size > 5_000_000)
-        throw new Error("Projet trop volumineux (5 Mo maximum).");
-      sync(store.replace(JSON.parse(await f.text())));
+      if (f.size > MAX_PROJECT_BYTES)
+        throw new Error("Projet trop volumineux (45 Mo maximum).");
+      sync(
+        store.replace(await prepareBrowserProject(JSON.parse(await f.text()))),
+      );
       setTime(0);
       setSelected(null);
       setPlaying(false);
@@ -333,6 +345,49 @@ function App() {
         <div className="header-actions">
           <button onClick={() => setQuizOpen(true)}>Quiz</button>
           <button onClick={() => setApiOpen(true)}>⌘ Agents</button>
+          <button disabled={busy} onClick={() => imageFile.current?.click()}>
+            Importer une image
+          </button>
+          <input
+            type="file"
+            ref={imageFile}
+            accept="image/png,image/jpeg,image/webp"
+            hidden
+            onChange={async (event) => {
+              const picked = event.target.files?.[0];
+              event.target.value = "";
+              if (!picked) return;
+              setBusy(true);
+              try {
+                if (picked.size > MAX_IMAGE_BYTES)
+                  throw new Error("Image supérieure à 5 Mo.");
+                const asset = await decodeBrowserImage(
+                  new Uint8Array(await picked.arrayBuffer()),
+                );
+                const id = `image_${asset.sha256}`;
+                const latest = store.get();
+                const target = latest.scenes.find((s) => s.id === scene.id);
+                if (!target) throw new Error("Scène supprimée.");
+                latest.assets = { ...latest.assets, [id]: asset };
+                const element = newElement("image", target.duration, {
+                  src: `asset:${id}`,
+                  x: 50,
+                  y: 150,
+                  w: Math.min(600, latest.width - 100),
+                  h: Math.min(600, latest.height - 200),
+                });
+                target.elements.push(element);
+                sync(store.replace(latest));
+                setSelected(element.id);
+                setTab("elements");
+                setNotice("Image importée et stockée dans IndexedDB.");
+              } catch (error) {
+                report(error);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
           <button disabled={busy} onClick={() => file.current?.click()}>
             Ouvrir
           </button>
@@ -1140,4 +1195,12 @@ api.saveAs("Mon histoire — variante");
     </div>
   );
 }
-createRoot(document.getElementById("root")!).render(<App />);
+void initializeAssets()
+  .catch(() => {
+    startupWarning =
+      "Stockage des images indisponible : IndexedDB inaccessible.";
+  })
+  .then(() => {
+    store = new ProjectStore(initialProject());
+    createRoot(document.getElementById("root")!).render(<App />);
+  });

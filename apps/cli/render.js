@@ -10,6 +10,7 @@ try {
     allowPositionals: true,
     options: {
       out: { type: "string" },
+      "assets-dir": { type: "string" },
       fps: { type: "string" },
       format: { type: "string" },
       jobs: { type: "string" },
@@ -22,12 +23,12 @@ try {
   });
   if (values.help) {
     console.log(
-      "node apps/cli/render.js project.json --out video.mp4 [--fps 30 --format mp4|webm --jobs 4 --crop x,y,w,h --scale 1080x1350 --emit-timeline timeline.json --overwrite]",
+      "node apps/cli/render.js project.json --out video.mp4 [--fps 30 --format mp4|webm --jobs 4 --assets-dir assets/ --crop x,y,w,h --scale 1080x1350 --emit-timeline timeline.json --overwrite]",
     );
   } else {
     if (positionals.length !== 1 || !values.out)
       throw new Error("Un projet et --out sont requis. Voir --help.");
-    const project = await readProject(positionals[0]);
+    const project = await readProject(positionals[0], values["assets-dir"]);
     const result = await renderVideo(
       project,
       {
@@ -35,7 +36,7 @@ try {
         fps: values.fps ? Number(values.fps) : undefined,
         format:
           values.format ?? (values.out.endsWith(".webm") ? "webm" : "mp4"),
-        jobs: values.jobs ? Number(values.jobs) : 1,
+        jobs: values.jobs ? Number(values.jobs) : undefined,
         crop: values.crop?.split(",").map(Number),
         scale: values.scale?.split("x").map(Number),
         overwrite: values.overwrite,

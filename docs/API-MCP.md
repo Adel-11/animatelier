@@ -210,3 +210,7 @@ Voir [PERSONNAGES.md](PERSONNAGES.md), aussi exposé par `help().motion.guide` e
 ## Vidéo CPU asynchrone
 
 `project_render_video({out:"film.mp4",fps:30,format:"mp4",jobs:2})` capture la session ; `project` ou `filename` permettent une autre source. Suivre le `jobId` avec `render_status`. Aucun écrasement ; un seul rendu actif. `render_frame` utilise désormais resvg et les polices embarquées à la résolution native. [Contrat et limites](HEADLESS.md).
+
+## Images et pipeline
+
+Projet v2 enrichi de assets ; image, backdrop et format niveaux décrits dans [QUIZ-VIDEO.md](QUIZ-VIDEO.md). Résolveur MCP confiné au dossier autorisé ; les images sont décodées avant render_frame/project_render_video. Aucun accès réseau implicite : fetch-assets est un CLI séparé.

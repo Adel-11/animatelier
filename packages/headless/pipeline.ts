@@ -1,3 +1,4 @@
+import { normalizeLevels } from "../core/levels";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { constants } from "node:fs";
@@ -108,6 +109,8 @@ export async function quizVideo(
   options: PipelineOptions,
   progress?: (frame: number, total: number) => void,
 ) {
+  if (input && typeof input === "object" && "levels" in input)
+    input = normalizeLevels(input);
   let theme;
   if (options.theme) {
     theme = /[\\/]|\.json$/i.test(options.theme)

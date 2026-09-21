@@ -1,3 +1,9 @@
+import {
+  prepareBrowserProject,
+  preparedProject,
+  serializeStoredProject,
+  hydrateStoredProject,
+} from "./image-assets";
 import { compileQuiz } from "../../packages/core/quiz";
 import { ProjectStore, type Command } from "../../packages/core/commands";
 import { parseProject, uid, type Project } from "../../packages/core/schema";
@@ -54,6 +60,8 @@ export function createBrowserApi(
           "validate(project) : {ok, duration, warnings, errors}, sans mutation",
         apply:
           "apply(commands) : {ok, project, duration, warnings}, erreurs Zod conservées",
+        loadWithAssets:
+          "await loadWithAssets(project) : décode les images et stocke les données dans IndexedDB",
         load: "load(project) : même résultat que apply ; réinitialise la lecture",
         getStateAt:
           "getStateAt(time) : scène et personnages calculés, y compris ceux dont visible=false",
@@ -99,11 +107,18 @@ export function createBrowserApi(
     getStateAt: (time: number) => getStateAt(store.get(), time),
     apply: (commands: Command[]) => {
       editable();
+      preparedProject(new ProjectStore(store.get()).dispatch(commands));
       return change(store.dispatch(commands));
+    },
+    loadWithAssets: async (project: unknown) => {
+      editable();
+      const ready = await prepareBrowserProject(project);
+      editable();
+      return api.load(ready);
     },
     load: (project: unknown) => {
       editable();
-      const result = change(store.replace(project));
+      const result = change(store.replace(preparedProject(project)));
       ui.seek(0);
       return result;
     },
@@ -116,7 +131,7 @@ export function createBrowserApi(
     save: () => {
       editable();
       const project = store.get();
-      localStorage.setItem(SAVED + project.id, JSON.stringify(project));
+      localStorage.setItem(SAVED + project.id, serializeStoredProject(project));
       return {
         ...mutationResult(project),
         id: project.id,
@@ -130,7 +145,7 @@ export function createBrowserApi(
         id: uid("project"),
         name,
       });
-      localStorage.setItem(SAVED + project.id, JSON.stringify(project));
+      localStorage.setItem(SAVED + project.id, serializeStoredProject(project));
       return {
         ...change(store.replace(project)),
         id: project.id,
@@ -143,7 +158,9 @@ export function createBrowserApi(
         const key = localStorage.key(i)!;
         if (!key.startsWith(SAVED)) continue;
         try {
-          const p = parseProject(JSON.parse(localStorage.getItem(key)!));
+          const p = hydrateStoredProject(
+            JSON.parse(localStorage.getItem(key)!),
+          );
           projects.push({ id: p.id, name: p.name });
         } catch {
           /* Ignore damaged entries without deleting them. */
@@ -155,7 +172,7 @@ export function createBrowserApi(
       editable();
       const value = localStorage.getItem(SAVED + id);
       if (!value) throw new Error("Sauvegarde introuvable.");
-      return api.load(JSON.parse(value));
+      return api.load(hydrateStoredProject(JSON.parse(value)));
     },
     getExportState: () => ({ ...state }),
     cancelExport: () => {

@@ -19,3 +19,28 @@ Le profil par défaut, `instagram-reel`, encode H.264 High, yuv420p, 30 images/s
 Le nombre de workers par défaut suit les cœurs disponibles, plafonné à 16 et réduit selon la mémoire libre et la taille du canevas. `--jobs 1` à `--jobs 16` le fixe explicitement. Chaque worker conserve seulement son dernier SVG haché et son raster ; un SVG identique réutilise les pixels. Le cache ne change ni le minutage ni le résultat et sa mémoire reste bornée. Le cache de calques partiels n’est pas implémenté : resvg rasterise la scène entière dès que son SVG change.
 
 La commande valide un profil de fichier ; elle ne publie rien sur Instagram et ne garantit pas l’acceptation par la plateforme. Les vidéos et scripts de référence absents du dépôt doivent être fournis pour une comparaison visuelle exacte.
+
+## Spec niveaux et images
+
+Exemple complet versionné : `examples/quiz-levels.spec.json` (15 questions, 178,1 s). Le format compact historique `{id,name,levels:[{questions:[{q,a}]}]}` est accepté et reprend les valeurs QFF par défaut. La forme explicite utilise `mode:"levels"`, `format:"reel-9x16"|"post-4x5"|"landscape"`, `theme:"qff"|"light"` ou un objet de surcharges, `language:"en"|"fr"`, `intro`, `levels`, `questionEffect`, `timing`, `outro`. Les questions acceptent `q`, `a` ou `choices`/`correctIndex`, et éventuellement `image:"file:photo.png"`, `imageEffect:"blur"|"pixelate"|"zoom"|"none"`, `focusX`/`focusY` (0–1). `questionEffect` vaut blur, hide ou none. La zone basse du format portrait est réservée.
+
+`timing` : read auto ou secondes, readMin/readMax (3.5/4.5), countdown entier (4), answer (2.4), answerMin (1), levelCard (2.2), outro (7), maxDuration (180). Dépassement : réduction answer puis read jusqu’aux minimums, avertissement si le budget reste impossible. Les textes sont ajustés aux panneaux et les débordements sont signalés. Les créneaux vocaux ont id/start/maxDuration/text ; nombres entiers convertis en toutes lettres EN/FR et alerte de débit estimé, sans synthèse vocale. Les effets de compte à rebours restent actifs jusqu’à la révélation.
+
+Les JSON `themes/` et `brands/qff/brand.json` décrivent couleurs, niveaux, backdrop (solid/linear/pattern), logo, typographie et formes. Un fichier peut employer `extends` pour un thème embarqué. Logo : src, placement, size, margin ou marginX/marginY, scènes, introSize/introSeconds/fade. QFF reprend le logo fourni (860 px intro, 190 px x50/y165 ensuite). Changer le thème CLI remplace le thème nommé de la spec ; un objet de surcharges dans la spec reste prioritaire.
+
+## Ressources et téléchargement
+
+```sh
+node apps/cli/fetch-assets.js manifest.json --out assets/
+node apps/cli/quiz-video.js spec.json --out out/ --assets-dir assets/ --theme qff
+```
+
+Manifeste : `[{"id":"q3","url":"https://..."}]`. Les liens publics Drive `/file/d/ID/view` et ceux avec paramètre id sont convertis vers drive.usercontent.google.com. Les URL doivent être HTTPS publiques, sans identifiants ni port personnalisé. Chaque redirection est contrôlée ; adresses privées/locales refusées et DNS vérifié fixé pour la requête. Limite 5 Mo, décodage réel PNG/JPEG/WebP, dimensions ≤4096, SHA-256 calculé. Les fichiers restent nommés id.png/jpg/webp ; `manifest.lock.json` conserve source, empreinte et dimensions. Un cache identique est vérifié puis utilisé hors réseau, sans écriture. Aucun fichier existant n’est écrasé ; changer de dossier si le manifeste change. Un échec partiel peut laisser des fichiers : utiliser un nouveau dossier. HTML de connexion ou de confirmation Drive rejeté comme non-image. L’environnement d’exécution doit autoriser drive.google.com et drive.usercontent.google.com ; l’outil ne modifie pas la politique réseau.
+
+## Contrat image v2 et navigateur
+
+Élément générique `image` : src (`asset:id` ou `file:relatif`), w/h, fit contain/cover, radius et transformations habituelles ; blur, pixelate (0–100), zoom (1–10), focusX/focusY animables. project.assets associe un ID à `{mime,sha256,data}` base64. Le résolveur enrichit largeur/hauteur et un échantillon RGBA ≤64×64 utilisé pour les mosaïques SVG déterministes. La pixellisation a cette résolution maximale de détail ; pixelate=0 affiche l’image originale. Les images animées sont refusées. Limites : 100 assets, 30 Mo binaires par projet et 45 Mo pour le JSON importé. Aucun HTML/SVG importé, URL distante ou chemin absolu/traversant n’entre dans le rendu. Les symlinks sortant d’assets-dir sont rejetés.
+
+« Importer une image » dans l’éditeur décode puis stocke la ressource dans IndexedDB ; localStorage ne conserve que les références SHA-256. Les JSON exportés restent autonomes. API : `await window.animatelier.loadWithAssets(project)` pour un projet avec images ; load reste synchrone pour les projets sans nouvelles ressources. Les projets avec file: doivent être résolus côté CLI avant import. Supprimer les données du navigateur supprime aussi IndexedDB : exporter le JSON pour sauvegarder.
+
+Vérifications : tests locaux de décodage, traversée/symlink, cache, conversion Drive, pixellisation, MP4 sans elst, audio, déterminisme et vrais appels MCP. Le téléchargement d’un lien Drive public réel reste à vérifier avec une image publique fournie ; la conversion et le refus des réponses non-image sont couverts automatiquement.

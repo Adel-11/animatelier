@@ -99,3 +99,13 @@ docs/                 Architecture, API, roadmap, registre des ressources
 ```
 
 Les dépendances exactes sont verrouillées dans `package-lock.json`. Ne pas déduire une licence de redistribution du code de la disponibilité de son dépôt : la licence du produit reste à choisir par son propriétaire.
+
+## Quiz vidéo avec logo et audio
+
+```sh
+node apps/cli/quiz-video.js examples/quiz-levels.spec.json --out out/ --theme qff --jobs 4
+node apps/cli/quiz-video.js examples/quiz-levels.spec.json --theme light --check
+node apps/cli/fetch-assets.js manifest.json --out assets/
+```
+
+Les six lots sont intégrés : images et IndexedDB, kit QFF versionné/téléchargement contrôlé, thèmes, quiz niveaux, pipeline vidéo/audio/couverture/contact et cache raster. [Guide complet et limites](docs/QUIZ-VIDEO.md). Le pipeline ne publie rien sur Instagram.

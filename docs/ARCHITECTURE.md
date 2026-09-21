@@ -69,3 +69,7 @@ Champs v2 additifs : actor.timeline, wobble et element.attachment. `poseAt` éva
 ## Rendu hors navigateur
 
 `packages/headless` dépend du core et du renderer ; il ajoute resvg, worker_threads et ffmpeg. CLI et MCP utilisent le même encodeur. Core conserve les métriques typographiques pures ; renderer produit le SVG déterministe. Polices embarquées, images calculées à f/fps, ordre conservé sous contre-pression, publication atomique de la vidéo achevée. Voir [HEADLESS.md](HEADLESS.md).
+
+## Images et stockage — 21 septembre 2026
+
+Core valide l’enveloppe des assets, signatures/dimensions et SHA-256 portable ; les adaptateurs headless (Sharp) et navigateur décodent réellement les images avant chargement/rendu. Renderer n’accepte que des data-URI générées à partir des assets validés. Les fichiers locaux restent confinés au dossier d’assets. Les pixels de mosaïque sont des données dérivées, sans URL externe. IndexedDB stocke les images, localStorage les références ; JSON exportés autonomes. Voir QUIZ-VIDEO.md pour plafonds et conventions. Temps locaux normalisés à1ns afin de stabiliser les frontières de scènes et de révélation.

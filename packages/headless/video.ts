@@ -60,7 +60,7 @@ export async function renderVideo(
   if (opts.target && opts.format !== "mp4")
     throw new Error("Instagram exige MP4.");
   const fps = opts.target ? 30 : (opts.fps ?? project.fps),
-    frames = Math.ceil(totalDuration(project) * fps);
+    frames = Math.ceil(totalDuration(project) * fps - 1e-9);
   const crop = opts.crop;
   if (
     crop &&

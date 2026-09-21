@@ -1,3 +1,4 @@
+import type { Assets } from "../core/assets";
 import { wrapText } from "../core/text";
 import type { Actor, Project, Scene } from "../core/schema";
 import { locateTime, poseAt } from "../core/engine";
@@ -78,7 +79,12 @@ export function renderSceneSvg(
   scene: Scene,
   time: number,
   selected?: string,
-  canvas: { width: number; height: number; fontFamily?: string } = {
+  canvas: {
+    width: number;
+    height: number;
+    fontFamily?: string;
+    assets?: Assets;
+  } = {
     width: 1280,
     height: 720,
   },
@@ -90,7 +96,7 @@ export function renderSceneSvg(
     canvas.fontFamily,
     true,
   );
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}" role="img" aria-label="${esc(scene.name)}"><g style="font-kerning:none;font-variant-ligatures:none" font-family="${esc(canvas.fontFamily ?? "DejaVu Sans")}"><svg width="${canvas.width}" height="${canvas.height}" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">${background(scene.background)}</svg><text x="${canvas.width / 2}" y="78" text-anchor="middle" font-size="36" font-weight="700" fill="${scene.background === "night" ? "#f6f2e9" : "#3c4050"}">${titleLines.map((l, i) => `<tspan x="${canvas.width / 2}" dy="${i === 0 ? 0 : 43}">${esc(l)}</tspan>`).join("")}</text>${[
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}" role="img" aria-label="${esc(scene.name)}"><g style="font-kerning:none;font-variant-ligatures:none" font-family="${esc(canvas.fontFamily ?? "DejaVu Sans")}"><svg width="${canvas.width}" height="${canvas.height}" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">${scene.backdrop ? backdropSvg(scene, 1280, 720) : background(scene.background)}</svg><text x="${canvas.width / 2}" y="78" text-anchor="middle" font-size="36" font-weight="700" fill="${scene.background === "night" ? "#f6f2e9" : "#3c4050"}">${titleLines.map((l, i) => `<tspan x="${canvas.width / 2}" dy="${i === 0 ? 0 : 43}">${esc(l)}</tspan>`).join("")}</text>${[
     ...[...scene.actors]
       .sort((a, b) => poseAt(a, time).y - poseAt(b, time).y)
       .map((a) => ({
@@ -99,7 +105,7 @@ export function renderSceneSvg(
       })),
     ...sceneElementStates(scene, time).map((e) => ({
       z: e.element.z,
-      svg: renderElement(e, selected, canvas.fontFamily),
+      svg: renderElement(e, selected, canvas.fontFamily, canvas.assets),
     })),
   ]
     .sort((a, b) => a.z - b.z)
@@ -112,4 +118,13 @@ export function renderProjectSvg(project: Project, time: number) {
 }
 export function renderCharacterSvg(a: Actor) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-110 -340 220 370" aria-hidden="true"><rect x="-110" y="-340" width="220" height="370" fill="#e8e2f2"/>${actor({ ...a, x: 0, y: 0, scale: 1, dialogue: "", action: "idle", timeline: [], keyframes: {}, wobble: {} }, 0)}</svg>`;
+}
+function backdropSvg(scene: Scene, width: number, height: number) {
+  const bg = scene.backdrop!;
+  if (bg.type === "solid")
+    return `<rect width="${width}" height="${height}" fill="${bg.color}"/>`;
+  if (bg.type === "linear")
+    return `<defs><linearGradient id="backdrop" x1="0" y1="0" x2="1" y2="0" gradientTransform="rotate(${bg.angle ?? 45} .5 .5)"><stop stop-color="${bg.color}"/><stop offset="1" stop-color="${bg.color2 ?? bg.color}"/></linearGradient></defs><rect width="${width}" height="${height}" fill="url(#backdrop)"/>`;
+  const spacing = bg.spacing ?? 40;
+  return `<defs><pattern id="backdrop" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><rect width="${spacing}" height="${spacing}" fill="${bg.color}"/><circle cx="${spacing / 2}" cy="${spacing / 2}" r="2" fill="${bg.color2 ?? bg.color}"/></pattern></defs><rect width="${width}" height="${height}" fill="url(#backdrop)"/>`;
 }

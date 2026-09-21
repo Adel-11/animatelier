@@ -1,3 +1,4 @@
+import { imageSource } from "./assets";
 import { z } from "zod";
 import { pathDataSchema } from "./paths";
 import {
@@ -12,6 +13,7 @@ import {
 } from "./keyframes";
 
 export const elementTypes = [
+  "image",
   "rect",
   "ellipse",
   "line",
@@ -87,6 +89,18 @@ export type Clip = z.infer<typeof clipSchema>;
 export type SceneElement = Common &
   (
     | {
+        type: "image";
+        src: string;
+        w: number;
+        h: number;
+        fit: "contain" | "cover";
+        radius: number;
+        pixelate: number;
+        zoom: number;
+        focusX: number;
+        focusY: number;
+      }
+    | {
         type: "rect";
         w: number;
         h: number;
@@ -134,6 +148,17 @@ export type SceneElement = Common &
       }
   );
 export const elementBounds: Record<SceneElement["type"], Bounds> = {
+  image: {
+    ...transformBounds,
+    blur: [0, 50],
+    w: [0, 5000],
+    h: [0, 5000],
+    radius: [0, 2500],
+    pixelate: [0, 100],
+    zoom: [1, 10],
+    focusX: [0, 1],
+    focusY: [0, 1],
+  },
   rect: {
     ...transformBounds,
     blur: [0, 50],
@@ -193,6 +218,20 @@ const style = {
 const recursive: z.ZodType<SceneElement, z.ZodTypeDef, any> = z.lazy(() =>
   z
     .discriminatedUnion("type", [
+      z
+        .object({
+          ...common,
+          type: z.literal("image"),
+          src: imageSource.default("file:image.png"),
+          ...size,
+          fit: z.enum(["contain", "cover"]).default("contain"),
+          radius: z.number().min(0).max(2500).default(0),
+          pixelate: z.number().min(0).max(100).default(0),
+          zoom: z.number().min(1).max(10).default(1),
+          focusX: z.number().min(0).max(1).default(0.5),
+          focusY: z.number().min(0).max(1).default(0.5),
+        })
+        .strict(),
       z
         .object({
           ...common,
