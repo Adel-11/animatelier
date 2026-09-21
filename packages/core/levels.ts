@@ -663,7 +663,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
           );
         }
         const rx = landscape ? width * 0.79 : width / 2,
-          ry = landscape ? height * 0.46 : safeH * (q.choices ? 0.72 : 0.787),
+          ry = landscape ? height * 0.46 : safeH * 0.787,
           r = landscape ? 65 : 130;
         d.add("ellipse", {
           id: "countdown_ring",
@@ -699,9 +699,9 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
           d.text(
             `count_${k}`,
             String(t.countdown - k),
-            rx - r * 0.4,
-            ry - r * 0.65,
-            r,
+            rx - r,
+            ry - r,
+            2 * r,
             2 * r,
             landscape ? 64 : 150,
             theme.text,
