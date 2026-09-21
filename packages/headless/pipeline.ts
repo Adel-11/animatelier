@@ -32,6 +32,8 @@ export interface PipelineOptions {
   sfx?: string;
   cover?: string;
   coverAt?: number;
+  coverImage?: string;
+  voiceDurations?: string;
   preview?: string;
   check?: boolean;
 }
@@ -72,6 +74,19 @@ export function previewTimes(
 async function jpeg(project: Project, time: number) {
   return sharp(rasterFrame(project, time).asPng())
     .flatten({ background: "#000000" })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+}
+/** Fits a supplied image (typically the brand logo) on a canvas of the project size. */
+export async function coverFromImage(
+  base64: string,
+  width: number,
+  height: number,
+  background: string,
+) {
+  return sharp(Buffer.from(base64, "base64"))
+    .resize(width, height, { fit: "contain", background })
+    .flatten({ background })
     .jpeg({ quality: 90 })
     .toBuffer();
 }
@@ -117,7 +132,10 @@ export async function quizVideo(
       ? resolveTheme(await jsonFile(options.theme))
       : resolveTheme(options.theme);
   }
-  const compiled = compileQuiz(input, theme);
+  const voiceDurations = options.voiceDurations
+    ? await jsonFile(options.voiceDurations)
+    : undefined;
+  const compiled = compileQuiz(input, theme, { voiceDurations });
   // Brand logos belong to their kit, independently of the quiz image directory.
   const specTheme =
     input && typeof input === "object" && "theme" in input
@@ -173,6 +191,9 @@ export async function quizVideo(
       ? soundMappingSchema.parse(await jsonFile(options.sfx))
       : {};
   if (options.audio) await stat(options.audio);
+  const coverImage = options.coverImage
+    ? await decodeImage(await readFile(options.coverImage))
+    : undefined;
   if (options.check)
     return {
       check: true,
@@ -246,7 +267,14 @@ export async function quizVideo(
     );
     await writeFile(
       path.join(staging, "cover.jpg"),
-      await jpeg(project, coverAt),
+      coverImage
+        ? await coverFromImage(
+            coverImage.data,
+            project.width,
+            project.height,
+            effectiveTheme.background,
+          )
+        : await jpeg(project, coverAt),
     );
     await writeFile(
       path.join(staging, "preview.jpg"),

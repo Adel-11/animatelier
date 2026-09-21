@@ -1,3 +1,16 @@
+# Point de reprise, 21 septembre 2026 (soir)
+
+## Retours agent vidéo : 5 bugs et 5 évolutions
+
+Bugs corrigés : fetch-assets passe par HTTPS_PROXY (tunnel CONNECT, NO_PROXY, contrôles conservés) avec User-Agent configurable (défaut `Animatelier/0.2 (+https://animatelier.netlify.app)`, `--user-agent`, `ANIMATELIER_USER_AGENT`) ; « RÉPONSE » (caractère de remplacement dans le source) ; libellés FR NIVEAU / SUR ; chiffres du compte à rebours qui se chevauchaient sur une image (fin une demi-image plus tôt) ; QCM portrait en cartes lisibles sur deux colonnes, bonne réponse colorée à la révélation. Pastille de niveau centrée sur son fond.
+
+Évolutions : `imageLayout` compact/hero (734 px pour une image carrée en 9:16), `imageCard` (spec et question) ; `read` par question et `timing.read: "voice"` + `--voice-durations` avec `readPad` ; `say`, `sayAnswer`, `intro.say`, `levels[].say`, `outro.say` copiés tels quels ; `apps/cli/mux-audio.js` (vidéo copiée, AAC 128k 48 kHz stéréo, sans elst, `--keep-sfx`) ; `--cover-image`. Doc dans docs/QUIZ-VIDEO.md, tests dans tests/levels-v3.test.ts.
+
+Vérifications (cloud Linux, Node 22, ffmpeg 7) : npm test 63/63, npm run build OK. Image upload.wikimedia.org téléchargée derrière HTTPS_PROXY. Rendu complet d'une spec FR 9:16 hero + voice (43 s) avec --cover-image et --sfx : pas de chevauchement de chiffres, couverture logo 1080x1920, aucune elst. mux-audio sur la vidéo QFF de 178 s : framemd5 vidéo identique, AAC 48 kHz stéréo 128k.
+
+Non vérifié : parcours Playwright, rendu dans l'éditeur navigateur des nouvelles mises en page (le mode voice exige le fichier de durées, donc pas utilisable dans l'éditeur). Derrière un proxy sans DNS local, la résolution finale est faite par le proxy. mux-audio suppose une vidéo sans B-frames (cas du pipeline) pour des horodatages identiques.
+
+---
 # Point de reprise, 21 septembre 2026
 
 ## Spec QUIZ-VIDEO-SPEC livrée (lots 1 à 6)

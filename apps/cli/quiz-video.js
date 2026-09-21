@@ -16,13 +16,15 @@ try {
       sfx: { type: "string" },
       cover: { type: "string" },
       "cover-at": { type: "string" },
+      "cover-image": { type: "string" },
+      "voice-durations": { type: "string" },
       preview: { type: "string" },
       check: { type: "boolean" },
     },
   });
   if (positionals.length !== 1 || (!values.out && !values.check))
     throw new Error(
-      "node apps/cli/quiz-video.js spec.json --out out/ [--theme qff] [--assets-dir .] [--jobs 4] [--target instagram-reel] [--audio mix.wav] [--sfx default] [--cover cover.jpg --cover-at 1] [--preview auto|1,4,8] [--check]",
+      "node apps/cli/quiz-video.js spec.json --out out/ [--theme qff] [--assets-dir .] [--jobs 4] [--target instagram-reel] [--audio mix.wav] [--sfx default] [--cover cover.jpg --cover-at 1 | --cover-image logo.png] [--voice-durations voice-durations.json] [--preview auto|1,4,8] [--check]",
     );
   if (values.target && values.target !== "instagram-reel")
     throw new Error("Cible inconnue.");
@@ -39,6 +41,8 @@ try {
       ...values,
       jobs: values.jobs ? Number(values.jobs) : undefined,
       assetsDir: values["assets-dir"],
+      coverImage: values["cover-image"],
+      voiceDurations: values["voice-durations"],
       coverAt:
         values["cover-at"] === undefined
           ? undefined

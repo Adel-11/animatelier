@@ -1,4 +1,9 @@
-import { compileLevels, levelsSchema, normalizeLevels } from "./levels";
+import {
+  compileLevels,
+  levelsSchema,
+  normalizeLevels,
+  type CompileOptions,
+} from "./levels";
 import { resolveTheme, themeInputSchema } from "./themes";
 import { wrapText } from "./text";
 import { z } from "zod";
@@ -89,7 +94,11 @@ export const quizSchema = z.preprocess(
   z.union([classicQuizSchema, levelsSchema]),
 );
 
-export function compileQuiz(input: unknown, baseTheme?: unknown) {
+export function compileQuiz(
+  input: unknown,
+  baseTheme?: unknown,
+  options: CompileOptions = {},
+) {
   input = normalizeLevels(input);
   if (
     input &&
@@ -97,7 +106,7 @@ export function compileQuiz(input: unknown, baseTheme?: unknown) {
     "mode" in input &&
     input.mode === "levels"
   )
-    return compileLevels(input, baseTheme);
+    return compileLevels(input, baseTheme, options);
   const spec = classicQuizSchema.parse(input);
   const duration = spec.revealDelay + spec.answerDuration;
   const theme = resolveTheme(

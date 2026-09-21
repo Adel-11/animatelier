@@ -151,3 +151,26 @@ export async function muxAudio(
     out,
   ]);
 }
+/** Reads container duration and whether an audio stream exists, from ffmpeg's banner. */
+export async function probeMedia(file: string) {
+  const child = spawn(
+    process.env.ANIMATELIER_FFMPEG || ffmpeg || "ffmpeg",
+    ["-hide_banner", "-nostdin", "-i", file],
+    { windowsHide: true, stdio: ["ignore", "ignore", "pipe"] },
+  );
+  let info = "";
+  child.stderr.on("data", (chunk) => {
+    info = (info + chunk).slice(-20000);
+  });
+  await new Promise<void>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", () => resolve());
+  });
+  const m = info.match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
+  if (!m || !/Stream #0:\d+.*: Video:/.test(info))
+    throw new Error(`Vidéo illisible : ${file}`);
+  return {
+    duration: +m[1] * 3600 + +m[2] * 60 + +m[3],
+    hasAudio: /Stream #0:\d+.*: Audio:/.test(info),
+  };
+}

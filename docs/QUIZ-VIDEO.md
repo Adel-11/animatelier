@@ -44,3 +44,51 @@ Manifeste : `[{"id":"q3","url":"https://..."}]`. Les liens publics Drive `/file/
 « Importer une image » dans l’éditeur décode puis stocke la ressource dans IndexedDB ; localStorage ne conserve que les références SHA-256. Les JSON exportés restent autonomes. API : `await window.animatelier.loadWithAssets(project)` pour un projet avec images ; load reste synchrone pour les projets sans nouvelles ressources. Les projets avec file: doivent être résolus côté CLI avant import. Supprimer les données du navigateur supprime aussi IndexedDB : exporter le JSON pour sauvegarder.
 
 Vérifications : tests locaux de décodage, traversée/symlink, cache, conversion Drive, pixellisation, MP4 sans elst, audio, déterminisme et vrais appels MCP. Le téléchargement d’un lien Drive public réel reste à vérifier avec une image publique fournie ; la conversion et le refus des réponses non-image sont couverts automatiquement.
+
+## Mise en page des images, voix et audio (21 septembre 2026, suite)
+
+### Images : `imageLayout` et `imageCard`
+
+- `imageLayout: "compact"` (défaut) garde le comportement précédent : image d'environ 310 px de haut dans le panneau.
+- `imageLayout: "hero"` : la question passe sur une ligne en haut du panneau (taille réduite automatiquement si elle est longue), l'image occupe presque toute la largeur et le panneau descend jusqu'au bloc compte à rebours/réponse, placé en bas de la zone utile. En 9:16 une image carrée fait 734 px (carte comprise : 782 px). Le compte à rebours est plus petit dans ce mode, la réponse s'affiche au même endroit.
+- `imageCard: { "color": "#FFFFFF", "radius": 28, "padding": 24, "shape": "square" }` au niveau de la spec, surchargeable par question (`imageCard: null` la retire pour une question). `shape: "square"` (défaut) centre une carte carrée derrière l'image ; `"box"` remplit toute la zone (images larges). La carte n'est pas floutée, seul l'image subit `imageEffect`.
+
+### Temps de lecture
+
+- `read` par question (0,5 à 30 s) remplace la valeur globale pour cette question.
+- `timing.read: "voice"` avec `--voice-durations voice-durations.json` (`{ "question_3": 1.14, ... }`) : `read = durée + readPad` (défaut 0,3 s), arrondi à l'image supérieure pour que le compte à rebours ne démarre jamais avant la fin de la voix. Bornes `readMin`/`readMax` : 1 s et 15 s par défaut dans ce mode (3,5 et 4,5 s en mode auto). Un bornage produit un avertissement. Une question absente du fichier repasse en lecture auto, avec avertissement.
+- Les lectures fixées (par question ou par la voix) ne sont jamais raccourcies par `maxDuration` ; seules les lectures auto le sont.
+- `timeline.json` (readEnd, tics, révélation) et `voice-script.json` (maxDuration du créneau) suivent ces valeurs.
+
+### Textes de voix off
+
+`say` et `sayAnswer` par question, `intro.say`, `levels[].say`, `outro.say` remplacent le texte généré dans `voice-script.json`, copiés tels quels (pas de conversion des nombres, pas de « Question N. »). `q` et `a` restent ceux affichés à l'écran.
+
+### Libellés français
+
+Avec `language: "fr"` : « NIVEAU n · NOM », « QUESTION n SUR N », « RÉPONSE ». La pastille de niveau est centrée sur son fond.
+
+### QCM
+
+En 9:16 et 4:5, les propositions sont des cartes sur deux colonnes (texte jusqu'à 56 px, ajusté), la bonne proposition prend la couleur du niveau à la révélation. Le paysage garde la liste à droite.
+
+### Compte à rebours
+
+Chaque chiffre, l'anneau et l'arc disparaissent une demi-image avant l'élément suivant : jamais deux chiffres sur la même image.
+
+### Ajouter l'audio sans re-rendre
+
+```sh
+node apps/cli/mux-audio.js out/video.mp4 --audio mix.wav --out final.mp4
+node apps/cli/mux-audio.js out/video.mp4 --audio voix-musique.wav --out final.mp4 --keep-sfx
+```
+
+Le flux vidéo est copié (paquets identiques, vérifié par framemd5), l'audio encodé en AAC 128 kbit/s, 48 kHz stéréo, sans `elst`, faststart. `--keep-sfx` mélange la piste audio déjà présente dans la vidéo (bruitages d'un rendu `--sfx`) ; si la vidéo est muette, les bruitages sont resynthétisés depuis `timeline.json` situé à côté de la vidéo (ou `--timeline`), avec `--sfx sons.json` en option. La sortie ne doit pas exister.
+
+### Couverture
+
+`--cover-image brands/qff/logo.png` : l'image (PNG/JPEG/WebP, mêmes contrôles que les autres images) est ajustée sans déformation sur une toile aux dimensions du projet, fond de la couleur `background` du thème, puis encodée en JPEG. `--cover-at` est alors ignoré.
+
+### fetch-assets derrière un proxy
+
+`HTTPS_PROXY`/`https_proxy` est honoré (tunnel CONNECT, authentification Basic si l'URL du proxy en contient), sauf si `NO_PROXY` correspond à l'hôte. Les contrôles restent : HTTPS port 443 uniquement, pas d'identifiants dans l'URL, noms locaux refusés (`localhost`, `.local`, `.internal`, noms sans point...), IP littérales privées refusées, chaque redirection revérifiée, TLS vérifié sur le nom d'hôte cible. Limite : derrière un proxy, si le DNS local ne répond pas, la résolution finale est faite par le proxy (les adresses privées sont refusées quand le DNS local répond). User-Agent par défaut `Animatelier/0.2 (+https://animatelier.netlify.app)`, modifiable avec `--user-agent` ou `ANIMATELIER_USER_AGENT`. Wikimedia refuse les vignettes à largeur non standard (HTTP 400) : utiliser l'original ou une largeur proposée par Commons.

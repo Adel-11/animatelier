@@ -6,6 +6,17 @@ import { resolveTheme, themeInputSchema } from "./themes";
 import { spokenNumbers } from "./speech";
 const label = z.string().trim().min(1).max(500);
 const seconds = z.number().finite().min(1).max(30);
+const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const say = z.string().trim().min(1).max(1000);
+// Card drawn behind an image so dark logos stay visible on dark backgrounds.
+const imageCardSchema = z
+  .object({
+    color: hex,
+    radius: z.number().min(0).max(500).optional(),
+    padding: z.number().min(0).max(200).default(24),
+    shape: z.enum(["square", "box"]).default("square"),
+  })
+  .strict();
 const question = z
   .object({
     q: label,
@@ -19,6 +30,10 @@ const question = z
     imageEffect: z.enum(["blur", "pixelate", "zoom", "none"]).default("none"),
     focusX: z.number().min(0).max(1).default(0.5),
     focusY: z.number().min(0).max(1).default(0.5),
+    imageCard: imageCardSchema.nullable().optional(),
+    read: z.number().finite().min(0.5).max(30).optional(),
+    say: say.optional(),
+    sayAnswer: say.optional(),
   })
   .strict()
   .superRefine((q, ctx) => {
@@ -51,6 +66,7 @@ export const levelsSchema = z
         subtitle: label.default("LEVELS"),
         tagline: label.default("How far can you go?"),
         titleSeconds: seconds.default(3.5),
+        say: say.optional(),
       })
       .strict()
       .default({}),
@@ -60,6 +76,7 @@ export const levelsSchema = z
           .object({
             name: label,
             subtitle: label.optional(),
+            say: say.optional(),
             questions: z.array(question).min(1).max(30),
           })
           .strict(),
@@ -67,11 +84,17 @@ export const levelsSchema = z
       .min(1)
       .max(10),
     questionEffect: z.enum(["blur", "hide", "none"]).default("blur"),
+    imageLayout: z.enum(["compact", "hero"]).default("compact"),
+    imageCard: imageCardSchema.optional(),
     timing: z
       .object({
-        read: z.union([z.literal("auto"), seconds]).default("auto"),
-        readMin: seconds.default(3.5),
-        readMax: seconds.default(4.5),
+        read: z
+          .union([z.literal("auto"), z.literal("voice"), seconds])
+          .default("auto"),
+        // Defaults depend on the mode: 3.5/4.5 s (auto), 1/15 s (voice).
+        readMin: z.number().finite().min(0.5).max(30).optional(),
+        readMax: z.number().finite().min(0.5).max(30).optional(),
+        readPad: z.number().finite().min(0).max(5).default(0.3),
         answerMin: seconds.default(1),
         countdown: z.number().int().min(1).max(10).default(4),
         answer: seconds.default(2.4),
@@ -86,6 +109,7 @@ export const levelsSchema = z
         title: label.default("What's your score?"),
         tiers: z.array(label).max(10).default([]),
         cta: z.array(label).max(5).default(["Follow for more quizzes"]),
+        say: say.optional(),
       })
       .strict()
       .default({}),
@@ -96,7 +120,7 @@ export const levelsSchema = z
     if (s.levels.reduce((n, l) => n + l.questions.length, 0) > 60)
       ctx.addIssue({ code: "custom", message: "Maximum 60 questions." });
     if (
-      s.timing.readMin > s.timing.readMax ||
+      (s.timing.readMin ?? 0.5) > (s.timing.readMax ?? 30) ||
       s.timing.answerMin > s.timing.answer
     )
       ctx.addIssue({
@@ -161,7 +185,16 @@ export type VoiceSlot = {
   maxDuration: number;
   text: string;
 };
-export function compileLevels(input: unknown, baseTheme?: unknown) {
+export const voiceDurationsSchema = z.record(
+  z.string().regex(/^[a-z0-9_]{1,80}$/),
+  z.number().finite().min(0).max(60),
+);
+export type CompileOptions = { voiceDurations?: Record<string, number> };
+export function compileLevels(
+  input: unknown,
+  baseTheme?: unknown,
+  options: CompileOptions = {},
+) {
   const s = levelsSchema.parse(normalizeLevels(input)),
     theme = resolveTheme(
       typeof s.theme === "object"
@@ -169,7 +202,8 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
         : (baseTheme ?? s.theme ?? "default"),
       baseTheme,
     ),
-    t = s.timing;
+    t = s.timing,
+    fr = s.language === "fr";
   const [width, height] =
     s.format === "landscape"
       ? [1920, 1080]
@@ -181,16 +215,49 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
   const all = s.levels.flatMap((l) => l.questions),
     warnings: string[] = [];
   const frame = (n: number) => Math.round(n * 30) / 30;
-  const reads = all.map((q) =>
-    frame(
-      t.read === "auto"
-        ? Math.min(
-            t.readMax,
-            Math.max(t.readMin, Math.round((2 + q.q.length / 20) * 2) / 2),
-          )
-        : t.read,
-    ),
-  );
+  const voiceMode = t.read === "voice",
+    readMin = t.readMin ?? (voiceMode ? 1 : 3.5),
+    readMax = t.readMax ?? (voiceMode ? 15 : 4.5);
+  if (readMin > readMax)
+    throw new Error("Timing minimum exceeds maximum (readMin > readMax).");
+  const durations = options.voiceDurations
+    ? voiceDurationsSchema.parse(options.voiceDurations)
+    : undefined;
+  if (voiceMode && !durations)
+    throw new Error(
+      'timing.read "voice" requires voice durations (--voice-durations voice-durations.json).',
+    );
+  const clampRead = (v: number) => Math.min(readMax, Math.max(readMin, v));
+  const autoRead = (q: { q: string }) =>
+    clampRead(Math.round((2 + q.q.length / 20) * 2) / 2);
+  // Reads fixed by the author (per question) or by the recorded voice are never shortened.
+  const locked: boolean[] = [];
+  const reads = all.map((q, i) => {
+    const id = `question_${i + 1}`;
+    if (q.read !== undefined) {
+      locked.push(true);
+      return frame(q.read);
+    }
+    if (voiceMode) {
+      const d = durations![id];
+      if (d === undefined) {
+        warnings.push(`Voice duration missing for ${id}; using auto read.`);
+        locked.push(false);
+        return frame(autoRead(q));
+      }
+      const wanted = d + t.readPad,
+        v = clampRead(wanted);
+      if (Math.abs(v - wanted) > 1e-9)
+        warnings.push(
+          `${id}: voice ${d.toFixed(2)}s + readPad gives ${wanted.toFixed(2)}s, clamped to ${v.toFixed(2)}s (readMin/readMax).`,
+        );
+      locked.push(true);
+      // Round up so the countdown never starts before the voice has finished.
+      return Math.ceil(v * 30 - 1e-6) / 30;
+    }
+    locked.push(false);
+    return frame(typeof t.read === "number" ? t.read : autoRead(q));
+  });
   let answer = frame(t.answer);
   const logoDuration = theme.logo
     ? frame(s.intro.logoSeconds ?? theme.logo.introSeconds)
@@ -218,9 +285,10 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
   // Spend the remaining frame budget wherever reading can still be shortened.
   // A single equal-share pass strands capacity when a later question is already at its minimum.
   for (let i = 0; i < reads.length && overflow > 1e-8; i++) {
+    if (locked[i]) continue;
     const reducibleFrames = Math.max(
       0,
-      Math.floor((reads[i] - t.readMin) * 30 + 1e-8),
+      Math.floor((reads[i] - readMin) * 30 + 1e-8),
     );
     const frames = Math.min(reducibleFrames, Math.ceil(overflow * 30 - 1e-8));
     reads[i] = frame(reads[i] - frames / 30);
@@ -249,8 +317,10 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
     start: number,
     maxDuration: number,
     text: string,
+    custom?: string,
   ) => {
-    const spoken = spokenNumbers(text, s.language);
+    // Author-supplied narration (say/sayAnswer) is kept verbatim.
+    const spoken = custom ?? spokenNumbers(text, s.language);
     const estimate = spoken.trim().split(/\s+/).length / 2.6;
     if (estimate > maxDuration + 0.25)
       warnings.push(
@@ -465,6 +535,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
     titleStart,
     s.intro.titleSeconds,
     `${s.intro.title}. ${s.intro.subtitle}. ${s.intro.tagline}`,
+    s.intro.say,
   );
   const intro = { start: introStart, end: now };
   events.push({ time: introStart, type: "intro", id: "intro" });
@@ -539,6 +610,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
       ls,
       t.levelCard,
       `${s.language === "fr" ? "Niveau" : "Level"} ${li + 1}. ${level.name}. ${level.subtitle ?? ""}`,
+      level.say,
     );
     level.questions.forEach((q, qi) => {
       const number = ++index,
@@ -564,13 +636,8 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
         ...ticks.map((time) => ({ time, type: "tick", id })),
         { time: frame(start + reveal), type: "reveal", id },
       );
-      voice(
-        id,
-        start,
-        read,
-        `${s.language === "fr" ? "Question" : "Question"} ${number}. ${q.q}`,
-      );
-      voice(`${id}_answer`, start + reveal, answer, answerText);
+      voice(id, start, read, `Question ${number}. ${q.q}`, q.say);
+      voice(`${id}_answer`, start + reveal, answer, answerText, q.sayAnswer);
       scene(id, duration, "question", (d) => {
         const landscape = s.format === "landscape",
           margin = width * (50 / 1080),
@@ -587,17 +654,17 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
         );
         d.text(
           "level_badge",
-          `LEVEL ${li + 1} · ${level.name}`,
-          margin,
+          `${fr ? "NIVEAU" : "LEVEL"} ${li + 1} · ${level.name}`,
+          headerX + 16,
           safeH * 0.1,
-          contentW,
+          headerW - 32,
           84 * unit,
           44 * unit,
           theme.background,
         );
         d.text(
           "question_number",
-          `QUESTION ${number} OF ${all.length}`,
+          `QUESTION ${number} ${fr ? "SUR" : "OF"} ${all.length}`,
           headerX,
           safeH * 0.175,
           headerW,
@@ -640,9 +707,48 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
               );
           });
         });
-        const py = landscape ? height * 0.39 : safeH * 0.323,
-          pw = landscape ? width * 0.54 : contentW,
-          ph = landscape ? height * 0.43 : safeH * (q.choices ? 0.25 : 0.305);
+        // Layout: question panel, optional choice grid, then countdown/answer block.
+        const hero = s.imageLayout === "hero" && !!q.image,
+          rows = q.choices ? Math.ceil(q.choices.length / 2) : 0,
+          rowH = safeH * 0.085,
+          rowGap = safeH * 0.012,
+          gridH = rows ? rows * rowH + (rows - 1) * rowGap : 0,
+          gap = safeH * 0.015;
+        let py: number, pw: number, ph: number;
+        let ax: number, ay: number, aw: number, ah: number;
+        let gridY = 0;
+        if (landscape) {
+          py = height * 0.39;
+          pw = width * 0.54;
+          ph = height * 0.43;
+          ax = width * 0.64;
+          ay = height * 0.64;
+          aw = width * 0.3;
+          ah = height * 0.23;
+        } else if (hero) {
+          py = safeH * 0.29;
+          pw = contentW;
+          ah = safeH * 0.135;
+          ay = safeH * 0.995 - ah;
+          if (rows) gridY = ay - gap - gridH;
+          ph = (rows ? gridY : ay) - gap - py;
+          ax = width * (110 / 1080);
+          aw = width * (860 / 1080);
+        } else {
+          py = safeH * 0.323;
+          pw = contentW;
+          ph = safeH * (q.choices ? (q.image ? 0.25 : 0.19) : 0.305);
+          ax = width * (110 / 1080);
+          aw = width * (860 / 1080);
+          if (rows) {
+            gridY = py + ph + gap;
+            ay = gridY + gridH + safeH * 0.02;
+            ah = Math.min(safeH * 0.23, safeH * 0.995 - ay);
+          } else {
+            ay = safeH * 0.665;
+            ah = safeH * 0.23;
+          }
+        }
         d.rect("question_panel", margin, py, pw, ph);
         const effect =
           s.questionEffect === "none"
@@ -668,14 +774,21 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
                   ],
                 },
               };
+        const questionH = !q.image
+          ? ph - 48
+          : hero
+            ? landscape
+              ? ph * 0.16
+              : 80 * unit
+            : ph * 0.3;
         d.text(
           "question",
           q.q,
           margin + 28,
-          py + 24,
+          py + (hero ? 16 : 24),
           pw - 56,
-          q.image ? ph * 0.3 : ph - 48,
-          70 * unit,
+          questionH,
+          (hero ? 56 : 70) * unit,
           theme.text,
           effect,
         );
@@ -692,33 +805,65 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
                 : q.imageEffect === "pixelate"
                   ? 25
                   : 18;
-          d.image(
-            "question_image",
-            q.image,
-            margin + 28,
-            py + ph * 0.34,
-            pw - 56,
-            ph * 0.62,
-            {
-              focusX: q.focusX,
-              focusY: q.focusY,
-              ...(q.imageEffect === "none"
-                ? {}
-                : {
-                    keyframes: {
-                      [prop]: [
-                        { t: 0, v: prop === "zoom" ? 1 : 0, ease: "step" },
-                        { t: read, v, ease: "step" },
-                        { t: reveal, v: prop === "zoom" ? 1 : 0, ease: "step" },
-                      ],
-                    },
-                  }),
-            },
-          );
+          // Image box inside the panel, below the question.
+          let bx = margin + 28,
+            bw = pw - 56,
+            by: number,
+            bh: number;
+          if (hero) {
+            by = py + 16 + questionH + 12;
+            bh = py + ph - 20 - by;
+          } else {
+            by = py + ph * 0.34;
+            bh = ph * 0.62;
+          }
+          const card =
+            q.imageCard === null ? undefined : (q.imageCard ?? s.imageCard);
+          if (card) {
+            if (card.shape === "square" && bw > bh) {
+              bx += (bw - bh) / 2;
+              bw = bh;
+            }
+            d.rect("question_image_card", bx, by, bw, bh, card.color, {
+              radius: card.radius ?? theme.shapes.radius,
+            });
+            const pad = Math.min(card.padding * unit, bw / 4, bh / 4);
+            bx += pad;
+            by += pad;
+            bw -= 2 * pad;
+            bh -= 2 * pad;
+          }
+          d.image("question_image", q.image, bx, by, bw, bh, {
+            focusX: q.focusX,
+            focusY: q.focusY,
+            ...(card ? { radius: 0 } : {}),
+            ...(q.imageEffect === "none"
+              ? {}
+              : {
+                  keyframes: {
+                    [prop]: [
+                      { t: 0, v: prop === "zoom" ? 1 : 0, ease: "step" },
+                      { t: read, v, ease: "step" },
+                      { t: reveal, v: prop === "zoom" ? 1 : 0, ease: "step" },
+                    ],
+                  },
+                }),
+          });
         }
+        // Elements that end exactly when the next one starts would share a frame
+        // (visibility is inclusive), so each one leaves half a frame early.
+        const eps = 1 / 60;
         const rx = landscape ? width * 0.79 : width / 2,
-          ry = landscape ? height * 0.46 : safeH * 0.787,
-          r = landscape ? 65 : 150 * (safeH / 1640);
+          ry = landscape
+            ? height * 0.46
+            : hero || rows
+              ? ay + ah / 2
+              : safeH * 0.787,
+          r = landscape
+            ? 65
+            : hero || rows
+              ? Math.min(150 * (safeH / 1640), ah / 2 - theme.shapes.ringWidth)
+              : 150 * (safeH / 1640);
         d.add("ellipse", {
           id: "countdown_ring",
           x: rx - r,
@@ -729,7 +874,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
           stroke: theme.track,
           strokeWidth: theme.shapes.ringWidth,
           start: read,
-          end: reveal,
+          end: reveal - eps,
         });
         // A generic path traces the ring once over the countdown; no template-specific renderer.
         d.add("path", {
@@ -741,7 +886,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
           stroke: theme.accent,
           strokeWidth: theme.shapes.ringWidth,
           start: read,
-          end: reveal,
+          end: reveal - eps,
           keyframes: {
             draw: [
               { t: read, v: 1 },
@@ -757,33 +902,70 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
             ry - r,
             2 * r,
             2 * r,
-            landscape ? 64 : 150,
+            landscape ? 64 : Math.min(150, r),
             theme.text,
-            { start: read + k, end: read + k + 1 },
+            { start: read + k, end: read + k + 1 - eps },
           );
-        const ax = landscape ? width * 0.64 : width * (110 / 1080),
-          ay = landscape ? height * 0.64 : safeH * 0.665,
-          aw = landscape ? width * 0.3 : width * (860 / 1080),
-          ah = landscape ? height * 0.23 : safeH * 0.23;
         if (q.choices) {
-          const cy = landscape ? height * 0.2 : safeH * 0.58,
-            cw = landscape ? width * 0.3 : contentW;
-          q.choices.forEach((choice, i) => {
-            const x = landscape ? width * 0.64 : margin + ((i % 2) * cw) / 2,
-              y = landscape
-                ? cy + i * height * 0.055
-                : cy + Math.floor(i / 2) * safeH * 0.045;
-            d.text(
-              `choice_${i}`,
-              `${"ABCD"[i]}. ${choice}`,
-              x,
-              y,
-              landscape ? cw : cw / 2 - 12,
-              landscape ? height * 0.05 : safeH * 0.042,
-              23 * unit,
-              theme.muted,
+          if (landscape) {
+            const cy = height * 0.2,
+              cw = width * 0.3;
+            q.choices.forEach((choice, i) =>
+              d.text(
+                `choice_${i}`,
+                `${"ABCD"[i]}. ${choice}`,
+                width * 0.64,
+                cy + i * height * 0.055,
+                cw,
+                height * 0.05,
+                23 * unit,
+                theme.muted,
+              ),
             );
-          });
+          } else {
+            // Portrait: 2-column grid of readable choice cards; the correct one lights up at reveal.
+            const cellW = (contentW - 16) / 2;
+            q.choices.forEach((choice, i) => {
+              const x = margin + (i % 2) * (cellW + 16),
+                y = gridY + Math.floor(i / 2) * (rowH + rowGap),
+                correct = i === q.correctIndex;
+              d.rect(`choice_panel_${i}`, x, y, cellW, rowH, theme.track);
+              d.text(
+                `choice_${i}`,
+                `${"ABCD"[i]}. ${choice}`,
+                x + 16,
+                y + 6,
+                cellW - 32,
+                rowH - 12,
+                56 * unit,
+                theme.text,
+              );
+              if (correct) {
+                d.rect(
+                  `choice_correct_panel_${i}`,
+                  x,
+                  y,
+                  cellW,
+                  rowH,
+                  levelColor,
+                  {
+                    start: reveal,
+                  },
+                );
+                d.text(
+                  `choice_correct_${i}`,
+                  `${"ABCD"[i]}. ${choice}`,
+                  x + 16,
+                  y + 6,
+                  cellW - 32,
+                  rowH - 12,
+                  56 * unit,
+                  theme.background,
+                  { start: reveal },
+                );
+              }
+            });
+          }
         }
         d.rect("answer_panel", ax, ay, aw, ah, levelColor, {
           start: reveal,
@@ -791,7 +973,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
         });
         d.text(
           "answer_label",
-          s.language === "fr" ? "R�PONSE" : "ANSWER",
+          fr ? "R\u00c9PONSE" : "ANSWER",
           ax + 24,
           ay + 15,
           aw - 48,
@@ -869,6 +1051,7 @@ export function compileLevels(input: unknown, baseTheme?: unknown) {
     outroStart,
     t.outro,
     `${s.outro.title}. ${s.outro.cta.join(". ")}`,
+    s.outro.say,
   );
   events.push({ time: outroStart, type: "outro", id: "outro" });
   const project = parseProject({

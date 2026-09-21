@@ -106,6 +106,7 @@ Les dépendances exactes sont verrouillées dans `package-lock.json`. Ne pas dé
 node apps/cli/quiz-video.js examples/quiz-levels.spec.json --out out/ --theme qff --jobs 4
 node apps/cli/quiz-video.js examples/quiz-levels.spec.json --theme light --check
 node apps/cli/fetch-assets.js manifest.json --out assets/
+node apps/cli/mux-audio.js out/video.mp4 --audio mix.wav --out final.mp4 --keep-sfx
 ```
 
 Les six lots sont intégrés : images et IndexedDB, kit QFF versionné/téléchargement contrôlé, thèmes, quiz niveaux, pipeline vidéo/audio/couverture/contact et cache raster. [Guide complet et limites](docs/QUIZ-VIDEO.md). Le pipeline ne publie rien sur Instagram.
