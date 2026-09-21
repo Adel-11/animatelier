@@ -1,0 +1,29 @@
+{
+  "background": "#07275F",
+  "panel": "#0F3678",
+  "track": "#1B478F",
+  "text": "#FDF8E3",
+  "muted": "#B7C3E6",
+  "accent": "#FECD1B",
+  "answer": "#3DDC97",
+  "levels": ["#3DDC97", "#FF8A3D", "#FF4D6D"],
+  "logo": {
+    "src": "file:brands/qff/logo.png",
+    "placement": "top-right",
+    "size": 100,
+    "margin": 48,
+    "scenes": ["level", "question", "outro"],
+    "introSize": 700,
+    "introSeconds": 3,
+    "fade": 0.3
+  },
+  "typography": {
+    "family": "DejaVu Sans",
+    "scale": 1,
+    "bold": true
+  },
+  "shapes": {
+    "radius": 24,
+    "ringWidth": 14
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "background": "#F5F7FA",
+  "panel": "#FFFFFF",
+  "track": "#D8DFEA",
+  "text": "#15243D",
+  "muted": "#526580",
+  "accent": "#6941C6",
+  "answer": "#16815D",
+  "levels": ["#16815D", "#BF5518", "#C12F59"],
+  "logo": null,
+  "typography": {
+    "family": "DejaVu Sans",
+    "scale": 1,
+    "bold": true
+  },
+  "shapes": {
+    "radius": 24,
+    "ringWidth": 14
+  }
+}

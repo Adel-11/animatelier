@@ -1,0 +1,78 @@
+{
+  "id": "qff_levels_1",
+  "name": "QFF Levels 1",
+  "levels": [
+    {
+      "questions": [
+        {
+          "q": "How many days are there in a leap year?",
+          "a": "366"
+        },
+        {
+          "q": "What color do you get when you mix blue and yellow?",
+          "a": "Green"
+        },
+        {
+          "q": "Which animal is known as the King of the Jungle?",
+          "a": "The lion"
+        },
+        {
+          "q": "How many continents are there on Earth?",
+          "a": "Seven"
+        },
+        {
+          "q": "At what temperature does water freeze in Celsius?",
+          "a": "0 °C"
+        }
+      ]
+    },
+    {
+      "questions": [
+        {
+          "q": "What is the capital of Canada?",
+          "a": "Ottawa"
+        },
+        {
+          "q": "Who wrote Romeo and Juliet?",
+          "a": "William Shakespeare"
+        },
+        {
+          "q": "What is the hardest natural material on Earth?",
+          "a": "Diamond"
+        },
+        {
+          "q": "Which planet is closest to the Sun?",
+          "a": "Mercury"
+        },
+        {
+          "q": "How many players does a soccer team have on the field?",
+          "a": "Eleven"
+        }
+      ]
+    },
+    {
+      "questions": [
+        {
+          "q": "What is the smallest country in the world?",
+          "a": "Vatican City"
+        },
+        {
+          "q": "How many hearts does an octopus have?",
+          "a": "Three"
+        },
+        {
+          "q": "What is the longest bone in the human body?",
+          "a": "The femur"
+        },
+        {
+          "q": "In which year did the Titanic sink?",
+          "a": "1912"
+        },
+        {
+          "q": "Which organ in the human body produces insulin?",
+          "a": "The pancreas"
+        }
+      ]
+    }
+  ]
+}

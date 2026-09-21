@@ -1,26 +1,19 @@
+import { compileLevels, levelsSchema, normalizeLevels } from "./levels";
+import { resolveTheme, themeInputSchema } from "./themes";
 import { wrapText } from "./text";
 import { z } from "zod";
-import { color, parseProject } from "./schema";
+import { parseProject } from "./schema";
 import { newElement, type SceneElement } from "./elements";
 
 const label = (max: number) => z.string().trim().min(1).max(max);
-export const quizSchema = z
+const classicQuizSchema = z
   .object({
     title: label(80),
     mode: z.enum(["choices", "list"]),
     revealDelay: z.number().finite().min(0.5).max(30).default(3),
     answerDuration: z.number().finite().min(0.5).max(30).default(2),
     listSize: z.number().int().min(1).max(10).default(10),
-    theme: z
-      .object({
-        background: color.default("#10182f"),
-        panel: color.default("#202d49"),
-        text: color.default("#f5f7ff"),
-        accent: color.default("#e7bd65"),
-        correct: color.default("#237c63"),
-      })
-      .strict()
-      .default({}),
+    theme: themeInputSchema.optional(),
     questions: z
       .array(
         z
@@ -81,19 +74,38 @@ function fit(
   height: number,
   maximum: number,
   bold: boolean,
+  family = "DejaVu Sans",
 ) {
   for (let fontSize = maximum; fontSize >= 8; fontSize--) {
-    const lines = wrapText(text, fontSize, width, "DejaVu Sans", bold);
+    const lines = wrapText(text, fontSize, width, family, bold);
     if (lines.length * fontSize * 1.2 <= height || fontSize === 8)
       return { text: lines.join("\n"), fontSize };
   }
   throw new Error("Texte impossible à disposer.");
 }
 
-export function compileQuiz(input: unknown) {
-  const spec = quizSchema.parse(input);
+export const quizSchema = z.preprocess(
+  normalizeLevels,
+  z.union([classicQuizSchema, levelsSchema]),
+);
+
+export function compileQuiz(input: unknown, baseTheme?: unknown) {
+  input = normalizeLevels(input);
+  if (
+    input &&
+    typeof input === "object" &&
+    "mode" in input &&
+    input.mode === "levels"
+  )
+    return compileLevels(input, baseTheme);
+  const spec = classicQuizSchema.parse(input);
   const duration = spec.revealDelay + spec.answerDuration;
-  const theme = spec.theme;
+  const theme = resolveTheme(
+    typeof spec.theme === "object"
+      ? spec.theme
+      : (baseTheme ?? spec.theme ?? "default"),
+    baseTheme,
+  );
   const schedule = spec.questions.map((_, i) => ({
     sceneId: `question_${i + 1}`,
     question: i + 1,
@@ -120,7 +132,7 @@ export function compileQuiz(input: unknown) {
           w,
           h,
           fill,
-          radius: 16,
+          radius: theme.shapes.radius,
           ...extra,
         }),
       );
@@ -138,8 +150,9 @@ export function compileQuiz(input: unknown) {
         value,
         w,
         h,
-        size,
+        size * theme.typography.scale,
         "bold" in extra && extra.bold === true,
+        theme.typography.family,
       );
       elements.push(
         newElement("text", duration, {
@@ -153,7 +166,26 @@ export function compileQuiz(input: unknown) {
       );
     };
     const reveal = { start: spec.revealDelay };
-    rect("background", 0, 0, 1280, 720, theme.background, { radius: 0 });
+    if (!theme.backdrop)
+      rect("background", 0, 0, 1280, 720, theme.background, { radius: 0 });
+    if (theme.logo && theme.logo.scenes.includes("question")) {
+      const l = theme.logo;
+      elements.push(
+        newElement("image" as SceneElement["type"], duration, {
+          id: "brand_logo",
+          src: l.src,
+          x: l.placement.endsWith("right")
+            ? 1280 - l.margin - l.size
+            : l.margin,
+          y: l.placement.startsWith("bottom")
+            ? 720 - l.margin - l.size
+            : l.margin,
+          w: l.size,
+          h: l.size,
+          fit: "contain",
+        }),
+      );
+    }
     text("heading", spec.title, 64, 25, 1152, 66, 30, {
       bold: true,
       color: theme.accent,
@@ -224,7 +256,7 @@ export function compileQuiz(input: unknown) {
         );
         if (row <= index) {
           if (row === index)
-            rect(`list_highlight_${row + 1}`, 720, y, 512, 42, theme.correct, {
+            rect(`list_highlight_${row + 1}`, 720, y, 512, 42, theme.answer, {
               ...reveal,
               radius: 8,
             });
@@ -250,7 +282,7 @@ export function compileQuiz(input: unknown) {
           y = 422 + Math.floor(i / 2) * 104;
         rect(`choice_panel_${i + 1}`, x, y, 580, 92, theme.panel);
         if (i === q.correctIndex)
-          rect(`correct_${i + 1}`, x, y, 580, 92, theme.correct, {
+          rect(`correct_${i + 1}`, x, y, 580, 92, theme.answer, {
             ...reveal,
             stroke: theme.accent,
             strokeWidth: 3,
@@ -284,10 +316,12 @@ export function compileQuiz(input: unknown) {
       title: "",
       actors: [],
       elements,
+      backdrop: theme.backdrop ?? { type: "solid", color: theme.background },
     };
   });
   // Compilation is pure: a stable ID permits reproducible output. Loading creates a fresh ID.
   const project = parseProject({
+    fontFamily: theme.typography.family,
     schemaVersion: 2,
     id: "quiz_compiled",
     name: spec.title,
@@ -302,6 +336,37 @@ export function compileQuiz(input: unknown) {
     duration: duration * scenes.length,
     schedule,
     warnings: [] as string[],
+    timeline: {
+      duration: duration * scenes.length,
+      events: schedule.flatMap((q) => [
+        { time: q.start, type: "question", id: q.sceneId },
+        { time: q.reveal, type: "reveal", id: q.sceneId },
+      ]),
+      questions: schedule.map((q) => ({
+        id: q.sceneId,
+        start: q.start,
+        readEnd: q.reveal,
+        ticks: [] as number[],
+        reveal: q.reveal,
+        end: q.end,
+      })),
+    },
+    voiceScript: schedule.flatMap((q, i) => [
+      {
+        id: q.sceneId,
+        start: q.start,
+        maxDuration: spec.revealDelay,
+        text: spec.questions[i].question,
+      },
+      {
+        id: `${q.sceneId}_answer`,
+        start: q.reveal,
+        maxDuration: spec.answerDuration,
+        text:
+          spec.questions[i].answer ??
+          spec.questions[i].choices![spec.questions[i].correctIndex!],
+      },
+    ]),
   };
 }
 
