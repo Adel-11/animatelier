@@ -49,7 +49,6 @@ Le MCP écrit uniquement dans `ANIMATELIER_PROJECTS_DIR` ou `agent-projects` du 
 
 Établir des mesures sur une machine de référence : temps de rendu, mémoire, coût des commandes, performance avec 10 puis 40 personnages. Extraire le rendu lourd dans un worker seulement lorsque les mesures le justifient. Pour le cloud : comptes et autorisation, stockage des ressources, file de jobs idempotents, limites par utilisateur, annulation, reprise et observabilité précèdent le déploiement public du backend.
 
-
 ## Éléments et interpolation — lot 1 v2
 
 Voir [FORMAT-V2.md](FORMAT-V2.md) pour le contrat détaillé et l’exception de compatibilité autorisée par l’utilisateur. `elements.ts` définit cinq types structurés et une validation des arbres limitée avant récursion. `keyframes.ts` valide les pistes et interpole les propriétés ; `element-state.ts` compose leurs matrices de transformation. Le rendu et getStateAt partagent ce calcul.
@@ -60,7 +59,7 @@ Les clés localStorage v2 évitent de charger les anciens projets. Les anciens f
 
 ## Compilation de quiz
 
-`packages/core/quiz.ts` valide un script haut niveau puis produit des scènes v2 avec des éléments et pistes existants. Aucun nouveau type de rendu ni changement de schéma du projet. Compilation pure, ID stable `quiz_compiled`, calendrier global ; `loadQuiz` côté navigateur attribue un nouvel ID avant le chargement validé dans le store. Le MCP expose une compilation sans mutation, puis utilise son chargement avec révision habituel. L’aide intégrée reprend `docs/QUIZ.md` via `quiz-guide.ts` ; un test garantit leur égalité. Les scripts ne sont pas stockés dans le projet produit : l’éditeur modifie les primitives, pas une référence au script.
+`packages/core/quiz.ts` valide un script haut niveau puis produit des scènes v2 avec des éléments, pistes et personnages existants. Aucun nouveau type de rendu ni changement de schéma du projet. Les modes `choices`, `list`, `cards` et `levels` partagent le même point d’entrée ; les layouts et thèmes sont des compilateurs de présentation, pas des types persistants. Compilation pure, ID stable `quiz_compiled`, calendrier global ; `loadQuiz` côté navigateur attribue un nouvel ID avant le chargement validé dans le store. Le MCP expose la même compilation sans mutation, puis utilise son chargement avec révision habituel. Les scripts ne sont pas stockés dans le projet produit : l’éditeur modifie les primitives et personnages produits, pas une référence au script.
 
 ## Pistes et attaches — lot personnages
 

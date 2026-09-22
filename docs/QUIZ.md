@@ -10,7 +10,8 @@ et schémas complets sont disponibles sans consulter le dépôt.
 `schedule` en secondes globales. `loadQuiz(spec)` le charge avec un nouvel ID
 et une seule entrée dans l’historique. Une erreur laisse le projet intact.
 
-- `mode` : `choices` (QCM) ou `list` (liste cumulative).
+- `mode` : `choices` (QCM), `list` (liste cumulative), `cards` (question/réponse)
+  ou `levels` (quiz vertical multi-niveaux, images et voix préparée).
 - `title` : 1 à 80 caractères.
 - `revealDelay` : 0,5 à 30 secondes, **3 par défaut**.
 - `answerDuration` : 0,5 à 30 secondes, **2 par défaut**, après révélation.
@@ -22,6 +23,32 @@ et une seule entrée dans l’historique. Une erreur laisse le projet intact.
   Les champs de l’autre mode sont rejetés pour éviter les ambiguïtés.
 - `theme` facultatif : `background`, `panel`, `text`, `accent`, `correct`,
   couleurs hexadécimales `#RRGGBB`. Choisir des couleurs contrastées.
+
+## Direction artistique et mise en scène
+
+La spec classique est volontairement modulaire. Un agent peut combiner :
+
+- `layout` : `classic`, `game-show` (échelle de gains), `minimal` ou
+  `presenter` ;
+- `motion` : `fade`, `slide`, `pop` ou `none` ;
+- `progress` : `counter`, `bar`, `both` ou `none` ;
+- `theme` nommé : `default`, `light`, `qff`, `game-show`, `neon`, `paper`,
+  ou objet complet/surcharge avec `extends` ;
+- `labels` pour remplacer les libellés QUESTION, RÉPONSE et Bonne réponse ;
+- `presenter` : nom, côté, couleurs, échelle, action et dialogue. Il devient un
+  vrai personnage animé du projet, éditable après compilation ;
+- par question : `hint`, `explanation`, `points` et surcharge `theme`.
+
+Un thème contrôle fond, panneaux, piste, texte, accent, réponse, niveaux,
+typographie, arrondis, motif/dégradé et logo sécurisé `asset:` ou `file:`.
+`api.help().quiz.examples` fournit sept points de départ : liste progressive,
+QCM, jeu télévisé, présentateur animé, cartes mémoire, direction artistique
+personnalisée et défi vertical à niveaux. Les agents peuvent ensuite modifier les primitives produites avec
+les commandes ordinaires pour dépasser les gabarits sans exécuter de HTML/SVG.
+
+Le mode `levels` ajoute les formats `reel-9x16`, `post-4x5`, `landscape`, les
+cartes de niveaux, images, effets de compte à rebours, intro/outro, script vocal
+et budget de durée. Voir `docs/QUIZ-VIDEO.md`.
 
 Une scène par question, de durée `revealDelay + answerDuration`. À l’instant
 exact de révélation, la réponse apparaît. À la frontière de scène, la question
@@ -36,12 +63,15 @@ Les cartes apparaissent avec un court fondu et une barre matérialise le délai.
 ```js
 const api = window.animatelier;
 const spec = {
-  title: "Les capitales", mode: "list", listSize: 10,
-  revealDelay: 3, answerDuration: 2,
+  title: "Les capitales",
+  mode: "list",
+  listSize: 10,
+  revealDelay: 3,
+  answerDuration: 2,
   questions: [
     { question: "Capitale de la France ?", answer: "Paris" },
-    { question: "Capitale de l’Italie ?", answer: "Rome" }
-  ]
+    { question: "Capitale de l’Italie ?", answer: "Rome" },
+  ],
 };
 const built = api.compileQuiz(spec); // project, duration, schedule, warnings
 api.validate(built.project);
@@ -59,10 +89,16 @@ const video = await api.exportVideo();
 Pour un QCM, remplacer le mode par `choices` et les questions par :
 
 ```json
-[{"question":"Combien font 6 × 7 ?","choices":["36","42","48","54"],"correctIndex":1}]
+[
+  {
+    "question": "Combien font 6 × 7 ?",
+    "choices": ["36", "42", "48", "54"],
+    "correctIndex": 1
+  }
+]
 ```
 
-`api.help().quiz.examples` fournit les deux exemples, dont une liste complète
+`api.help().quiz.examples` fournit les sept exemples, dont une liste complète
 de dix questions. `api.schema().quiz` donne le JSON Schema ; les contraintes
 entre champs sont contrôlées à la compilation avec les erreurs Zod détaillées.
 

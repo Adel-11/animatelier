@@ -47,7 +47,25 @@ function initialProject() {
   }
   return demoProject();
 }
-let store: ProjectStore;
+let bootTouched = false;
+let bootSeek = 0;
+// Projects without external images can be restored synchronously, so even an
+// agent calling the API immediately after a reload sees the persisted state.
+// Image-backed projects are retried after IndexedDB hydration below.
+const store = new ProjectStore(initialProject());
+// Expose a functional API before IndexedDB hydration finishes. Agents can safely
+// inspect or mutate the demo immediately; a mutation prevents late hydration
+// from overwriting their work. App() replaces this adapter with UI callbacks.
+window.animatelier = createBrowserApi(store, {
+  sync: () => {
+    bootTouched = true;
+  },
+  seek: (time) => {
+    bootSeek = time;
+  },
+  busy: () => {},
+  progress: () => {},
+});
 const actionNames = {
   idle: "Au repos",
   wave: "Saluer",
@@ -119,7 +137,7 @@ function NumberField({
 }
 function App() {
   const [project, setProject] = useState(store.get());
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(bootSeek);
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<string | null>(
     project.scenes[0].actors[0]?.id ?? null,
@@ -264,8 +282,9 @@ function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [duration, busy]);
-  useEffect(() => {
-    window.animatelier = createBrowserApi(store, {
+  const browserApi = useRef<BrowserApi | null>(null);
+  if (!browserApi.current) {
+    browserApi.current = createBrowserApi(store, {
       sync: (project) => {
         sync(project);
         setSelected(null);
@@ -278,7 +297,8 @@ function App() {
       busy: setBusy,
       progress: setProgress,
     });
-  }, []);
+    window.animatelier = browserApi.current;
+  }
   const exportWebm = async () => {
     try {
       const result = await window.animatelier.exportVideo();
@@ -1195,12 +1215,13 @@ api.saveAs("Mon histoire — variante");
     </div>
   );
 }
-void initializeAssets()
-  .catch(() => {
-    startupWarning =
-      "Stockage des images indisponible : IndexedDB inaccessible.";
-  })
-  .then(() => {
-    store = new ProjectStore(initialProject());
-    createRoot(document.getElementById("root")!).render(<App />);
-  });
+try {
+  await initializeAssets();
+} catch {
+  startupWarning = "Stockage des images indisponible : IndexedDB inaccessible.";
+}
+if (!bootTouched) {
+  startupWarning = "";
+  store.replace(initialProject());
+}
+createRoot(document.getElementById("root")!).render(<App />);

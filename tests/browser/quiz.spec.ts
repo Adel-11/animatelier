@@ -55,6 +55,7 @@ test("crée une liste depuis l’application, vérifie son calendrier et retrouv
     fullPage: true,
   });
   await page.reload();
+  await page.waitForFunction(() => !!window.animatelier);
   expect(
     await page.evaluate(() => window.animatelier.getProject().scenes.length),
   ).toBe(10);
@@ -83,6 +84,7 @@ test("un agent découvre le QCM, le charge avec un nouvel ID et exporte une vid�
   page,
 }) => {
   await page.goto("/");
+  await page.waitForFunction(() => !!window.animatelier);
   const result = await page.evaluate(async () => {
     const api = window.animatelier;
     const spec = {
@@ -129,6 +131,50 @@ test("un agent découvre le QCM, le charge avec un nouvel ID et exporte une vid�
   expect(result.size).toBeGreaterThan(1000);
   await page.screenshot({
     path: "test-results/quiz-choices.png",
+    fullPage: true,
+  });
+});
+
+test("les presets créatifs chargent un jeu télévisé et un présentateur animé", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Quiz", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Jeu télévisé" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Personnage présentateur" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Jeu télévisé" }).click();
+  await page
+    .getByRole("button", { name: "Créer le quiz", exact: true })
+    .click();
+  const game = await page.evaluate(() => {
+    const project = window.animatelier.getProject();
+    window.animatelier.seek(1);
+    return {
+      scenes: project.scenes.length,
+      ladder: project.scenes[0].elements.some((e) => e.id === "ladder_1"),
+      backdrop: project.scenes[0].backdrop?.type,
+    };
+  });
+  expect(game).toEqual({ scenes: 3, ladder: true, backdrop: "linear" });
+  await page.screenshot({
+    path: "test-results/quiz-game-show.png",
+    fullPage: true,
+  });
+
+  const presenter = await page.evaluate(() => {
+    const api = window.animatelier;
+    api.loadQuiz(api.help().quiz.examples.presenter);
+    api.seek(1);
+    const project = api.getProject();
+    return project.scenes[0].actors[0]?.name;
+  });
+  expect(presenter).toBe("Camille");
+  await page.screenshot({
+    path: "test-results/quiz-presenter.png",
     fullPage: true,
   });
 });

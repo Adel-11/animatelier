@@ -55,6 +55,15 @@ export const themeSchema = z
   })
   .strict();
 export type QuizTheme = z.infer<typeof themeSchema>;
+export const quizThemeNames = [
+  "default",
+  "light",
+  "qff",
+  "game-show",
+  "neon",
+  "paper",
+] as const;
+const themeNameSchema = z.enum(quizThemeNames);
 const defaults: QuizTheme = {
   background: "#10182f",
   panel: "#202d49",
@@ -104,13 +113,70 @@ export const builtinThemes: Record<string, QuizTheme> = {
       fade: 0.3,
     },
   },
+  "game-show": {
+    ...defaults,
+    background: "#071A3D",
+    panel: "#102B5C",
+    track: "#28477A",
+    text: "#FFF8DE",
+    muted: "#B9C9EB",
+    accent: "#F6C945",
+    answer: "#178A68",
+    levels: ["#36C98F", "#F6C945", "#F07A45", "#E84B70"],
+    backdrop: {
+      type: "linear",
+      color: "#071A3D",
+      color2: "#28145A",
+      angle: 135,
+    },
+    shapes: { radius: 30, ringWidth: 18 },
+  },
+  neon: {
+    ...defaults,
+    background: "#090A18",
+    panel: "#17152D",
+    track: "#332B55",
+    text: "#F8F4FF",
+    muted: "#B9AED1",
+    accent: "#46F2D0",
+    answer: "#7B4DFF",
+    levels: ["#46F2D0", "#FF4FD8", "#FFD166"],
+    backdrop: {
+      type: "pattern",
+      color: "#090A18",
+      color2: "#211A42",
+      angle: 45,
+      spacing: 72,
+    },
+    shapes: { radius: 12, ringWidth: 10 },
+  },
+  paper: {
+    ...defaults,
+    background: "#F2EBDD",
+    panel: "#FFFDF7",
+    track: "#D7CCB8",
+    text: "#24313A",
+    muted: "#68747C",
+    accent: "#C64B3C",
+    answer: "#4D8B6A",
+    levels: ["#4D8B6A", "#D0923E", "#C64B3C"],
+    backdrop: {
+      type: "pattern",
+      color: "#F2EBDD",
+      color2: "#E8DECB",
+      angle: 0,
+      spacing: 48,
+    },
+    typography: { family: "DejaVu Sans Mono", scale: 0.96, bold: true },
+    shapes: { radius: 4, ringWidth: 8 },
+  },
 };
 export const themeInputSchema = z.union([
-  z.enum(["default", "light", "qff"]),
+  themeNameSchema,
   themeSchema
     .deepPartial()
     .extend({
-      extends: z.enum(["default", "light", "qff"]).optional(),
+      extends: themeNameSchema.optional(),
       correct: color.optional(),
     })
     .strict(),

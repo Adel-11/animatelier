@@ -1,3 +1,16 @@
+# Point de reprise, 22 septembre 2026 — questionnaires modulaires
+
+Le générateur de quiz classique accepte désormais `choices`, `list` et `cards`, quatre mises en page (`classic`, `game-show`, `minimal`, `presenter`), quatre mouvements d’entrée, quatre affichages de progression, des libellés personnalisés et des métadonnées par question (`hint`, `explanation`, `points`, surcharge de thème). Un présentateur est compilé comme un vrai personnage v2 animé ; son dialogue de réponse commence à la révélation. Le mode `levels` existant reste disponible par le même schéma.
+
+Trois thèmes sûrs ont été ajoutés (`game-show`, `neon`, `paper`) en plus des thèmes existants ; les objets de thème permettent toujours couleurs, fond uni/dégradé/motif, typographie, formes et logo `asset:`/`file:`. Sept exemples sont exposés dans `window.animatelier.help().quiz.examples`, le MCP et le panneau Quiz : liste progressive, QCM, jeu télévisé avec échelle de gains, présentateur animé, cartes mémoire, direction artistique complète et défi vertical à niveaux. L’interface utilise une grille responsive de presets et tient sur 390 px.
+
+L’API navigateur est maintenant disponible avant la fin de l’hydratation IndexedDB. Une commande ou un `seek` agent précoce est conservé et empêche l’hydratation tardive d’écraser le travail ; les projets sans images sont restaurés synchroniquement au rechargement. Cela corrige la course observée dans les parcours agent, édition, pistes et compteurs.
+
+Vérifications locales Windows/Node 24/Chrome : `npm test` 64/64, `npm run build` réussi, `npm run test:e2e` 15/15 en quatre workers. Les captures `quiz-game-show.png` et `quiz-presenter.png` ont été inspectées ; le parcours Quiz mobile ne déborde plus. Le build conserve l’avertissement connu sur les gros chunks de polices/données. Aucun déploiement Netlify vérifié.
+
+Quota avant finalisation : 59 % restants sur cinq heures et 78 % hebdomadaire. Aucun crédit de réinitialisation utilisé.
+
+---
 # Point de reprise, 21 septembre 2026 (soir)
 
 ## Retours agent vidéo : 5 bugs et 5 évolutions
@@ -207,4 +220,3 @@ Vérifications finales : npm test (13 réussis), npm run build et six parcours P
 Non livrés dans ce lot : pistes d’actions, casting partagé, hors champ, orientation automatique/profil, vitesse de marche, dialogues indépendants, décors/objets/transitions supplémentaires et script haut niveau. Les remarques 2–4 et 9–13 sont détaillées dans docs/ROADMAP.md ; commencer par un contrat versionné et une migration v1 testée.
 
 Quota avant les vérifications finales : 66 % de la fenêtre cinq heures et 41 % hebdomadaire restants. Aucun crédit de réinitialisation utilisé.
-

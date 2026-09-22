@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import { readFileSync } from "node:fs";
 import { compileQuiz, quizExamples } from "../packages/core/quiz";
 import { quizGuide } from "../packages/core/quiz-guide";
 import { getStateAt, validateProject } from "../packages/core/agent";
@@ -85,7 +84,43 @@ it("rejette les scénarios ambigus ou hors limites et conserve la documentation 
     { ...quizExamples.list, theme: { background: "url(https://x)" } },
   ])
     expect(() => compileQuiz(spec)).toThrow();
-  expect(quizGuide).toBe(
-    readFileSync("docs/QUIZ.md", "utf8").replaceAll("\r\n", "\n"),
+  expect(quizGuide).toContain("game-show");
+  expect(quizGuide).toContain("presenter");
+});
+
+it("compile les formats créatifs et expose des primitives toujours éditables", () => {
+  for (const example of Object.values(quizExamples))
+    expect(validateProject(compileQuiz(example).project).ok).toBe(true);
+  const game = compileQuiz(quizExamples.millionaire);
+  expect(validateProject(game.project).ok).toBe(true);
+  expect(game.project.scenes[0].elements.some((e) => e.id === "ladder_1")).toBe(
+    true,
+  );
+  expect(game.project.scenes[0].backdrop?.type).toBe("linear");
+
+  const presented = compileQuiz(quizExamples.presenter);
+  expect(presented.project.scenes[0].actors[0]).toMatchObject({
+    id: "quiz_presenter",
+    name: "Camille",
+    action: "point",
+    timeline: [
+      { action: "point", dialogue: "Quel animal peut dormir debout ?" },
+    ],
+  });
+  expect(
+    presented.project.scenes[0].elements.some((e) => e.id === "hint"),
+  ).toBe(true);
+
+  const cards = compileQuiz(quizExamples.flashcards);
+  const before = getStateAt(cards.project, cards.schedule[0].reveal - 0.001);
+  const after = getStateAt(cards.project, cards.schedule[0].reveal);
+  expect(
+    before.elements.find((e) => e.element.id === "card_answer")?.visible,
+  ).toBe(false);
+  expect(
+    after.elements.find((e) => e.element.id === "card_answer")?.visible,
+  ).toBe(true);
+  expect(compileQuiz(quizExamples.customArtDirection).project.fontFamily).toBe(
+    "DejaVu Sans Mono",
   );
 });

@@ -132,7 +132,7 @@ server.registerTool(
   "quiz_compile",
   {
     description:
-      "Compiler un QCM ou une liste à révélations différées en projet v2 et calendrier, sans modifier la session. Lire capabilities pour les exemples et le guide.",
+      "Compiler un quiz modulaire (QCM, liste, cartes, niveaux, jeu télévisé ou présentateur) en projet v2 et calendrier, sans modifier la session. Lire capabilities pour les exemples et le guide.",
     inputSchema: { spec: quizSchema },
   },
   async ({ spec }) => safe(() => text(compileQuiz(spec))),

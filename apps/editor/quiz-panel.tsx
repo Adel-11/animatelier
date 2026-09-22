@@ -12,6 +12,15 @@ export function QuizGuide() {
 }
 
 export function QuizPanel({ onClose }: { onClose: () => void }) {
+  const presets = [
+    ["list", "Liste progressive"],
+    ["choices", "QCM classique"],
+    ["millionaire", "Jeu télévisé"],
+    ["presenter", "Personnage présentateur"],
+    ["flashcards", "Cartes mémoire"],
+    ["levelsShow", "Défi vertical à niveaux"],
+    ["customArtDirection", "Direction artistique"],
+  ] as const;
   const [source, setSource] = useState(
     JSON.stringify(quizExamples.list, null, 2),
   );
@@ -45,28 +54,24 @@ export function QuizPanel({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <span className="eyebrow">QUESTIONS & RÉVÉLATIONS</span>
-        <h2>Une question. Un temps pour réfléchir.</h2>
+        <h2>Un générateur de quiz pilotable par les agents.</h2>
         <p>
-          Choisissez un exemple, modifiez les questions et le délai. Les
-          réponses apparaissent après trois secondes par défaut.
+          Partez d’un format, puis dictez le thème, la mise en scène, le
+          mouvement, les libellés, le présentateur et le minutage dans la spec.
+          Le projet généré reste entièrement éditable.
         </p>
-        <div className="button-row">
-          <button
-            onClick={() => {
-              setSource(JSON.stringify(quizExamples.list, null, 2));
-              setMessage("");
-            }}
-          >
-            Liste de 1 à 10
-          </button>
-          <button
-            onClick={() => {
-              setSource(JSON.stringify(quizExamples.choices, null, 2));
-              setMessage("");
-            }}
-          >
-            QCM
-          </button>
+        <div className="quiz-presets" aria-label="Formats de quiz">
+          {presets.map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => {
+                setSource(JSON.stringify(quizExamples[key], null, 2));
+                setMessage("");
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <label className="field">
           <span>Script du quiz (JSON)</span>
@@ -84,8 +89,9 @@ export function QuizPanel({ onClose }: { onClose: () => void }) {
         {message && <pre role={error ? "alert" : "status"}>{message}</pre>}
         <p>
           Créer remplace le projet courant. Vous pourrez annuler depuis
-          l’éditeur. Tous les textes, formes et animations restent modifiables
-          dans Éléments.
+          l’éditeur. Les agents peuvent aussi utiliser <code>compileQuiz</code>,
+          <code> loadQuiz</code> ou l’outil MCP <code>quiz_compile</code> avec
+          le même schéma validé.
         </p>
         <div className="button-row">
           <button onClick={() => run(false)}>Vérifier le script</button>

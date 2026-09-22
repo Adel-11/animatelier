@@ -21,7 +21,7 @@ Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` a
 
 ## Quiz animés
 
-Le bouton **Quiz** propose un QCM et une liste de dix réponses révélées progressivement. Le délai vaut trois secondes par défaut. Un agent utilise `window.animatelier.help().quiz`, `compileQuiz(spec)` puis `loadQuiz(spec)`. Le guide complet est intégré aux panneaux **Quiz** et **Agents**, avec les schémas, exemples, vérifications et l’export WebM. [Guide quiz](docs/QUIZ.md). Projets prêts à ouvrir : `examples/quiz-list.animatelier.json` (50 s) et `examples/quiz-choices.animatelier.json` (5 s).
+Le bouton **Quiz** propose sept points de départ : QCM, liste cumulative, jeu télévisé avec échelle de gains, cartes mémoire, personnage présentateur, direction artistique libre et défi vertical à niveaux. Un agent peut piloter thèmes, dégradés/motifs, typographie, arrondis, mouvement, progression, libellés, explications, points, présentateur et surcharges par question. Il utilise `window.animatelier.help().quiz`, `compileQuiz(spec)` puis `loadQuiz(spec)`. Le résultat reste un projet v2 entièrement éditable. [Guide quiz](docs/QUIZ.md). Projets prêts à ouvrir : `examples/quiz-list.animatelier.json` (50 s) et `examples/quiz-choices.animatelier.json` (5 s).
 
 ## Export sans navigateur
 
