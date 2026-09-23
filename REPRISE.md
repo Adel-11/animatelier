@@ -11,6 +11,17 @@ Vérifications locales Windows/Node 24/Chrome : `npm test` 64/64, `npm run build
 Quota avant finalisation : 59 % restants sur cinq heures et 78 % hebdomadaire. Aucun crédit de réinitialisation utilisé.
 
 ---
+# Point de reprise technique, 23 septembre 2026 — quiz vidéo modulaire
+
+Le mode `levels` dispose maintenant d'une barre de progression unique et de rectangles SVG aux rayons circulaires. La CLI mesure et place les WAV via `--voice-clips`, prolonge les créneaux, ajoute musique locale/synthétique et ducking, normalise et mesure le son, et produit un rapport codecs/loudness/`elst`/chevauchements. Aperçu seul, PNG isolés/recadrés, brouillon 15 fps, `--schema` et rapport textuel de mise en page sont disponibles.
+
+Les specs acceptent preset QFF/fichier, défauts en cascade, QCM abrégé déterministe, modèles de voix et dictionnaire de prononciation ; `sequence` insère des scènes v2 validées, et chaque scène/question peut recevoir éléments/acteurs v2. Les agents peuvent surcharger `layout` par ID, ajouter un présentateur vertical, recadrer une image, animer l'effet de révélation, changer l'image-réponse, utiliser vrai/faux, estimation, variantes de QCM et personnaliser libellés/compte à rebours. Exemple : `examples/quiz-video-modular.spec.json` ; contrat et limites : `docs/QUIZ-VIDEO.md`.
+
+Vérifications locales : 72/72 tests unitaires, build réussi, 15/15 tests Playwright avec le Chrome installé ; planche inspectée, brouillons MP4 de 11 s sans voix puis avec WAV + musique + SFX effectivement produits et contrôlés (H.264/AAC, 48 kHz stéréo, pas d'`elst`, loudness mesurée). Le binaire Chromium embarqué de Playwright manque, d'où l'utilisation de `PLAYWRIGHT_CHANNEL=chrome`. Les dossiers temporaires de ces rendus ont été supprimés. Pas de déploiement Netlify vérifié.
+
+Non livré : transitions temporelles entre scènes, SFX issus de fichiers, TTF arbitraires, grille de choix d'images, cache de calques statiques et ordre entièrement libre des questions ; `sequence` gère des insertions sûres. Pas de crédit de réinitialisation utilisé.
+
+---
 # Point de reprise, 21 septembre 2026 (soir)
 
 ## Retours agent vidéo : 5 bugs et 5 évolutions

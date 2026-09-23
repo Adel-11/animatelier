@@ -43,7 +43,7 @@ export function renderElement(
     }
   }
   if (e.type === "rect")
-    content = `<rect width="${e.w}" height="${e.h}" rx="${e.radius}" fill="${e.fill}" stroke="${e.stroke}" stroke-width="${e.strokeWidth}"/>`;
+    content = `<rect width="${e.w}" height="${e.h}" rx="${Math.min(e.radius, e.w / 2, e.h / 2)}" ry="${Math.min(e.radius, e.w / 2, e.h / 2)}" fill="${e.fill}" stroke="${e.stroke}" stroke-width="${e.strokeWidth}"/>`;
   if (e.type === "ellipse")
     content = `<ellipse cx="${e.w / 2}" cy="${e.h / 2}" rx="${e.w / 2}" ry="${e.h / 2}" fill="${e.fill}" stroke="${e.stroke}" stroke-width="${e.strokeWidth}"/>`;
   if (e.type === "line") {
@@ -94,5 +94,5 @@ function clipShape(clip: Clip) {
   if (clip.type === "path") return `<path d="${esc(pathMetrics(clip.d).d)}"/>`;
   if (clip.type === "ellipse")
     return `<ellipse cx="${clip.x + clip.w / 2}" cy="${clip.y + clip.h / 2}" rx="${clip.w / 2}" ry="${clip.h / 2}"/>`;
-  return `<rect x="${clip.x}" y="${clip.y}" width="${clip.w}" height="${clip.h}" rx="${clip.radius}"/>`;
+  return `<rect x="${clip.x}" y="${clip.y}" width="${clip.w}" height="${clip.h}" rx="${Math.min(clip.radius, clip.w / 2, clip.h / 2)}" ry="${Math.min(clip.radius, clip.w / 2, clip.h / 2)}"/>`;
 }

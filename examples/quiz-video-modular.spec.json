@@ -1,0 +1,120 @@
+{
+  "mode": "levels",
+  "preset": "qff-reel",
+  "title": "Creative quiz demo",
+  "theme": "default",
+  "language": "fr",
+  "countdownStyle": "bar",
+  "intro": {
+    "title": "DÉFI",
+    "subtitle": "CRÉATIF",
+    "tagline": "Deux questions",
+    "titleSeconds": 1
+  },
+  "timing": {
+    "read": 1,
+    "readMin": 1,
+    "readMax": 1,
+    "countdown": 1,
+    "answer": 1,
+    "answerMin": 1,
+    "levelCard": 1,
+    "outro": 1,
+    "maxDuration": 30
+  },
+  "voice": {
+    "seed": 42,
+    "offsets": { "intro": 0.3, "answer": 0.1 },
+    "answerTemplates": ["Oui, c'est {a} !", "La bonne réponse : {a}."],
+    "pronounce": { "QFF": "quiz factory forever" }
+  },
+  "music": { "bpm": 112, "root": 48, "progression": [0, 5, 9, 7] },
+  "defaults": { "imageEffect": "none", "choicesLayout": "grid" },
+  "layout": {
+    "progress_label_*": { "fontSize": 30 },
+    "card_progress_label_*": { "fontSize": 30 }
+  },
+  "levels": [
+    {
+      "name": "DÉPART",
+      "defaults": {
+        "imageCard": { "color": "#FFFFFF", "padding": 12, "shape": "box" }
+      },
+      "questions": [
+        {
+          "q": "Quel est ce logo ?",
+          "a": "QFF",
+          "wrong": ["ABC", "XYZ"],
+          "image": "file:brands/qff/logo.png",
+          "answerImage": "file:brands/qff/logo.png",
+          "imageEffect": {
+            "type": "blur",
+            "from": 18,
+            "to": 0,
+            "ease": "easeOut"
+          },
+          "hint": "Regardez les couleurs",
+          "explanation": "Un logo de quiz vidéo.",
+          "points": 100,
+          "elements": [
+            {
+              "id": "spark",
+              "type": "ellipse",
+              "x": 60,
+              "y": 60,
+              "w": 24,
+              "h": 24,
+              "fill": "#FFD700"
+            }
+          ]
+        },
+        {
+          "q": "Le soleil est une étoile ?",
+          "type": "true-false",
+          "a": "vrai",
+          "choicesLayout": "two",
+          "points": 50,
+          "presenter": {
+            "name": "Maya",
+            "x": 0.9,
+            "y": 0.76,
+            "scale": 0.35,
+            "action": "wave",
+            "dialogue": "none"
+          }
+        }
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "after": "question_1",
+      "id": "bonus_card",
+      "duration": 2,
+      "say": "Prêt pour la suite ?",
+      "elements": [
+        {
+          "id": "bonus_bg",
+          "type": "rect",
+          "x": 80,
+          "y": 420,
+          "w": 920,
+          "h": 540,
+          "radius": 40,
+          "fill": "#153973"
+        },
+        {
+          "id": "bonus_text",
+          "type": "text",
+          "x": 540,
+          "y": 690,
+          "align": "center",
+          "fontSize": 80,
+          "bold": true,
+          "color": "#FFFFFF",
+          "text": "BONUS !"
+        }
+      ]
+    }
+  ]
+}

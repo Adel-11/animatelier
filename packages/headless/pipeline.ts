@@ -1,4 +1,4 @@
-import { normalizeLevels } from "../core/levels";
+import { normalizeLevels, levelsSchema } from "../core/levels";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { constants } from "node:fs";
@@ -12,6 +12,7 @@ import {
   lstat,
   stat,
   copyFile,
+  open,
 } from "node:fs/promises";
 import sharp from "sharp";
 import { compileQuiz } from "../core/quiz";
@@ -20,11 +21,23 @@ import { resolveProjectAssets, decodeImage, localAssetFile } from "./assets";
 import { flattenElements } from "../core/elements";
 import { rasterFrame } from "./frame";
 import { renderVideo } from "./video";
-import { muxAudio, synthesizeSfx, soundMappingSchema } from "./audio";
+import {
+  muxAudio,
+  synthesizeSfx,
+  synthesizeMusic,
+  soundMappingSchema,
+  audioDuration,
+  mixVoiceClips,
+  muxSoundtrack,
+  mediaInfo,
+  measureLoudness,
+  type VoiceClip,
+} from "./audio";
 import type { Project } from "../core/schema";
 export interface PipelineOptions {
   out?: string;
   theme?: string;
+  preset?: string;
   assetsDir?: string;
   jobs?: number;
   target?: "instagram-reel";
@@ -34,6 +47,15 @@ export interface PipelineOptions {
   coverAt?: number;
   coverImage?: string;
   voiceDurations?: string;
+  voiceClips?: string;
+  music?: string;
+  loudness?: number;
+  verbose?: boolean;
+  previewOnly?: boolean;
+  previewScale?: number;
+  frames?: string;
+  crop?: [number, number, number, number];
+  draft?: boolean;
   preview?: string;
   check?: boolean;
 }
@@ -52,7 +74,9 @@ export function previewTimes(
       ? [
           Math.min(1, duration / 2),
           ...events
-            .filter((e) => ["level", "question", "reveal"].includes(e.type))
+            .filter((e) =>
+              ["level", "question", "reveal", "custom"].includes(e.type),
+            )
             .map((e) => e.time),
         ]
       : value.split(",").map(Number);
@@ -90,8 +114,14 @@ export async function coverFromImage(
     .jpeg({ quality: 90 })
     .toBuffer();
 }
-export async function makePreview(project: Project, times: number[]) {
-  const width = 270,
+export async function makePreview(
+  project: Project,
+  times: number[],
+  scale = 1,
+) {
+  if (!Number.isFinite(scale) || scale < 0.1 || scale > 2)
+    throw new Error("--preview-scale doit être entre 0.1 et 2.");
+  const width = Math.round(270 * scale),
     height = Math.round((width * project.height) / project.width),
     columns = Math.min(4, times.length);
   const tiles = [];
@@ -119,11 +149,90 @@ export async function makePreview(project: Project, times: number[]) {
     .jpeg({ quality: 85 })
     .toBuffer();
 }
+function frameTimes(value: string | undefined, duration: number) {
+  if (!value) return [];
+  const times = value.split(",").map(Number);
+  if (
+    !times.length ||
+    times.length > 24 ||
+    times.some((t) => !Number.isFinite(t) || t < 0 || t >= duration)
+  )
+    throw new Error(
+      "--frames attend 1 à 24 instants avant la fin de la vidéo.",
+    );
+  return times;
+}
+async function framePng(
+  project: Project,
+  time: number,
+  crop?: [number, number, number, number],
+) {
+  let image = sharp(rasterFrame(project, time).asPng());
+  if (crop) {
+    const [left, top, width, height] = crop;
+    if (
+      ![left, top, width, height].every(Number.isInteger) ||
+      left < 0 ||
+      top < 0 ||
+      width < 1 ||
+      height < 1 ||
+      left + width > project.width ||
+      top + height > project.height
+    )
+      throw new Error("--crop hors canevas.");
+    image = image.extract({ left, top, width, height });
+  }
+  return image.png().toBuffer();
+}
+async function hasEditList(filename: string) {
+  const file = await open(filename, "r");
+  try {
+    const buffer = Buffer.alloc(2_000_000);
+    const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+    return buffer.subarray(0, bytesRead).includes(Buffer.from("elst"));
+  } finally {
+    await file.close();
+  }
+}
 export async function quizVideo(
   input: unknown,
   options: PipelineOptions,
   progress?: (frame: number, total: number) => void,
 ) {
+  if (options.preset) {
+    const preset = await jsonFile(options.preset);
+    if (
+      !preset ||
+      typeof preset !== "object" ||
+      Array.isArray(preset) ||
+      !input ||
+      typeof input !== "object" ||
+      Array.isArray(input)
+    )
+      throw new Error("Preset ou spec invalide.");
+    const source = input as Record<string, unknown>,
+      base = preset as Record<string, unknown>;
+    input = {
+      ...base,
+      ...source,
+      intro: {
+        ...((base.intro as object) ?? {}),
+        ...((source.intro as object) ?? {}),
+      },
+      outro: {
+        ...((base.outro as object) ?? {}),
+        ...((source.outro as object) ?? {}),
+      },
+      timing: {
+        ...((base.timing as object) ?? {}),
+        ...((source.timing as object) ?? {}),
+      },
+      defaults: {
+        ...((base.defaults as object) ?? {}),
+        ...((source.defaults as object) ?? {}),
+      },
+    };
+  }
   if (input && typeof input === "object" && "levels" in input)
     input = normalizeLevels(input);
   let theme;
@@ -132,10 +241,85 @@ export async function quizVideo(
       ? resolveTheme(await jsonFile(options.theme))
       : resolveTheme(options.theme);
   }
-  const voiceDurations = options.voiceDurations
+  if (options.voiceDurations && options.voiceClips)
+    throw new Error(
+      "Choisir --voice-clips ou --voice-durations, pas les deux.",
+    );
+  let voiceDurations = options.voiceDurations
     ? await jsonFile(options.voiceDurations)
     : undefined;
-  const compiled = compileQuiz(input, theme, { voiceDurations });
+  const clipFiles = new Map<string, string>();
+  const voiceSpec =
+    input && typeof input === "object" && "levels" in input
+      ? levelsSchema.parse(input)
+      : undefined;
+  if (options.voiceClips) {
+    if (!voiceSpec) throw new Error("--voice-clips requiert le mode levels.");
+    const slots = compileQuiz(input, theme, { voiceDurations: {} }).voiceScript;
+    const measured: Record<string, number> = {};
+    for (const slot of slots) {
+      const filename = path.join(
+        path.resolve(options.voiceClips),
+        `${slot.id}.wav`,
+      );
+      try {
+        await stat(filename);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+        throw error;
+      }
+      measured[slot.id] = await audioDuration(filename);
+      clipFiles.set(slot.id, filename);
+    }
+    if (!clipFiles.size)
+      throw new Error(
+        `Aucun clip WAV correspondant aux IDs du script vocal dans ${options.voiceClips}.`,
+      );
+    voiceDurations = measured;
+  }
+  const compiled = compileQuiz(input, theme, {
+    voiceDurations,
+    protectVoiceClips: !!options.voiceClips,
+  });
+  const voiceClips: VoiceClip[] = [];
+  const overlaps: string[] = [];
+  if (options.voiceClips && voiceSpec) {
+    for (const slot of compiled.voiceScript) {
+      const file = clipFiles.get(slot.id);
+      if (!file) {
+        compiled.warnings.push(`Voice clip missing: ${slot.id}.wav`);
+        continue;
+      }
+      const kind = voiceSpec.sequence?.some((item) => item.id === slot.id)
+        ? "custom"
+        : slot.id === "intro" || slot.id === "outro"
+          ? slot.id
+          : slot.id.startsWith("level_")
+            ? "level"
+            : slot.id.endsWith("_answer")
+              ? "answer"
+              : "question";
+      const start =
+        slot.start + (kind === "custom" ? 0 : voiceSpec.voice.offsets[kind]);
+      const duration = (voiceDurations as Record<string, number>)[slot.id];
+      if (start + duration > slot.start + slot.maxDuration + 1 / 30)
+        compiled.warnings.push(`Voice clip exceeds slot: ${slot.id}`);
+      voiceClips.push({ id: slot.id, file, start, duration });
+    }
+    voiceClips.sort((a, b) => a.start - b.start);
+    for (let i = 0; i < voiceClips.length; i++)
+      for (let j = i + 1; j < voiceClips.length; j++) {
+        if (
+          voiceClips[j].start >=
+          voiceClips[i].start + voiceClips[i].duration - 1 / 1000
+        )
+          break;
+        overlaps.push(`${voiceClips[i].id} / ${voiceClips[j].id}`);
+      }
+    compiled.warnings.push(
+      ...overlaps.map((value) => `Voice overlap: ${value}`),
+    );
+  }
   // Brand logos belong to their kit, independently of the quiz image directory.
   const specTheme =
     input && typeof input === "object" && "theme" in input
@@ -183,6 +367,7 @@ export async function quizVideo(
     compiled.duration,
     compiled.timeline.events,
   );
+  const stillTimes = frameTimes(options.frames, compiled.duration);
   const coverAt = options.coverAt ?? Math.min(1, compiled.duration / 2);
   if (!Number.isFinite(coverAt) || coverAt < 0 || coverAt >= compiled.duration)
     throw new Error("Instant de couverture hors durée.");
@@ -191,6 +376,18 @@ export async function quizVideo(
       ? soundMappingSchema.parse(await jsonFile(options.sfx))
       : {};
   if (options.audio) await stat(options.audio);
+  if (options.audio && (options.voiceClips || options.music))
+    throw new Error(
+      "--audio ne peut pas être combiné avec --voice-clips ou --music.",
+    );
+  if (options.music && options.music !== "default") await stat(options.music);
+  if (
+    options.loudness !== undefined &&
+    (!Number.isFinite(options.loudness) ||
+      options.loudness < -30 ||
+      options.loudness > -8)
+  )
+    throw new Error("--loudness doit être entre -30 et -8 LUFS.");
   const coverImage = options.coverImage
     ? await decodeImage(await readFile(options.coverImage))
     : undefined;
@@ -198,9 +395,12 @@ export async function quizVideo(
     return {
       check: true,
       duration: compiled.duration,
-      frames: Math.ceil(compiled.duration * 30),
+      frames: Math.ceil(compiled.duration * (options.draft ? 15 : 30)),
       warnings: compiled.warnings,
-      previewTimes: times,
+      layoutReport: "layoutReport" in compiled ? compiled.layoutReport : [],
+      ...(options.verbose
+        ? { previewTimes: times, voiceOverlaps: overlaps }
+        : {}),
     };
   if (!options.out) throw new Error("--out requis pour le rendu.");
   const directory = path.resolve(options.out);
@@ -216,6 +416,17 @@ export async function quizVideo(
     "preview.jpg",
   ].map((name) => path.join(directory, name));
   outputs.push(coverTarget);
+  const stillNames = stillTimes.map(
+    (_, i) => `frame-${String(i + 1).padStart(2, "0")}.png`,
+  );
+  if (options.previewOnly)
+    outputs.splice(
+      0,
+      outputs.length,
+      path.join(directory, "project.json"),
+      path.join(directory, "preview.jpg"),
+    );
+  outputs.push(...stillNames.map((name) => path.join(directory, name)));
   if (new Set(outputs).size !== outputs.length)
     throw new Error("Chemins de sortie en conflit.");
   for (const target of outputs) {
@@ -231,16 +442,56 @@ export async function quizVideo(
   const published: string[] = [];
   try {
     const silent = path.join(staging, "silent.mp4");
+    if (options.previewOnly) {
+      await writeFile(
+        path.join(staging, "project.json"),
+        JSON.stringify(project, null, 2),
+      );
+      await writeFile(
+        path.join(staging, "preview.jpg"),
+        await makePreview(project, times, options.previewScale),
+      );
+      for (let i = 0; i < stillTimes.length; i++)
+        await writeFile(
+          path.join(staging, stillNames[i]),
+          await framePng(project, stillTimes[i], options.crop),
+        );
+      for (const target of outputs) {
+        await link(path.join(staging, path.basename(target)), target);
+        published.push(target);
+      }
+      return {
+        previewOnly: true,
+        duration: compiled.duration,
+        outputs,
+        warnings: compiled.warnings,
+      };
+    }
     const result = await renderVideo(
       project,
       {
         out: silent,
         jobs: options.jobs,
-        target: options.target ?? "instagram-reel",
+        target: options.draft
+          ? undefined
+          : (options.target ?? "instagram-reel"),
+        fps: options.draft ? 15 : undefined,
+        scale: options.draft
+          ? [
+              Math.round(project.width / 4) * 2,
+              Math.round(project.height / 4) * 2,
+            ]
+          : undefined,
       },
       progress,
     );
     const tracks = options.audio ? [path.resolve(options.audio)] : [];
+    let voiceTrack: string | undefined;
+    if (voiceClips.length) {
+      voiceTrack = path.join(staging, "voice.wav");
+      await mixVoiceClips(voiceClips, voiceTrack, result.duration);
+    }
+    let sfxTrack: string | undefined;
     if (options.sfx) {
       const wav = path.join(staging, "sfx.wav");
       await synthesizeSfx(
@@ -250,9 +501,63 @@ export async function quizVideo(
         soundMapping,
       );
       tracks.push(wav);
+      sfxTrack = wav;
     }
-    const video = tracks.length ? path.join(staging, "video.mp4") : silent;
-    if (tracks.length) await muxAudio(silent, tracks, video, result.duration);
+    let musicTrack =
+      options.music && options.music !== "default"
+        ? path.resolve(options.music)
+        : undefined;
+    if (options.music === "default") {
+      musicTrack = path.join(staging, "music.wav");
+      await synthesizeMusic(
+        musicTrack,
+        result.duration,
+        voiceSpec?.music ?? { bpm: 108, root: 48, progression: [0, 5, 9, 7] },
+      );
+    }
+    const hasNewMix = !!voiceTrack || !!options.music;
+    const video =
+      tracks.length || hasNewMix ? path.join(staging, "video.mp4") : silent;
+    if (hasNewMix) {
+      if (options.audio)
+        throw new Error(
+          "--audio ne peut pas être combiné avec --voice-clips ou --music.",
+        );
+      await muxSoundtrack(
+        silent,
+        video,
+        result.duration,
+        voiceTrack,
+        musicTrack,
+        sfxTrack,
+        options.loudness ?? -16,
+      );
+    } else if (tracks.length)
+      await muxAudio(silent, tracks, video, result.duration);
+    const info = await mediaInfo(video);
+    const videoStream = info.streams.find(
+      (stream) => stream.codec_type === "video",
+    );
+    const audioStream = info.streams.find(
+      (stream) => stream.codec_type === "audio",
+    );
+    const report = {
+      duration: Number(info.format.duration),
+      videoCodec: videoStream?.codec_name ?? null,
+      fps: videoStream?.r_frame_rate ?? null,
+      audioCodec: audioStream?.codec_name ?? null,
+      sampleRate: audioStream?.sample_rate
+        ? Number(audioStream.sample_rate)
+        : null,
+      channels: audioStream?.channels ?? null,
+      hasEditList: await hasEditList(video),
+      ...(audioStream
+        ? await measureLoudness(video)
+        : { integratedLufs: null, truePeakDbfs: null }),
+      voiceOverlaps: overlaps,
+    };
+    if (report.hasEditList)
+      compiled.warnings.push("MP4 contains an edit list (elst).");
     await writeFile(
       path.join(staging, "project.json"),
       JSON.stringify(project, null, 2),
@@ -278,8 +583,13 @@ export async function quizVideo(
     );
     await writeFile(
       path.join(staging, "preview.jpg"),
-      await makePreview(project, times),
+      await makePreview(project, times, options.previewScale),
     );
+    for (let i = 0; i < stillTimes.length; i++)
+      await writeFile(
+        path.join(staging, stillNames[i]),
+        await framePng(project, stillTimes[i], options.crop),
+      );
     const sources = [
       video,
       ...[
@@ -289,6 +599,7 @@ export async function quizVideo(
         "preview.jpg",
         "cover.jpg",
       ].map((name) => path.join(staging, name)),
+      ...stillNames.map((name) => path.join(staging, name)),
     ];
     for (let i = 0; i < outputs.length; i++) {
       await mkdir(path.dirname(outputs[i]), { recursive: true });
@@ -305,7 +616,8 @@ export async function quizVideo(
       path: outputs[0],
       outputs,
       warnings: compiled.warnings,
-      previewTimes: times,
+      report,
+      ...(options.verbose ? { previewTimes: times } : {}),
     };
   } catch (error) {
     await Promise.all(published.map((file) => rm(file, { force: true })));

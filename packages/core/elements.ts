@@ -99,6 +99,7 @@ export type SceneElement = Common &
         zoom: number;
         focusX: number;
         focusY: number;
+        crop?: { x: number; y: number; w: number; h: number };
       }
     | {
         type: "rect";
@@ -230,6 +231,22 @@ const recursive: z.ZodType<SceneElement, z.ZodTypeDef, any> = z.lazy(() =>
           zoom: z.number().min(1).max(10).default(1),
           focusX: z.number().min(0).max(1).default(0.5),
           focusY: z.number().min(0).max(1).default(0.5),
+          crop: z
+            .object({
+              x: z.number().min(0).max(1),
+              y: z.number().min(0).max(1),
+              w: z.number().gt(0).max(1),
+              h: z.number().gt(0).max(1),
+            })
+            .strict()
+            .superRefine((crop, ctx) => {
+              if (crop.x + crop.w > 1 + 1e-9 || crop.y + crop.h > 1 + 1e-9)
+                ctx.addIssue({
+                  code: "custom",
+                  message: "Crop exceeds source image.",
+                });
+            })
+            .optional(),
         })
         .strict(),
       z

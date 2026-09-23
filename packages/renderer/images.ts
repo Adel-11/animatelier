@@ -31,9 +31,11 @@ export function imageSvg(
         content += `<rect x="${(x * width) / cols}" y="${(y * height) / rows}" width="${width / cols + 0.01}" height="${height / rows + 0.01}" fill="rgb(${bytes[i]},${bytes[i + 1]},${bytes[i + 2]})" opacity="${bytes[i + 3] / 255}"/>`;
       }
   }
-  const viewWidth = width / e.zoom,
-    viewHeight = height / e.zoom,
-    vx = (width - viewWidth) * e.focusX,
-    vy = (height - viewHeight) * e.focusY;
-  return `<defs><clipPath id="image-clip-${e.id}"><rect width="${e.w}" height="${e.h}" rx="${e.radius}"/></clipPath></defs><g clip-path="url(#image-clip-${e.id})"><svg width="${e.w}" height="${e.h}" viewBox="${vx} ${vy} ${viewWidth} ${viewHeight}" preserveAspectRatio="xMidYMid ${e.fit === "cover" ? "slice" : "meet"}">${content}</svg></g>`;
+  const crop = e.crop ?? { x: 0, y: 0, w: 1, h: 1 };
+  const viewWidth = (width * crop.w) / e.zoom,
+    viewHeight = (height * crop.h) / e.zoom,
+    vx = width * crop.x + (width * crop.w - viewWidth) * e.focusX,
+    vy = height * crop.y + (height * crop.h - viewHeight) * e.focusY,
+    radius = Math.min(e.radius, e.w / 2, e.h / 2);
+  return `<defs><clipPath id="image-clip-${e.id}"><rect width="${e.w}" height="${e.h}" rx="${radius}" ry="${radius}"/></clipPath></defs><g clip-path="url(#image-clip-${e.id})"><svg width="${e.w}" height="${e.h}" viewBox="${vx} ${vy} ${viewWidth} ${viewHeight}" preserveAspectRatio="xMidYMid ${e.fit === "cover" ? "slice" : "meet"}">${content}</svg></g>`;
 }

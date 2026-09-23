@@ -92,3 +92,48 @@ Le flux vidéo est copié (paquets identiques, vérifié par framemd5), l'audio 
 ### fetch-assets derrière un proxy
 
 `HTTPS_PROXY`/`https_proxy` est honoré (tunnel CONNECT, authentification Basic si l'URL du proxy en contient), sauf si `NO_PROXY` correspond à l'hôte. Les contrôles restent : HTTPS port 443 uniquement, pas d'identifiants dans l'URL, noms locaux refusés (`localhost`, `.local`, `.internal`, noms sans point...), IP littérales privées refusées, chaque redirection revérifiée, TLS vérifié sur le nom d'hôte cible. Limite : derrière un proxy, si le DNS local ne répond pas, la résolution finale est faite par le proxy (les adresses privées sont refusées quand le DNS local répond). User-Agent par défaut `Animatelier/0.2 (+https://animatelier.netlify.app)`, modifiable avec `--user-agent` ou `ANIMATELIER_USER_AGENT`. Wikimedia refuse les vignettes à largeur non standard (HTTP 400) : utiliser l'original ou une largeur proposée par Commons.
+
+## Extensions modulaires (23 septembre 2026)
+
+Exemple exécutable : `examples/quiz-video-modular.spec.json` (lancer avec `--assets-dir .`). `node apps/cli/quiz-video.js --schema` imprime un contrat compact pour un agent. Les anciennes specs gardent leurs valeurs de rendu, hormis la correction des rectangles : `rx` et `ry` sont maintenant identiques et limités par la largeur et la hauteur. Les barres et libellés de progression sont partagés entre cartes de niveau et questions.
+
+### Voix et export final
+
+```sh
+node apps/cli/quiz-video.js spec.json --assets-dir . --voice-clips clips/ --music musique.mp3 --sfx default --out sortie/
+node apps/cli/quiz-video.js spec.json --assets-dir . --voice-clips clips/ --music default --loudness -16 --out sortie/
+```
+
+`--voice-clips` cherche les WAV nommés comme les IDs du `voice-script.json` (`intro.wav`, `level_1.wav`, `question_1.wav`, `question_1_answer.wav`, `outro.wav`, et ID d'une scène personnalisée). Les durées sont mesurées avec ffprobe ; aucun fichier de durées séparé n'est nécessaire. Il faut au moins un clip ; les clips absents et les chevauchements sont signalés. Ne pas combiner `--voice-clips` et `--voice-durations`, ni `--audio` avec `--voice-clips`/`--music`. `timing.read: "voice"` garde son rôle pour caler les questions. Avec `--voice-clips`, les autres créneaux (intro, niveau, réponse, outro, scène personnalisée) sont prolongés pour accueillir le clip, avec `voice.min` et `voice.pad` (0 et 0,3 s par défaut). Les limites `readMax` n'écourtent pas un clip mesuré, mais un dépassement est signalé. `voice.offsets` contient `intro` (0,3 s), `level` (0), `question` (0), `answer` (0,1 s), `outro` (0) ; ces valeurs sont ajoutées au début du créneau. Les anciens fichiers `--voice-durations` restent acceptés.
+
+`--music fichier.mp3|wav` boucle le fichier et applique un fondu de sortie. `--music default` synthétise localement une boucle déterministe ; `music: {"bpm":108,"root":48,"progression":[0,5,9,7]}` règle tempo, note racine MIDI et décalages d'accords en demi-tons. La musique baisse sous la voix (sidechain), la voix est filtrée sous 80 Hz et compressée ; le mix utilise `loudnorm` (défaut -16 LUFS, true peak cible -1,5 dB). Le résultat mesure et rapporte la valeur réellement obtenue : une normalisation en un passage n'est pas une garantie de valeur exacte. Le JSON contient durée, codecs, cadence, fréquence/canaux audio, présence éventuelle d'`elst`, loudness mesurée, true peak et chevauchements. `--verbose` ajoute les instants détaillés. La progression CLI paraît tous les 10 %.
+
+### Vérification rapide
+
+```sh
+node apps/cli/quiz-video.js spec.json --assets-dir . --check
+node apps/cli/quiz-video.js spec.json --assets-dir . --out aperçu/ --preview-only --preview-scale 0.5 --frames 4.1,9.7 --crop 0,300,540,500
+node apps/cli/quiz-video.js spec.json --assets-dir . --out brouillon/ --draft
+```
+
+`--check` ne crée aucun fichier ; il fournit les tailles finales de police, nombre de lignes, réduction, boîte de texte, empiètement de la zone réservée et intersections de boîtes dont les temps visibles se recoupent. Ces intersections sont des avertissements géométriques, pas un diagnostic visuel parfait. `--preview-only` écrit uniquement `project.json`, `preview.jpg` et les images `frame-XX.png` demandées, sans vidéo. `--preview-scale` règle la taille des vignettes de la planche (0,1–2). `--frames` accepte 1 à 24 instants ; `--crop` s'applique uniquement à ces PNG, en pixels du canevas source. `--draft` produit une vidéo à 15 images/s et à demi-dimensions ; les images sont encore rasterisées au format du projet avant réduction, donc le gain de temps dépend du projet. La sélection auto de la planche inclut les scènes personnalisées.
+
+### Specs courtes et voix parlée
+
+`"preset":"qff-reel"` remplit le thème, l'intro, l'outro et les noms ROOKIE/MASTER/GOAT sans répéter leur JSON. `--preset chemin.json` fusionne un fichier de valeurs par défaut avec la spec (celle-ci gagne ; `intro`, `outro`, `timing` et `defaults` fusionnent champ par champ). `defaults` à la racine puis par niveau fournit les champs communs aux questions ; chaque question gagne en dernier. `a` + `wrong:[...]` construit un QCM dont la position de la bonne réponse est déterminée par `voice.seed`. L'ancienne forme `choices`/`correctIndex` reste disponible.
+
+`voice.answerTemplates` accepte plusieurs phrases avec `{a}` ; le choix tourne de façon déterministe avec `voice.seed`. `aSay` donne la forme parlée de la réponse. `voice.questionPrefixes` et `voice.pronounce` ajustent les autres textes lus. Quand un objet `voice` est fourni, la question parlée par défaut est le texte `q` ; sans cet objet, l'ancien script vocal garde son préfixe « Question N. ». `say` et `sayAnswer` restent prioritaires.
+
+### Scènes, éléments et mise en page
+
+`intro`, `levels[]`, `questions[]` et `outro` acceptent `elements:[...]` et `actors:[...]` du modèle v2. Les éléments demandent `id` et `type`, les autres champs ont les mêmes défauts et validations que le core. Les temps `start`/`end` et keyframes sont relatifs à la scène. `sequence:[{"after":"question_3","id":"interlude","duration":2,"elements":[...],"actors":[...],"say":"..."}]` insère des scènes après un ID généré (ou `after:"start"`). Les événements, créneaux vocaux et questions suivantes sont décalés. Il s'agit d'insertions, pas d'une permutation arbitraire des questions. Les éléments/acteurs sont validés et rendus par les schémas v2 ; aucun SVG/HTML libre ou URL externe n'est accepté.
+
+`layout` au niveau spec, puis scène/question, cible les IDs des éléments générés (par exemple `question_panel`, `answer`, `progress_label_*`) : `visible`, `x`, `y`, `w`, `h`, `fontSize`, `radius`, `fill`, `color`, `align`, `opacity`. Le suffixe `*` cible un préfixe ; la règle la plus locale gagne. `x/w` sont des fractions de la largeur et `y/h` des fractions de la hauteur sûre. Un texte accepte `w` comme largeur maximale, mais pas `h` ; utiliser `fontSize` ou un élément texte personnalisé. Les surcharges incompatibles avec le type d'élément sont rejetées. `presenter` à la racine ou par question crée un véritable acteur v2 dans le Reel, avec `name`, `x/y` relatifs, couleurs, échelle, action et dialogue `question|answer|none` ; `presenter:null` le désactive localement.
+
+### Questions et images
+
+`type:"true-false"` convertit `a:"true"|"false"|"vrai"|"faux"` en deux choix localisés. `type:"odd-one-out"` garde les cartes QCM mais permet de marquer la sémantique ; `type:"estimate"` exige une réponse numérique et anime son compteur à la révélation. `choicesLayout:"grid"|"list"|"two"|"overlay"` change l'arrangement portrait ; `overlay` conserve l'image en grand derrière les choix. `hint`, `explanation`, `points`, ainsi que `labels:{level,question,of,answer}`, sont disponibles dans le mode niveaux. `countdownStyle:"ring"|"bar"|"digits"` et `countdownPosition:{x,y}` règlent le compte à rebours.
+
+L'effet d'image accepte toujours la chaîne existante. Sa forme objet `{ "type":"blur"|"pixelate"|"zoom", "from":18, "to":0, "ease":"easeOut" }` anime progressivement le dévoilement pendant le compte à rebours. `answerImage` affiche une autre image à la révélation. `crop:{x,y,w,h}` recadre par fractions de l'image source, combinable avec `focusX/focusY` et l'effet. Le même rendu SVG déterministe sert à l'éditeur et à l'export.
+
+Limites actuelles : pas encore de grille de choix entièrement illustrés, de fondu/glissé entre scènes, de bruitages provenant d'un fichier dans `--sfx`, de polices TTF personnalisées, ni de cache de calques statiques. Les scènes/éléments/acteurs v2 et `layout` couvrent une grande partie des variantes visuelles sans multiplier des options spécialisées ; une transition temporelle ou une police arbitraire demande un contrat de rendu et de sécurité commun navigateur/headless.
