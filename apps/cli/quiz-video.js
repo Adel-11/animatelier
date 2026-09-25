@@ -14,6 +14,9 @@ try {
       "assets-dir": { type: "string" },
       target: { type: "string" },
       audio: { type: "string" },
+      "sounds-out": { type: "string" },
+      "safe-zones": { type: "boolean" },
+      "audio-preview": { type: "boolean" },
       sfx: { type: "string" },
       cover: { type: "string" },
       "cover-at": { type: "string" },
@@ -36,22 +39,26 @@ try {
   if (values.schema) {
     console.log(
       JSON.stringify({
-        mode: "levels",
+        mode: "levels|stack",
         required: {
           levels: "1..10 levels, each with 1..30 questions; max 60 total",
           question: "q + a OR choices[2..4] + correctIndex",
+          stack: "items[5..15] with a, optional q/image/backgroundImage/audio",
         },
         optional: {
-          preset: "qff-reel or --preset file.json",
+          preset: "qff-reel (levels), qff-stack (stack), or --preset file.json",
           theme: "name or object",
           format: "reel-9x16|post-4x5|landscape",
           timing:
-            "read:auto|voice|seconds, readPad:0.3, countdown:4, answer:2.4, levelCard:2.2, outro:7",
+            "levels: read:auto|voice|seconds, listen:4, countdown:4, answer:2.4, levelCard:2.2, outro:7; stack: show/listen/countdown/reveal/endHold",
           voice:
             "offsets, min, pad, seed, answerTemplates, questionPrefixes, pronounce",
           music: "bpm, root MIDI pitch, progression semitone offsets",
           imageEffect: "none|blur|pixelate|zoom or {type,from,to,ease}",
           image: "file: or asset:, answerImage, crop{x,y,w,h}",
+          sound:
+            "audio:file: or asset:, audioAssets{id:file:path}, audioStart, listen, audioGain, revealImage, replayOnReveal, audioDuringCountdown",
+          revealMode: "each|end with recapSeconds",
           choicesLayout: "grid|list|two|overlay",
           type: "standard|true-false|odd-one-out|estimate",
           countdownStyle: "ring|bar|digits",
@@ -62,6 +69,9 @@ try {
         },
         cli: [
           "--voice-clips DIR",
+          "--sounds-out sounds.wav",
+          "--safe-zones (preview overlay)",
+          "--audio-preview (MP3 without video)",
           "--music FILE|default",
           "--loudness -16",
           "--preview-only",
@@ -101,6 +111,9 @@ try {
       coverImage: values["cover-image"],
       voiceDurations: values["voice-durations"],
       voiceClips: values["voice-clips"],
+      soundsOut: values["sounds-out"],
+      safeZones: values["safe-zones"],
+      audioPreview: values["audio-preview"],
       music: values.music,
       loudness:
         values.loudness === undefined ? undefined : Number(values.loudness),

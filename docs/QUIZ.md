@@ -11,7 +11,7 @@ et schémas complets sont disponibles sans consulter le dépôt.
 et une seule entrée dans l’historique. Une erreur laisse le projet intact.
 
 - `mode` : `choices` (QCM), `list` (liste cumulative), `cards` (question/réponse)
-  ou `levels` (quiz vertical multi-niveaux, images et voix préparée).
+  `levels` (quiz vertical multi-niveaux) ou `stack` (liste verticale animée).
 - `title` : 1 à 80 caractères.
 - `revealDelay` : 0,5 à 30 secondes, **3 par défaut**.
 - `answerDuration` : 0,5 à 30 secondes, **2 par défaut**, après révélation.
@@ -41,14 +41,14 @@ La spec classique est volontairement modulaire. Un agent peut combiner :
 
 Un thème contrôle fond, panneaux, piste, texte, accent, réponse, niveaux,
 typographie, arrondis, motif/dégradé et logo sécurisé `asset:` ou `file:`.
-`api.help().quiz.examples` fournit sept points de départ : liste progressive,
+`api.help().quiz.examples` fournit huit points de départ : liste progressive,
 QCM, jeu télévisé, présentateur animé, cartes mémoire, direction artistique
-personnalisée et défi vertical à niveaux. Les agents peuvent ensuite modifier les primitives produites avec
+personnalisée, défi vertical à niveaux et liste verticale animée. Les agents peuvent ensuite modifier les primitives produites avec
 les commandes ordinaires pour dépasser les gabarits sans exécuter de HTML/SVG.
 
 Le mode `levels` ajoute les formats `reel-9x16`, `post-4x5`, `landscape`, les
 cartes de niveaux, images, effets de compte à rebours, intro/outro, script vocal
-et budget de durée. Voir `docs/QUIZ-VIDEO.md`.
+et budget de durée. Il accepte aussi une phase d'écoute `audio`/`listen` avant le compte à rebours et `revealMode:"end"` pour récapituler toutes les réponses à la fin. Le mode `stack` produit 5–15 lignes cumulées en 9:16 ; `items` remplace `questions`. Voir `docs/QUIZ-VIDEO.md` pour les options CLI, les sons locaux et les limites.
 
 Une scène par question, de durée `revealDelay + answerDuration`. À l’instant
 exact de révélation, la réponse apparaît. À la frontière de scène, la question
@@ -98,7 +98,7 @@ Pour un QCM, remplacer le mode par `choices` et les questions par :
 ]
 ```
 
-`api.help().quiz.examples` fournit les sept exemples, dont une liste complète
+`api.help().quiz.examples` fournit les huit exemples, dont une liste complète
 de dix questions. `api.schema().quiz` donne le JSON Schema ; les contraintes
 entre champs sont contrôlées à la compilation avec les erreurs Zod détaillées.
 

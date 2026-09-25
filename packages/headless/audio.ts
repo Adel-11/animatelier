@@ -76,12 +76,132 @@ export async function audioDuration(filename: string) {
     throw new Error(`Durée audio invalide : ${filename}`);
   return duration;
 }
-export async function measureLoudness(filename: string) {
+/** Decode a bounded mono preview and aggregate RMS amplitude into deterministic time bins. */
+export async function soundAmplitudes(
+  filename: string,
+  start: number,
+  duration: number,
+  bins = 32,
+) {
+  const child = spawn(
+    process.env.ANIMATELIER_FFMPEG || ffmpeg || "ffmpeg",
+    [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-nostdin",
+      "-ss",
+      String(start),
+      "-t",
+      String(duration),
+      "-i",
+      filename,
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      "8000",
+      "-f",
+      "s16le",
+      "pipe:1",
+    ],
+    { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const chunks: Buffer[] = [];
+  let size = 0,
+    errors = "";
+  child.stdout.on("data", (chunk: Buffer) => {
+    size += chunk.length;
+    if (size > 8000 * 2 * 30 + 4096) child.kill();
+    else chunks.push(chunk);
+  });
+  child.stderr.on("data", (chunk) => {
+    errors = (errors + chunk).slice(-2000);
+  });
+  await new Promise<void>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code) =>
+      code === 0 ? resolve() : reject(new Error(`Décodage sonore: ${errors}`)),
+    );
+  });
+  const pcm = Buffer.concat(chunks),
+    count = Math.floor(pcm.length / 2);
+  return Array.from({ length: bins }, (_, bin) => {
+    const begin = Math.floor((bin * count) / bins),
+      end = Math.floor(((bin + 1) * count) / bins);
+    let sum = 0;
+    for (let i = begin; i < end; i++) {
+      const value = pcm.readInt16LE(i * 2) / 32768;
+      sum += value * value;
+    }
+    return end > begin ? Math.min(1, Math.sqrt(sum / (end - begin)) * 4) : 0;
+  });
+}
+export type QuestionSoundClip = {
+  file: string;
+  start: number;
+  sourceStart: number;
+  duration: number;
+  gainDb: number;
+  loop?: boolean;
+};
+/** Isolated question-sound stem: 48 kHz stereo, timed exactly to the compiled video. */
+export async function mixQuestionSounds(
+  clips: QuestionSoundClip[],
+  out: string,
+  duration: number,
+) {
+  if (!clips.length) throw new Error("Aucun son de question à mixer.");
+  const filters = await Promise.all(
+    clips.map(async (clip, i) => {
+      const fadeOut = Math.min(0.3, clip.duration / 3);
+      const measured = await measureLoudness(
+        clip.file,
+        clip.sourceStart,
+        clip.duration,
+      );
+      const normalization =
+        measured.integratedLufs === null ||
+        !Number.isFinite(measured.integratedLufs)
+          ? 0
+          : Math.max(-24, Math.min(24, -18 - measured.integratedLufs));
+      return `[${i}:a]atrim=start=${clip.sourceStart}:duration=${clip.duration},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo,volume=${normalization + clip.gainDb}dB,afade=t=in:st=0:d=${Math.min(0.05, clip.duration / 3)},afade=t=out:st=${Math.max(0, clip.duration - fadeOut)}:d=${fadeOut},adelay=${Math.round(clip.start * 1000)}:all=1[s${i}]`;
+    }),
+  );
+  await runFfmpeg([
+    ...clips.flatMap((clip) => [
+      ...(clip.loop ? ["-stream_loop", "-1"] : []),
+      "-i",
+      clip.file,
+    ]),
+    "-filter_complex",
+    `${filters.join(";")};${clips.map((_, i) => `[s${i}]`).join("")}amix=inputs=${clips.length}:duration=longest:normalize=0,apad,atrim=duration=${duration},alimiter=limit=0.95[a]`,
+    "-map",
+    "[a]",
+    "-t",
+    String(duration),
+    "-c:a",
+    "pcm_s16le",
+    "-ar",
+    "48000",
+    "-ac",
+    "2",
+    "-n",
+    out,
+  ]);
+}
+export async function measureLoudness(
+  filename: string,
+  start?: number,
+  duration?: number,
+) {
   const child = spawn(
     process.env.ANIMATELIER_FFMPEG || ffmpeg || "ffmpeg",
     [
       "-hide_banner",
       "-nostdin",
+      ...(start === undefined ? [] : ["-ss", String(start)]),
+      ...(duration === undefined ? [] : ["-t", String(duration)]),
       "-i",
       filename,
       "-filter_complex",
@@ -216,8 +336,9 @@ export async function muxSoundtrack(
   music?: string,
   sfx?: string,
   loudness = -16,
+  questions?: string,
 ) {
-  const inputs = [voice, music, sfx].filter((x): x is string => !!x);
+  const inputs = [voice, music, sfx, questions].filter((x): x is string => !!x);
   if (!inputs.length) throw new Error("Piste audio requise.");
   const index = (file: string | undefined) =>
     file ? inputs.indexOf(file) + 1 : -1;
@@ -234,18 +355,35 @@ export async function muxSoundtrack(
     parts.push(
       `[${index(voice)}:a]atrim=duration=${duration},asetpts=N/SR/TB[voice]`,
     );
-    if (music) {
-      parts.push("[voice]asplit=2[voice_mix][voice_side]");
+  }
+  if (questions)
+    parts.push(
+      `[${index(questions)}:a]atrim=duration=${duration},asetpts=N/SR/TB[questions]`,
+    );
+  if (music && (voice || questions)) {
+    if (voice) parts.push("[voice]asplit=2[voice_mix][voice_side]");
+    if (questions)
+      parts.push("[questions]asplit=2[questions_mix][questions_side]");
+    if (voice && questions)
       parts.push(
-        `${musicLabel}[voice_side]sidechaincompress=threshold=0.04:ratio=6:attack=40:release=400[duck]`,
+        "[voice_side][questions_side]amix=inputs=2:duration=longest:normalize=0[side]",
       );
-      musicLabel = "[duck]";
-    }
+    const side =
+      voice && questions
+        ? "[side]"
+        : voice
+          ? "[voice_side]"
+          : "[questions_side]";
+    parts.push(
+      `${musicLabel}${side}sidechaincompress=threshold=0.04:ratio=6:attack=40:release=400[duck]`,
+    );
+    musicLabel = "[duck]";
   }
   const labels = [
     voice ? (music ? "[voice_mix]" : "[voice]") : "",
     musicLabel,
     sfx ? `[${index(sfx)}:a]` : "",
+    questions ? (music ? "[questions_mix]" : "[questions]") : "",
   ].filter(Boolean);
   parts.push(
     `${labels.join("")}amix=inputs=${labels.length}:duration=longest:normalize=0,apad,atrim=duration=${duration},loudnorm=I=${loudness}:TP=-1.5:LRA=11,alimiter=limit=0.95[a]`,

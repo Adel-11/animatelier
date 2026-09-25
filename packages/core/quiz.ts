@@ -4,6 +4,7 @@ import {
   normalizeLevels,
   type CompileOptions,
 } from "./levels";
+import { compileStack, stackSchema } from "./stack";
 import { resolveTheme, themeInputSchema } from "./themes";
 import { wrapText } from "./text";
 import { z } from "zod";
@@ -128,7 +129,7 @@ function fit(
 
 export const quizSchema = z.preprocess(
   normalizeLevels,
-  z.union([classicQuizSchema, levelsSchema]),
+  z.union([classicQuizSchema, levelsSchema, stackSchema]),
 );
 
 export function compileQuiz(
@@ -144,6 +145,13 @@ export function compileQuiz(
     input.mode === "levels"
   )
     return compileLevels(input, baseTheme, options);
+  if (
+    input &&
+    typeof input === "object" &&
+    "mode" in input &&
+    input.mode === "stack"
+  )
+    return compileStack(input, baseTheme, options);
   const spec = classicQuizSchema.parse(input);
   const duration = spec.revealDelay + spec.answerDuration;
   const theme = resolveTheme(
@@ -823,5 +831,19 @@ export const quizExamples = {
       tiers: ["1/3 Curieux", "2/3 Solide", "3/3 Expert"],
       cta: ["Partagez votre résultat"],
     },
+  },
+  stack: {
+    mode: "stack",
+    title: "5 ANIMAUX À DEVINER",
+    language: "fr",
+    theme: "neon",
+    end: { text: "Tu en as trouvé combien ?" },
+    items: [
+      { q: "Le roi de la savane", a: "Lion" },
+      { q: "Il porte sa maison", a: "Escargot" },
+      { q: "Il vole la nuit", a: "Hibou" },
+      { q: "Le géant des océans", a: "Baleine" },
+      { q: "Il change de couleur", a: "Caméléon" },
+    ],
   },
 };

@@ -1,3 +1,15 @@
+# Point de reprise technique, 25 septembre 2026 — sons et liste verticale de quiz
+
+Le compilateur `levels` accepte des questions avec `audio`, `audioStart`, `listen`, `audioGain`, `revealImage`, `replayOnReveal` et `audioDuringCountdown`. La phase d'écoute précède le compte à rebours ; le texte de question reste net. Les éléments `listen_*` et le calendrier exporté sont déterministes ; en CLI, les barres suivent les amplitudes réellement décodées. Les fichiers audio sont contrôlés dans `--assets-dir` et les alias `audioAssets` sont locaux. `--sounds-out` écrit un WAV stéréo 48 kHz aligné, également mixé au MP4 ; `--check` rapporte durée/loudness/crête. `--audio-preview` crée un MP3 sans rasterisation ; `--safe-zones` marque uniquement la planche d'aperçu. `revealMode:"end"` crée les récapitulatifs `recap_N` avant l'outro et déplace les voix de réponse ; `intro.logoSeconds:0` est accepté.
+
+Nouveau mode `stack` : 5–15 réponses cumulées en 9:16, titre en bandeau, image ou repère, progression, arrivée animée de la réponse, fond image par item, fin courte. Il utilise les mêmes projets v2 éditables et la même CLI ; `examples/quiz-stack.spec.json` fonctionne sans média externe. `examples/quiz-sons-15.spec.json` sert de gabarit avec 15 sources locales à fournir. Contrat et limites dans `docs/QUIZ-VIDEO.md`.
+
+Vérifications locales : nouveaux tests de compilation, source audio réelle, stem WAV et court MP4 avec musique + son + aperçu MP3 réussis ; `npm test` 78/78, `npm run build` réussi, `npm run test:e2e` 16/16 avec Chrome installé. Le mode `stack` a aussi été compilé par un vrai client SDK MCP. Captures du mode vertical et planche d'aperçu inspectées. Pas de déploiement Netlify vérifié.
+
+Limites non livrées : arrière-plan vidéo animé, raccord de mouvement parfaitement seamless (seul un fondu vers le même fond est livré), téléchargement audio/vidéo par `fetch-assets.js`, intégration des octets audio dans le projet v2 et garantie ±1 LU sur tous les sons. Le MP3 rapide n'applique pas le même ducking que le MP4. Un test historique de rasterisation CPU disposait d'un délai trop court sous la nouvelle charge parallèle ; seul son délai a été porté de 5 à 15 s, sans modifier ses assertions. Aucun crédit de réinitialisation utilisé. Derniers quotas lus : 47 % restants sur cinq heures et 53 % hebdomadaire.
+
+---
+
 # Point de reprise, 22 septembre 2026 — questionnaires modulaires
 
 Le générateur de quiz classique accepte désormais `choices`, `list` et `cards`, quatre mises en page (`classic`, `game-show`, `minimal`, `presenter`), quatre mouvements d’entrée, quatre affichages de progression, des libellés personnalisés et des métadonnées par question (`hint`, `explanation`, `points`, surcharge de thème). Un présentateur est compilé comme un vrai personnage v2 animé ; son dialogue de réponse commence à la révélation. Le mode `levels` existant reste disponible par le même schéma.

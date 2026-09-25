@@ -21,7 +21,7 @@ Pour un exemple plus complet, ouvrir `examples/rencontre-30s.animatelier.json` a
 
 ## Quiz animés
 
-Le bouton **Quiz** propose sept points de départ : QCM, liste cumulative, jeu télévisé avec échelle de gains, cartes mémoire, personnage présentateur, direction artistique libre et défi vertical à niveaux. Un agent peut piloter thèmes, dégradés/motifs, typographie, arrondis, mouvement, progression, libellés, explications, points, présentateur et surcharges par question. Il utilise `window.animatelier.help().quiz`, `compileQuiz(spec)` puis `loadQuiz(spec)`. Le résultat reste un projet v2 entièrement éditable. [Guide quiz](docs/QUIZ.md). Projets prêts à ouvrir : `examples/quiz-list.animatelier.json` (50 s) et `examples/quiz-choices.animatelier.json` (5 s).
+Le bouton **Quiz** propose huit points de départ : QCM, liste cumulative, jeu télévisé avec échelle de gains, cartes mémoire, personnage présentateur, direction artistique libre, défi vertical à niveaux et liste verticale animée. Un agent peut piloter thèmes, dégradés/motifs, typographie, arrondis, mouvement, progression, libellés, explications, points, présentateur et surcharges par question. Il utilise `window.animatelier.help().quiz`, `compileQuiz(spec)` puis `loadQuiz(spec)`. Le résultat reste un projet v2 entièrement éditable. [Guide quiz](docs/QUIZ.md). Projets prêts à ouvrir : `examples/quiz-list.animatelier.json` (50 s) et `examples/quiz-choices.animatelier.json` (5 s).
 
 ## Export sans navigateur
 
@@ -110,3 +110,5 @@ node apps/cli/mux-audio.js out/video.mp4 --audio mix.wav --out final.mp4 --keep-
 ```
 
 Les six lots sont intégrés : images et IndexedDB, kit QFF versionné/téléchargement contrôlé, thèmes, quiz niveaux, pipeline vidéo/audio/couverture/contact et cache raster. [Guide complet et limites](docs/QUIZ-VIDEO.md). Le pipeline ne publie rien sur Instagram.
+
+Nouveautés quiz vidéo : questions sonores avec phase d'écoute et visualisation issue du signal, piste `sounds.wav` optionnelle, réponses récapitulées en fin de vidéo et mode `stack` vertical (5–15 réponses qui s'ajoutent). Essayer `examples/quiz-stack.spec.json` sans asset externe ; `examples/quiz-sons-15.spec.json` est un gabarit qui demande 15 sons locaux dans `--assets-dir`. Voir les options et limites dans le [guide quiz vidéo](docs/QUIZ-VIDEO.md).

@@ -176,6 +176,14 @@ it("un client MCP crée, inspecte en PNG, sauvegarde et recharge un projet", asy
       }),
     );
     expect(compiled.schedule[0].reveal).toBe(3);
+    const stack = unpack(
+      await client.callTool({
+        name: "quiz_compile",
+        arguments: { spec: capabilities.schema.quiz.examples.stack },
+      }),
+    );
+    expect(stack.project.scenes).toHaveLength(6);
+    expect(stack.project.width).toBe(1080);
     expect(
       unpack(await client.callTool({ name: "project_get", arguments: {} })),
     ).toEqual(opened);

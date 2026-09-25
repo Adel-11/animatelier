@@ -6,6 +6,7 @@ import { resolveTheme, themeInputSchema } from "./themes";
 import { spokenNumbers } from "./speech";
 const label = z.string().trim().min(1).max(500);
 const seconds = z.number().finite().min(1).max(30);
+const soundSource = z.string().regex(/^(asset:[a-zA-Z0-9_-]+|file:[^\\:]+)$/);
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const say = z.string().trim().min(1).max(1000);
 const extraElements = z
@@ -123,6 +124,13 @@ const question = z
       .string()
       .regex(/^(asset:[a-zA-Z0-9_-]+|file:[^\\:]+)$/)
       .optional(),
+    audio: soundSource.optional(),
+    audioStart: z.number().finite().min(0).max(3600).default(0),
+    listen: z.number().finite().min(0.5).max(30).optional(),
+    audioGain: z.number().finite().min(-24).max(24).default(0),
+    revealImage: soundSource.optional(),
+    replayOnReveal: z.boolean().default(false),
+    audioDuringCountdown: z.enum(["stop", "continue", "loop"]).default("stop"),
     focusX: z.number().min(0).max(1).default(0.5),
     focusY: z.number().min(0).max(1).default(0.5),
     crop: z
@@ -232,7 +240,7 @@ export const levelsSchema = z
     layout: layoutSchema.optional(),
     intro: z
       .object({
-        logoSeconds: seconds.optional(),
+        logoSeconds: z.number().finite().min(0).max(30).optional(),
         title: label.default("QUIZ"),
         subtitle: label.default("LEVELS"),
         tagline: label.default("How far can you go?"),
@@ -261,6 +269,9 @@ export const levelsSchema = z
       .min(1)
       .max(10),
     questionEffect: z.enum(["blur", "hide", "none"]).default("blur"),
+    revealMode: z.enum(["each", "end"]).default("each"),
+    recapSeconds: z.number().finite().min(1).max(5).default(1.6),
+    listenVisual: z.enum(["bars", "wave", "pulse"]).default("bars"),
     countdownStyle: z.enum(["ring", "bar", "digits"]).default("ring"),
     countdownPosition: z
       .object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) })
@@ -277,6 +288,7 @@ export const levelsSchema = z
         readMin: z.number().finite().min(0.5).max(30).optional(),
         readMax: z.number().finite().min(0.5).max(30).optional(),
         readPad: z.number().finite().min(0).max(5).default(0.3),
+        listen: z.number().finite().min(0.5).max(30).default(4),
         answerMin: seconds.default(1),
         countdown: z.number().int().min(1).max(10).default(4),
         answer: seconds.default(2.4),
@@ -314,6 +326,9 @@ export const levelsSchema = z
       .max(40)
       .optional(),
     assets: z.record(z.unknown()).optional(),
+    audioAssets: z
+      .record(identifier, z.string().regex(/^file:[^\\:]+$/))
+      .optional(),
   })
   .strict()
   .superRefine((s, ctx) => {
@@ -468,6 +483,7 @@ export const voiceDurationsSchema = z.record(
 export type CompileOptions = {
   voiceDurations?: Record<string, number>;
   protectVoiceClips?: boolean;
+  soundMetadata?: Record<string, { duration: number; amplitudes: number[] }>;
 };
 export function compileLevels(
   input: unknown,
@@ -563,7 +579,20 @@ export function compileLevels(
     locked.push(false);
     return frame(typeof t.read === "number" ? t.read : autoRead(q));
   });
-  let answer = frame(t.answer);
+  const listens = all.map((q, i) => {
+    if (!q.audio) return 0;
+    const available = options.soundMetadata?.[`question_${i + 1}`]?.duration;
+    const requested = q.listen ?? t.listen;
+    return frame(
+      Math.min(
+        requested,
+        available === undefined
+          ? requested
+          : Math.max(0.5, available - q.audioStart),
+      ),
+    );
+  });
+  let answer = frame(s.revealMode === "end" ? 0.5 : t.answer);
   const logoDuration = theme.logo
     ? frame(s.intro.logoSeconds ?? theme.logo.introSeconds)
     : 0;
@@ -577,18 +606,21 @@ export function compileLevels(
     titleDuration +
     levelDurations.reduce((a, b) => a + b, 0) +
     outroDuration +
-    all.length * t.countdown;
+    all.length * t.countdown +
+    (s.revealMode === "end" ? all.length * frame(s.recapSeconds) : 0);
   let overflow =
     fixed +
     reads.reduce((a, b) => a + b, 0) +
+    listens.reduce((a, b) => a + b, 0) +
     all.length * answer -
     t.maxDuration;
-  if (overflow > 0) {
+  if (overflow > 0 && s.revealMode === "each") {
     const reduction = Math.min(answer - t.answerMin, overflow / all.length);
     answer = Math.ceil((answer - reduction) * 30) / 30;
     overflow =
       fixed +
       reads.reduce((a, b) => a + b, 0) +
+      listens.reduce((a, b) => a + b, 0) +
       all.length * answer -
       t.maxDuration;
   }
@@ -604,12 +636,23 @@ export function compileLevels(
     reads[i] = frame(reads[i] - frames / 30);
     overflow -= frames / 30;
   }
+  for (let i = 0; i < listens.length && overflow > 1e-8; i++) {
+    if (!listens[i]) continue;
+    const frames = Math.min(
+      Math.floor((listens[i] - 0.5) * 30 + 1e-8),
+      Math.ceil(overflow * 30 - 1e-8),
+    );
+    listens[i] = frame(listens[i] - frames / 30);
+    overflow -= frames / 30;
+  }
   if (overflow > 1 / 30)
     warnings.push(
       `Duration exceeds maxDuration by ${overflow.toFixed(2)}s after reducing answer then read to minimums.`,
     );
   const answerDurations = all.map((_, i) =>
-    slotLength(`question_${i + 1}_answer`, answer, "answer"),
+    s.revealMode === "end"
+      ? frame(0.5)
+      : slotLength(`question_${i + 1}_answer`, answer, "answer"),
   );
   const answerExtension = answerDurations.reduce(
     (sum, duration) => sum + duration - answer,
@@ -618,6 +661,7 @@ export function compileLevels(
   const finalOverflow =
     fixed +
     reads.reduce((a, b) => a + b, 0) +
+    listens.reduce((a, b) => a + b, 0) +
     all.length * answer +
     answerExtension -
     t.maxDuration;
@@ -642,10 +686,18 @@ export function compileLevels(
       id: string;
       start: number;
       readEnd: number;
+      listenStart?: number;
+      listenEnd?: number;
+      audio?: string;
+      audioStart?: number;
+      audioGain?: number;
+      replayOnReveal?: boolean;
       ticks: number[];
       reveal: number;
       end: number;
     }[] = [],
+    recaps: { id: string; questionId: string; start: number; end: number }[] =
+      [],
     levelCards: { id: string; start: number; end: number }[] = [],
     scenes: unknown[] = [];
   let now = 0,
@@ -1156,22 +1208,35 @@ export function compileLevels(
         id = `question_${number}`,
         start = now,
         read = reads[number - 1],
-        reveal = frame(read + t.countdown),
+        listen = listens[number - 1],
+        countdownStart = frame(read + listen),
+        reveal = frame(countdownStart + t.countdown),
         duration = frame(reveal + answerDurations[number - 1]),
         answerText = q.choices ? q.choices[q.correctIndex!] : q.a!;
       const ticks = Array.from({ length: t.countdown }, (_, i) =>
-        frame(start + read + i),
+        frame(start + countdownStart + i),
       );
       questions.push({
         id,
         start,
         readEnd: frame(start + read),
+        ...(q.audio
+          ? {
+              listenStart: frame(start + read),
+              listenEnd: frame(start + countdownStart),
+              audio: q.audio,
+              audioStart: q.audioStart,
+              audioGain: q.audioGain,
+              replayOnReveal: q.replayOnReveal,
+            }
+          : {}),
         ticks,
         reveal: frame(start + reveal),
         end: frame(start + duration),
       });
       events.push(
         { time: start, type: "question", id },
+        ...(q.audio ? [{ time: frame(start + read), type: "listen", id }] : []),
         ...ticks.map((time) => ({ time, type: "tick", id })),
         { time: frame(start + reveal), type: "reveal", id },
       );
@@ -1191,16 +1256,17 @@ export function compileLevels(
         `Question ${number}. ${q.q}`,
         q.say ?? (voiceConfigured ? `${prefix ?? ""}${q.q}` : undefined),
       );
-      voice(
-        `${id}_answer`,
-        start + reveal,
-        answerDurations[number - 1],
-        answerText,
-        q.sayAnswer ??
-          (answerTemplate
-            ? answerTemplate.replaceAll("{a}", spokenAnswer)
-            : q.aSay),
-      );
+      if (s.revealMode === "each")
+        voice(
+          `${id}_answer`,
+          start + reveal,
+          answerDurations[number - 1],
+          answerText,
+          q.sayAnswer ??
+            (answerTemplate
+              ? answerTemplate.replaceAll("{a}", spokenAnswer)
+              : q.aSay),
+        );
       scene(id, duration, "question", (d) => {
         const landscape = s.format === "landscape",
           margin = width * (50 / 1080),
@@ -1294,7 +1360,7 @@ export function compileLevels(
                       ease: "step",
                     },
                     {
-                      t: read,
+                      t: countdownStart,
                       v: s.questionEffect === "hide" ? 0 : 16,
                       ease: "step",
                     },
@@ -1336,7 +1402,7 @@ export function compileLevels(
             theme.muted,
             { end: reveal - 1 / 60 },
           );
-        if (q.image) {
+        if (q.image || q.revealImage) {
           const effectType =
             typeof q.imageEffect === "string"
               ? q.imageEffect
@@ -1376,63 +1442,184 @@ export function compileLevels(
             bw -= 2 * pad;
             bh -= 2 * pad;
           }
-          d.image("question_image", q.image, bx, by, bw, bh, {
-            focusX: q.focusX,
-            focusY: q.focusY,
-            crop: q.crop,
-            ...(card ? { radius: 0 } : {}),
-            ...(effectType === "none"
-              ? {}
-              : {
-                  keyframes: {
-                    [prop]: [
-                      {
-                        t: 0,
-                        v:
-                          typeof q.imageEffect === "string"
-                            ? prop === "zoom"
-                              ? 1
-                              : 0
-                            : q.imageEffect.from,
-                        ease: "step",
-                      },
-                      {
-                        t: read,
-                        v:
-                          typeof q.imageEffect === "string"
-                            ? v
-                            : q.imageEffect.from,
-                        ease: "step",
-                      },
-                      {
-                        t: reveal,
-                        v:
-                          typeof q.imageEffect === "string"
-                            ? prop === "zoom"
-                              ? 1
-                              : 0
-                            : q.imageEffect.to,
-                        ease:
-                          typeof q.imageEffect === "string"
-                            ? "step"
-                            : q.imageEffect.ease,
-                      },
-                    ],
-                  },
-                }),
-          });
-          if (q.answerImage)
-            d.image("question_answer_image", q.answerImage, bx, by, bw, bh, {
-              start: reveal,
+          if (q.image)
+            d.image("question_image", q.image, bx, by, bw, bh, {
               focusX: q.focusX,
               focusY: q.focusY,
               crop: q.crop,
               ...(card ? { radius: 0 } : {}),
+              ...(effectType === "none"
+                ? {}
+                : {
+                    keyframes: {
+                      [prop]: [
+                        {
+                          t: 0,
+                          v:
+                            typeof q.imageEffect === "string"
+                              ? prop === "zoom"
+                                ? 1
+                                : 0
+                              : q.imageEffect.from,
+                          ease: "step",
+                        },
+                        {
+                          t: countdownStart,
+                          v:
+                            typeof q.imageEffect === "string"
+                              ? v
+                              : q.imageEffect.from,
+                          ease: "step",
+                        },
+                        {
+                          t: reveal,
+                          v:
+                            typeof q.imageEffect === "string"
+                              ? prop === "zoom"
+                                ? 1
+                                : 0
+                              : q.imageEffect.to,
+                          ease:
+                            typeof q.imageEffect === "string"
+                              ? "step"
+                              : q.imageEffect.ease,
+                        },
+                      ],
+                    },
+                  }),
             });
+          if (s.revealMode === "each" && (q.answerImage || q.revealImage))
+            d.image(
+              "question_answer_image",
+              q.revealImage ?? q.answerImage!,
+              bx,
+              by,
+              bw,
+              bh,
+              {
+                start: reveal,
+                focusX: q.focusX,
+                focusY: q.focusY,
+                crop: q.crop,
+                ...(card ? { radius: 0 } : {}),
+              },
+            );
         }
         // Elements that end exactly when the next one starts would share a frame
         // (visibility is inclusive), so each one leaves half a frame early.
         const eps = 1 / 60;
+        if (q.audio && listen > 0) {
+          const listenX = width * 0.16;
+          const listenY = ay + ah * 0.12;
+          const listenW = width * 0.68;
+          const visualH = Math.min(110 * unit, ah * 0.43);
+          d.rect("listen_panel", listenX, ay, listenW, ah, theme.panel, {
+            start: read,
+            end: countdownStart - eps,
+          });
+          d.text(
+            "listen_icon",
+            "♫",
+            listenX + 12,
+            listenY,
+            100 * unit,
+            90 * unit,
+            70 * unit,
+            theme.accent,
+            {
+              start: read,
+              end: countdownStart - eps,
+            },
+          );
+          d.text(
+            "listen_label",
+            fr ? "ÉCOUTE" : "LISTEN",
+            listenX + 100 * unit,
+            listenY,
+            listenW - 110 * unit,
+            90 * unit,
+            55 * unit,
+            theme.text,
+            {
+              start: read,
+              end: countdownStart - eps,
+            },
+          );
+          const amplitudes = options.soundMetadata?.[id]?.amplitudes ?? [];
+          const bars = 12;
+          const step = Math.max(1, Math.floor(amplitudes.length / 24));
+          for (let b = 0; b < bars; b++) {
+            const bx = listenX + 26 * unit + b * ((listenW - 52 * unit) / bars);
+            const baseY = ay + ah * 0.84;
+            const samples = Array.from(
+              {
+                length: Math.min(
+                  24,
+                  Math.max(2, Math.ceil(amplitudes.length / step)),
+                ),
+              },
+              (_, k) => {
+                const amplitude = amplitudes[k * step] ?? 0.12;
+                const value = Math.max(0.07, Math.min(1, amplitude));
+                const height =
+                  visualH *
+                  (s.listenVisual === "pulse"
+                    ? value
+                    : Math.max(
+                        0.1,
+                        value * (0.65 + 0.35 * Math.sin((b + 1) * 1.7) ** 2),
+                      ));
+                return {
+                  t:
+                    read +
+                    (k /
+                      Math.max(
+                        1,
+                        Math.min(
+                          24,
+                          Math.max(2, Math.ceil(amplitudes.length / step)),
+                        ) - 1,
+                      )) *
+                      listen,
+                  h: height,
+                  y: baseY - height,
+                };
+              },
+            );
+            d.rect(
+              `listen_viz_${b}`,
+              bx,
+              samples[0].y,
+              (listenW - 52 * unit) / bars - 8 * unit,
+              samples[0].h,
+              theme.accent,
+              {
+                start: read,
+                end: countdownStart - eps,
+                radius: s.listenVisual === "wave" ? 12 * unit : 5 * unit,
+                keyframes: {
+                  h: samples.map(({ t, h }) => ({ t, v: h })),
+                  y: samples.map(({ t, y }) => ({ t, v: y })),
+                },
+              },
+            );
+          }
+          for (let k = 0; k < Math.ceil(listen); k++)
+            d.text(
+              `listen_remaining_${k}`,
+              `${Math.max(1, Math.ceil(listen - k))} s`,
+              listenX,
+              ay + ah * 0.83,
+              listenW,
+              ah * 0.15,
+              30 * unit,
+              theme.muted,
+              {
+                start: read + k,
+                end: Math.min(countdownStart - eps, read + k + 1 - eps),
+              },
+            );
+        }
         const rx = s.countdownPosition
             ? width * s.countdownPosition.x
             : landscape
@@ -1460,7 +1647,7 @@ export function compileLevels(
             fill: "none",
             stroke: theme.track,
             strokeWidth: theme.shapes.ringWidth,
-            start: read,
+            start: countdownStart,
             end: reveal - eps,
           });
         // A generic path traces the ring once over the countdown; no template-specific renderer.
@@ -1473,11 +1660,11 @@ export function compileLevels(
             fill: "none",
             stroke: theme.accent,
             strokeWidth: theme.shapes.ringWidth,
-            start: read,
+            start: countdownStart,
             end: reveal - eps,
             keyframes: {
               draw: [
-                { t: read, v: 1 },
+                { t: countdownStart, v: 1 },
                 { t: reveal, v: 0 },
               ],
             },
@@ -1492,11 +1679,11 @@ export function compileLevels(
             theme.accent,
             {
               radius: Math.max(5, theme.shapes.ringWidth / 2),
-              start: read,
+              start: countdownStart,
               end: reveal - eps,
               keyframes: {
                 w: [
-                  { t: read, v: r * 2 },
+                  { t: countdownStart, v: r * 2 },
                   { t: reveal, v: 0 },
                 ],
               },
@@ -1512,7 +1699,7 @@ export function compileLevels(
             2 * r,
             landscape ? 64 : Math.min(150, r),
             theme.text,
-            { start: read + k, end: read + k + 1 - eps },
+            { start: countdownStart + k, end: countdownStart + k + 1 - eps },
           );
         if (q.choices) {
           if (landscape) {
@@ -1548,7 +1735,7 @@ export function compileLevels(
                 56 * unit,
                 theme.text,
               );
-              if (correct) {
+              if (correct && s.revealMode === "each") {
                 d.rect(
                   `choice_correct_panel_${i}`,
                   x,
@@ -1575,72 +1762,163 @@ export function compileLevels(
             });
           }
         }
-        d.rect("answer_panel", ax, ay, aw, ah, levelColor, {
-          start: reveal,
-          radius: (theme.shapes.radius * 7) / 6,
-        });
-        d.text(
-          "answer_label",
-          s.labels?.answer ?? (fr ? "R\u00c9PONSE" : "ANSWER"),
-          ax + 24,
-          ay + 15,
-          aw - 48,
-          ah * 0.22,
-          42 * unit,
-          theme.background,
-          { start: reveal },
-        );
-        d.text(
-          "answer",
-          answerText,
-          ax + 24,
-          ay + ah * 0.26,
-          aw - 48,
-          ah * (q.explanation ? 0.48 : 0.65),
-          84 * unit,
-          theme.background,
-          {
+        if (s.revealMode === "each") {
+          d.rect("answer_panel", ax, ay, aw, ah, levelColor, {
             start: reveal,
-            ...(q.type === "estimate"
-              ? {
-                  number: { from: 0, to: Number(answerText), decimals: 0 },
-                  keyframes: {
-                    progress: [
-                      { t: reveal, v: 0 },
-                      { t: duration, v: 1 },
-                    ],
-                  },
-                }
-              : {}),
-          },
-        );
-        if (q.explanation)
+            radius: (theme.shapes.radius * 7) / 6,
+          });
           d.text(
-            "explanation",
-            q.explanation,
+            "answer_label",
+            s.labels?.answer ?? (fr ? "R\u00c9PONSE" : "ANSWER"),
             ax + 24,
-            ay + ah * 0.76,
+            ay + 15,
             aw - 48,
             ah * 0.22,
-            32 * unit,
+            42 * unit,
             theme.background,
             { start: reveal },
           );
-        if (q.points !== undefined)
           d.text(
-            "points",
-            `${q.points} pts`,
-            margin + pw * 0.72,
-            py + 12,
-            pw * 0.24,
-            48 * unit,
-            28 * unit,
-            theme.accent,
-            { start: reveal },
+            "answer",
+            answerText,
+            ax + 24,
+            ay + ah * 0.26,
+            aw - 48,
+            ah * (q.explanation ? 0.48 : 0.65),
+            84 * unit,
+            theme.background,
+            {
+              start: reveal,
+              ...(q.type === "estimate"
+                ? {
+                    number: { from: 0, to: Number(answerText), decimals: 0 },
+                    keyframes: {
+                      progress: [
+                        { t: reveal, v: 0 },
+                        { t: duration, v: 1 },
+                      ],
+                    },
+                  }
+                : {}),
+            },
           );
+          if (q.explanation)
+            d.text(
+              "explanation",
+              q.explanation,
+              ax + 24,
+              ay + ah * 0.76,
+              aw - 48,
+              ah * 0.22,
+              32 * unit,
+              theme.background,
+              { start: reveal },
+            );
+          if (q.points !== undefined)
+            d.text(
+              "points",
+              `${q.points} pts`,
+              margin + pw * 0.72,
+              py + 12,
+              pw * 0.24,
+              48 * unit,
+              28 * unit,
+              theme.accent,
+              { start: reveal },
+            );
+        }
       });
     });
   });
+  if (s.revealMode === "end") {
+    all.forEach((q, i) => {
+      const id = `recap_${i + 1}`,
+        start = now;
+      const answerText = q.choices ? q.choices[q.correctIndex!] : q.a!;
+      const duration = slotLength(
+        `question_${i + 1}_answer`,
+        s.recapSeconds,
+        "answer",
+      );
+      events.push({ time: start, type: "recap", id });
+      recaps.push({
+        id,
+        questionId: `question_${i + 1}`,
+        start,
+        end: frame(start + duration),
+      });
+      voice(
+        `question_${i + 1}_answer`,
+        start,
+        duration,
+        answerText,
+        q.sayAnswer ?? q.aSay,
+      );
+      scene(id, duration, "outro", (d) => {
+        progressBars(
+          d,
+          s.levels.length - 1,
+          s.levels.at(-1)!.questions.length - 1,
+        );
+        d.text(
+          "recap_heading",
+          fr ? "RÉPONSES" : "ANSWERS",
+          width * 0.1,
+          safeH * 0.16,
+          width * 0.8,
+          safeH * 0.1,
+          82 * unit,
+          theme.accent,
+        );
+        d.text(
+          "recap_number",
+          `${i + 1} / ${all.length}`,
+          width * 0.1,
+          safeH * 0.31,
+          width * 0.8,
+          safeH * 0.09,
+          50 * unit,
+          theme.muted,
+        );
+        d.text(
+          "recap_question",
+          q.q,
+          width * 0.1,
+          safeH * 0.42,
+          width * 0.8,
+          safeH * 0.16,
+          58 * unit,
+        );
+        d.rect(
+          "recap_answer_panel",
+          width * 0.1,
+          safeH * 0.64,
+          width * 0.8,
+          safeH * 0.22,
+          theme.accent,
+        );
+        d.text(
+          "recap_answer",
+          answerText,
+          width * 0.13,
+          safeH * 0.67,
+          width * 0.74,
+          safeH * 0.16,
+          82 * unit,
+          theme.background,
+        );
+        if (q.revealImage || q.answerImage)
+          d.image(
+            "recap_image",
+            q.revealImage ?? q.answerImage!,
+            width * 0.28,
+            safeH * 0.2,
+            width * 0.44,
+            safeH * 0.19,
+          );
+      });
+    });
+  }
   let outroStart = now;
   scene("outro", outroDuration, "outro", (d) => {
     d.text(
@@ -1781,12 +2059,20 @@ export function compileLevels(
       if (!s.sequence.some((item) => item.id === slot.id))
         slot.start = frame(
           slot.start +
-            delta(slot.id.endsWith("_answer") ? slot.id.slice(0, -7) : slot.id),
+            delta(
+              slot.id.endsWith("_answer") && s.revealMode === "end"
+                ? slot.id.replace("question_", "recap_").slice(0, -7)
+                : slot.id.endsWith("_answer")
+                  ? slot.id.slice(0, -7)
+                  : slot.id,
+            ),
         );
     for (const q of questions) {
       const d = delta(q.id);
       q.start = frame(q.start + d);
       q.readEnd = frame(q.readEnd + d);
+      if (q.listenStart !== undefined) q.listenStart = frame(q.listenStart + d);
+      if (q.listenEnd !== undefined) q.listenEnd = frame(q.listenEnd + d);
       q.ticks = q.ticks.map((tick) => frame(tick + d));
       q.reveal = frame(q.reveal + d);
       q.end = frame(q.end + d);
@@ -1795,6 +2081,11 @@ export function compileLevels(
       const d = delta(level.id);
       level.start = frame(level.start + d);
       level.end = frame(level.end + d);
+    }
+    for (const recap of recaps) {
+      const d = delta(recap.id);
+      recap.start = frame(recap.start + d);
+      recap.end = frame(recap.end + d);
     }
     intro.start = frame(
       intro.start +
@@ -1862,6 +2153,7 @@ export function compileLevels(
       questions,
       intro,
       levels: levelCards,
+      recaps,
       outro: { start: outroStart, end: frame(outroStart + outroDuration) },
     },
     voiceScript,

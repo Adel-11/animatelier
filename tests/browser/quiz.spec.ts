@@ -178,3 +178,60 @@ test("les presets créatifs chargent un jeu télévisé et un présentateur anim
     fullPage: true,
   });
 });
+
+test("un agent charge une liste verticale cumulative et inspecte son rendu", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !!window.animatelier);
+  await page.getByRole("button", { name: "Quiz", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Liste verticale animée" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Liste verticale animée" }).click();
+  await page
+    .getByRole("button", { name: "Créer le quiz", exact: true })
+    .click();
+  const result = await page.evaluate(() => {
+    const api = window.animatelier;
+    const built = api.loadQuiz({
+      mode: "stack",
+      title: "DEVINE",
+      theme: "default",
+      items: ["Lion", "Chat", "Loup", "Hibou", "Baleine"].map((a) => ({ a })),
+    });
+    const fourth = built.project.scenes[3];
+    const before = built.schedule[3].reveal - 0.1;
+    api.seek(before);
+    const hidden = api
+      .getStateAt(before)
+      .elements.find((entry) => entry.element.id === "row_answer_4")?.visible;
+    api.seek(built.schedule[3].reveal + 0.5);
+    const visible = api
+      .getStateAt(built.schedule[3].reveal + 0.5)
+      .elements.find((entry) => entry.element.id === "row_answer_4")?.visible;
+    return {
+      width: built.project.width,
+      height: built.project.height,
+      scenes: built.project.scenes.length,
+      rowCount: fourth.elements.filter(
+        (entry) =>
+          entry.id.startsWith("row_") && !entry.id.startsWith("row_number"),
+      ).length,
+      hidden,
+      visible,
+    };
+  });
+  expect(result).toEqual({
+    width: 1080,
+    height: 1920,
+    scenes: 6,
+    rowCount: 9,
+    hidden: false,
+    visible: true,
+  });
+  await page.screenshot({
+    path: "test-results/quiz-stack.png",
+    fullPage: true,
+  });
+});

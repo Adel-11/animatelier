@@ -1,4 +1,5 @@
 import { normalizeLevels, levelsSchema } from "../core/levels";
+import { stackSchema } from "../core/stack";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { constants } from "node:fs";
@@ -31,8 +32,12 @@ import {
   muxSoundtrack,
   mediaInfo,
   measureLoudness,
+  mixQuestionSounds,
+  type QuestionSoundClip,
+  runFfmpeg,
   type VoiceClip,
 } from "./audio";
+import { inspectQuestionSounds } from "./sounds";
 import type { Project } from "../core/schema";
 export interface PipelineOptions {
   out?: string;
@@ -58,6 +63,9 @@ export interface PipelineOptions {
   draft?: boolean;
   preview?: string;
   check?: boolean;
+  soundsOut?: string;
+  safeZones?: boolean;
+  audioPreview?: boolean;
 }
 async function jsonFile(filename: string) {
   if ((await stat(filename)).size > 5_000_000)
@@ -75,9 +83,21 @@ export function previewTimes(
           Math.min(1, duration / 2),
           ...events
             .filter((e) =>
-              ["level", "question", "reveal", "custom"].includes(e.type),
+              [
+                "level",
+                "question",
+                "listen",
+                "reveal",
+                "recap",
+                "outro",
+                "custom",
+              ].includes(e.type),
             )
-            .map((e) => e.time),
+            .map((e) =>
+              e.type === "reveal"
+                ? Math.min(duration - 1 / 30, e.time + 0.4)
+                : e.time,
+            ),
         ]
       : value.split(",").map(Number);
   if (
@@ -118,6 +138,7 @@ export async function makePreview(
   project: Project,
   times: number[],
   scale = 1,
+  safeZones = false,
 ) {
   if (!Number.isFinite(scale) || scale < 0.1 || scale > 2)
     throw new Error("--preview-scale doit être entre 0.1 et 2.");
@@ -126,8 +147,21 @@ export async function makePreview(
     columns = Math.min(4, times.length);
   const tiles = [];
   for (let i = 0; i < times.length; i++) {
-    const input = await sharp(rasterFrame(project, times[i]).asPng())
-      .resize(width, height)
+    const base = sharp(rasterFrame(project, times[i]).asPng()).resize(
+      width,
+      height,
+    );
+    const withZones =
+      safeZones && project.height > project.width
+        ? base.composite([
+            {
+              input: Buffer.from(
+                `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="${width}" height="${Math.round((120 * height) / project.height)}" fill="#ff0000" fill-opacity="0.25"/><rect x="0" y="${height - Math.round((220 * height) / project.height)}" width="${width}" height="${Math.round((220 * height) / project.height)}" fill="#ff0000" fill-opacity="0.25"/></svg>`,
+              ),
+            },
+          ])
+        : base;
+    const input = await withZones
       .flatten({ background: "#000000" })
       .png()
       .toBuffer();
@@ -253,8 +287,16 @@ export async function quizVideo(
     input && typeof input === "object" && "levels" in input
       ? levelsSchema.parse(input)
       : undefined;
+  const stackSpec =
+    input &&
+    typeof input === "object" &&
+    "mode" in input &&
+    input.mode === "stack"
+      ? stackSchema.parse(input)
+      : undefined;
   if (options.voiceClips) {
-    if (!voiceSpec) throw new Error("--voice-clips requiert le mode levels.");
+    if (!voiceSpec && !stackSpec)
+      throw new Error("--voice-clips requiert le mode levels ou stack.");
     const slots = compileQuiz(input, theme, { voiceDurations: {} }).voiceScript;
     const measured: Record<string, number> = {};
     for (const slot of slots) {
@@ -277,20 +319,40 @@ export async function quizVideo(
       );
     voiceDurations = measured;
   }
+  const inspectedSounds =
+    voiceSpec || stackSpec
+      ? await inspectQuestionSounds(
+          voiceSpec ?? {
+            levels: [{ questions: stackSpec!.items }],
+            timing: { listen: stackSpec!.timing.listen },
+            audioAssets: stackSpec!.audioAssets,
+          },
+          options.assetsDir,
+        )
+      : new Map<
+          string,
+          { file: string; duration: number; amplitudes: number[] }
+        >();
   const compiled = compileQuiz(input, theme, {
     voiceDurations,
     protectVoiceClips: !!options.voiceClips,
+    soundMetadata: Object.fromEntries(
+      [...inspectedSounds].map(([id, sound]) => [
+        id,
+        { duration: sound.duration, amplitudes: sound.amplitudes },
+      ]),
+    ),
   });
   const voiceClips: VoiceClip[] = [];
   const overlaps: string[] = [];
-  if (options.voiceClips && voiceSpec) {
+  if (options.voiceClips && (voiceSpec || stackSpec)) {
     for (const slot of compiled.voiceScript) {
       const file = clipFiles.get(slot.id);
       if (!file) {
         compiled.warnings.push(`Voice clip missing: ${slot.id}.wav`);
         continue;
       }
-      const kind = voiceSpec.sequence?.some((item) => item.id === slot.id)
+      const kind = voiceSpec?.sequence?.some((item) => item.id === slot.id)
         ? "custom"
         : slot.id === "intro" || slot.id === "outro"
           ? slot.id
@@ -300,7 +362,8 @@ export async function quizVideo(
               ? "answer"
               : "question";
       const start =
-        slot.start + (kind === "custom" ? 0 : voiceSpec.voice.offsets[kind]);
+        slot.start +
+        (voiceSpec && kind !== "custom" ? voiceSpec.voice.offsets[kind] : 0);
       const duration = (voiceDurations as Record<string, number>)[slot.id];
       if (start + duration > slot.start + slot.maxDuration + 1 / 30)
         compiled.warnings.push(`Voice clip exceeds slot: ${slot.id}`);
@@ -380,6 +443,12 @@ export async function quizVideo(
     throw new Error(
       "--audio ne peut pas être combiné avec --voice-clips ou --music.",
     );
+  if (options.audio && inspectedSounds.size)
+    throw new Error(
+      "--audio ne peut pas être combiné avec des questions sonores ; utilisez --music.",
+    );
+  if (options.audioPreview && options.previewOnly)
+    throw new Error("Choisir --audio-preview ou --preview-only, pas les deux.");
   if (options.music && options.music !== "default") await stat(options.music);
   if (
     options.loudness !== undefined &&
@@ -398,6 +467,28 @@ export async function quizVideo(
       frames: Math.ceil(compiled.duration * (options.draft ? 15 : 30)),
       warnings: compiled.warnings,
       layoutReport: "layoutReport" in compiled ? compiled.layoutReport : [],
+      sounds: await Promise.all(
+        [...inspectedSounds].map(async ([id, sound]) => {
+          const question = compiled.timeline.questions.find(
+            (item) => item.id === id,
+          );
+          const audible = question as
+            | { audioStart?: number; listenStart?: number; listenEnd?: number }
+            | undefined;
+          const start = audible?.audioStart ?? 0;
+          const playDuration =
+            audible?.listenStart !== undefined &&
+            audible.listenEnd !== undefined
+              ? audible.listenEnd - audible.listenStart
+              : Math.min(4, sound.duration - start);
+          return {
+            id,
+            duration: sound.duration,
+            file: sound.file,
+            ...(await measureLoudness(sound.file, start, playDuration)),
+          };
+        }),
+      ),
       ...(options.verbose
         ? { previewTimes: times, voiceOverlaps: overlaps }
         : {}),
@@ -426,7 +517,18 @@ export async function quizVideo(
       path.join(directory, "project.json"),
       path.join(directory, "preview.jpg"),
     );
-  outputs.push(...stillNames.map((name) => path.join(directory, name)));
+  if (options.audioPreview)
+    outputs.splice(
+      0,
+      outputs.length,
+      path.join(directory, "audio-preview.mp3"),
+      path.join(directory, "timeline.json"),
+      path.join(directory, "voice-script.json"),
+    );
+  if (!options.audioPreview)
+    outputs.push(...stillNames.map((name) => path.join(directory, name)));
+  if (options.soundsOut && inspectedSounds.size && !options.previewOnly)
+    outputs.push(path.resolve(options.soundsOut));
   if (new Set(outputs).size !== outputs.length)
     throw new Error("Chemins de sortie en conflit.");
   for (const target of outputs) {
@@ -449,7 +551,12 @@ export async function quizVideo(
       );
       await writeFile(
         path.join(staging, "preview.jpg"),
-        await makePreview(project, times, options.previewScale),
+        await makePreview(
+          project,
+          times,
+          options.previewScale,
+          options.safeZones,
+        ),
       );
       for (let i = 0; i < stillTimes.length; i++)
         await writeFile(
@@ -465,6 +572,190 @@ export async function quizVideo(
         duration: compiled.duration,
         outputs,
         warnings: compiled.warnings,
+      };
+    }
+    const tracks = options.audio ? [path.resolve(options.audio)] : [];
+    let voiceTrack: string | undefined;
+    if (voiceClips.length) {
+      voiceTrack = path.join(staging, "voice.wav");
+      await mixVoiceClips(voiceClips, voiceTrack, compiled.duration);
+    }
+    let questionTrack: string | undefined;
+    if (inspectedSounds.size && "questions" in compiled.timeline) {
+      const clips: QuestionSoundClip[] = [];
+      for (const question of compiled.timeline.questions) {
+        const sound = inspectedSounds.get(question.id);
+        if (
+          !sound ||
+          !("listenStart" in question) ||
+          question.listenStart === undefined ||
+          question.listenEnd === undefined
+        )
+          continue;
+        const specification = (voiceSpec?.levels.flatMap(
+          (level) => level.questions,
+        ) ?? stackSpec?.items)?.[Number(question.id.slice(9)) - 1];
+        const listenDuration = question.listenEnd - question.listenStart;
+        const countdownDuration =
+          specification?.audioDuringCountdown === "stop"
+            ? 0
+            : question.reveal - question.listenEnd;
+        clips.push({
+          file: sound.file,
+          start: question.listenStart,
+          sourceStart: question.audioStart ?? 0,
+          duration:
+            listenDuration +
+            (specification?.audioDuringCountdown === "continue"
+              ? Math.min(
+                  countdownDuration,
+                  Math.max(
+                    0,
+                    sound.duration -
+                      (question.audioStart ?? 0) -
+                      listenDuration,
+                  ),
+                )
+              : countdownDuration),
+          gainDb: question.audioGain ?? 0,
+          loop: specification?.audioDuringCountdown === "loop",
+        });
+        if (question.replayOnReveal) {
+          const answerClip = voiceClips.find(
+            (clip) => clip.id === `${question.id}_answer`,
+          );
+          const recap =
+            voiceSpec?.revealMode === "end" && "recaps" in compiled.timeline
+              ? compiled.timeline.recaps.find(
+                  (entry) => entry.questionId === question.id,
+                )
+              : undefined;
+          const windowStart = recap?.start ?? question.reveal,
+            windowEnd = recap?.end ?? question.end;
+          const replayStart = Math.max(
+            windowStart + 0.05,
+            answerClip
+              ? answerClip.start + answerClip.duration + 0.05
+              : windowStart + 0.35,
+          );
+          const replayDuration = Math.min(
+            windowEnd - replayStart,
+            sound.duration - (question.audioStart ?? 0),
+          );
+          if (replayDuration > 0.2)
+            clips.push({
+              file: sound.file,
+              start: replayStart,
+              sourceStart: question.audioStart ?? 0,
+              duration: replayDuration,
+              gainDb: question.audioGain ?? 0,
+            });
+          else
+            compiled.warnings.push(
+              `${question.id}: no time for replay after answer voice.`,
+            );
+        }
+      }
+      if (clips.length) {
+        questionTrack = path.join(staging, "sounds.wav");
+        await mixQuestionSounds(clips, questionTrack, compiled.duration);
+      }
+    }
+    let sfxTrack: string | undefined;
+    if (options.sfx) {
+      const wav = path.join(staging, "sfx.wav");
+      await synthesizeSfx(
+        wav,
+        compiled.duration,
+        compiled.timeline.events,
+        soundMapping,
+      );
+      tracks.push(wav);
+      sfxTrack = wav;
+    }
+    let musicTrack =
+      options.music && options.music !== "default"
+        ? path.resolve(options.music)
+        : undefined;
+    if (options.music === "default") {
+      musicTrack = path.join(staging, "music.wav");
+      await synthesizeMusic(
+        musicTrack,
+        compiled.duration,
+        voiceSpec?.music ?? { bpm: 108, root: 48, progression: [0, 5, 9, 7] },
+      );
+    }
+    if (options.audioPreview) {
+      const inputs = [
+        voiceTrack,
+        musicTrack,
+        sfxTrack,
+        questionTrack,
+        options.audio,
+      ].filter((file): file is string => !!file);
+      if (!inputs.length)
+        throw new Error(
+          "--audio-preview nécessite un son, une voix, une musique ou des effets.",
+        );
+      const labels = inputs.map((_, i) => `[${i}:a]`).join("");
+      const filters = `${labels}amix=inputs=${inputs.length}:duration=longest:normalize=0,apad,atrim=duration=${compiled.duration},loudnorm=I=${options.loudness ?? -16}:TP=-1.5:LRA=11,alimiter=limit=0.95[a]`;
+      await runFfmpeg([
+        ...inputs.flatMap((file) => [
+          ...(file === musicTrack ? ["-stream_loop", "-1"] : []),
+          "-i",
+          file,
+        ]),
+        "-filter_complex",
+        filters,
+        "-map",
+        "[a]",
+        "-t",
+        String(compiled.duration),
+        "-c:a",
+        "libmp3lame",
+        "-b:a",
+        "160k",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        "-n",
+        path.join(staging, "audio-preview.mp3"),
+      ]);
+      await writeFile(
+        path.join(staging, "timeline.json"),
+        JSON.stringify(compiled.timeline, null, 2),
+      );
+      await writeFile(
+        path.join(staging, "voice-script.json"),
+        JSON.stringify(compiled.voiceScript, null, 2),
+      );
+      const previewSources = [
+        path.join(staging, "audio-preview.mp3"),
+        path.join(staging, "timeline.json"),
+        path.join(staging, "voice-script.json"),
+        ...(options.soundsOut && questionTrack ? [questionTrack] : []),
+      ];
+      for (let i = 0; i < outputs.length; i++) {
+        await mkdir(path.dirname(outputs[i]), { recursive: true });
+        try {
+          await link(previewSources[i], outputs[i]);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "EXDEV") throw error;
+          await copyFile(
+            previewSources[i],
+            outputs[i],
+            constants.COPYFILE_EXCL,
+          );
+        }
+        published.push(outputs[i]);
+      }
+      return {
+        audioPreview: true,
+        duration: compiled.duration,
+        outputs,
+        warnings: compiled.warnings,
+        report: await measureLoudness(path.join(staging, "audio-preview.mp3")),
       };
     }
     const result = await renderVideo(
@@ -485,37 +776,7 @@ export async function quizVideo(
       },
       progress,
     );
-    const tracks = options.audio ? [path.resolve(options.audio)] : [];
-    let voiceTrack: string | undefined;
-    if (voiceClips.length) {
-      voiceTrack = path.join(staging, "voice.wav");
-      await mixVoiceClips(voiceClips, voiceTrack, result.duration);
-    }
-    let sfxTrack: string | undefined;
-    if (options.sfx) {
-      const wav = path.join(staging, "sfx.wav");
-      await synthesizeSfx(
-        wav,
-        result.duration,
-        compiled.timeline.events,
-        soundMapping,
-      );
-      tracks.push(wav);
-      sfxTrack = wav;
-    }
-    let musicTrack =
-      options.music && options.music !== "default"
-        ? path.resolve(options.music)
-        : undefined;
-    if (options.music === "default") {
-      musicTrack = path.join(staging, "music.wav");
-      await synthesizeMusic(
-        musicTrack,
-        result.duration,
-        voiceSpec?.music ?? { bpm: 108, root: 48, progression: [0, 5, 9, 7] },
-      );
-    }
-    const hasNewMix = !!voiceTrack || !!options.music;
+    const hasNewMix = !!voiceTrack || !!options.music || !!questionTrack;
     const video =
       tracks.length || hasNewMix ? path.join(staging, "video.mp4") : silent;
     if (hasNewMix) {
@@ -531,6 +792,7 @@ export async function quizVideo(
         musicTrack,
         sfxTrack,
         options.loudness ?? -16,
+        questionTrack,
       );
     } else if (tracks.length)
       await muxAudio(silent, tracks, video, result.duration);
@@ -583,7 +845,12 @@ export async function quizVideo(
     );
     await writeFile(
       path.join(staging, "preview.jpg"),
-      await makePreview(project, times, options.previewScale),
+      await makePreview(
+        project,
+        times,
+        options.previewScale,
+        options.safeZones,
+      ),
     );
     for (let i = 0; i < stillTimes.length; i++)
       await writeFile(
@@ -600,6 +867,7 @@ export async function quizVideo(
         "cover.jpg",
       ].map((name) => path.join(staging, name)),
       ...stillNames.map((name) => path.join(staging, name)),
+      ...(options.soundsOut && questionTrack ? [questionTrack] : []),
     ];
     for (let i = 0; i < outputs.length; i++) {
       await mkdir(path.dirname(outputs[i]), { recursive: true });

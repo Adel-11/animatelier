@@ -1,0 +1,21 @@
+{
+  "mode": "stack",
+  "preset": "qff-stack",
+  "title": "10 ANIMAUX À DEVINER",
+  "language": "fr",
+  "theme": "qff",
+  "timing": { "show": 0.7, "listen": 2, "countdown": 0.5, "reveal": 1.5, "endHold": 2 },
+  "end": { "text": "Tu en as trouvé combien ?" },
+  "items": [
+    { "q": "Le roi de la savane", "a": "Lion" },
+    { "q": "Il porte sa maison", "a": "Escargot" },
+    { "q": "Des rayures noires et blanches", "a": "Zèbre" },
+    { "q": "Il vole la nuit", "a": "Hibou" },
+    { "q": "Le géant des océans", "a": "Baleine" },
+    { "q": "Il saute dans les arbres", "a": "Singe" },
+    { "q": "Il a une longue trompe", "a": "Éléphant" },
+    { "q": "Il nage et aboie", "a": "Otarie" },
+    { "q": "Il vit dans le désert", "a": "Chameau" },
+    { "q": "Il change de couleur", "a": "Caméléon" }
+  ]
+}

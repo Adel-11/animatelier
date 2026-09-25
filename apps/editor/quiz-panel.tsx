@@ -19,6 +19,7 @@ export function QuizPanel({ onClose }: { onClose: () => void }) {
     ["presenter", "Personnage présentateur"],
     ["flashcards", "Cartes mémoire"],
     ["levelsShow", "Défi vertical à niveaux"],
+    ["stack", "Liste verticale animée"],
     ["customArtDirection", "Direction artistique"],
   ] as const;
   const [source, setSource] = useState(

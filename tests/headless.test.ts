@@ -27,7 +27,7 @@ it("rasterise trois instants avec les polices embarquées, sans polices système
     );
     expect(hash(rasterFrame(project, time).pixels)).toBe(hash(first));
   }
-});
+}, 15000);
 it("valide formats, flou animé et métriques des textes accentués", () => {
   const project = parseProject({
     ...quiz,

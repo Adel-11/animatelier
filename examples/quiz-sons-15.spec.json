@@ -1,0 +1,33 @@
+{
+  "mode": "levels",
+  "title": "15 SONS À RECONNAÎTRE",
+  "theme": "qff",
+  "language": "fr",
+  "revealMode": "end",
+  "recapSeconds": 1.6,
+  "intro": { "logoSeconds": 0, "title": "15 SONS", "subtitle": "3 NIVEAUX", "tagline": "Reconnais-tu ces sons ?" },
+  "timing": { "read": 1, "listen": 4, "countdown": 2, "answer": 1, "levelCard": 1, "outro": 2, "maxDuration": 180 },
+  "levels": [
+    { "name": "FACILE", "questions": [
+      { "q": "Quel animal entends-tu ?", "a": "Lion", "audio": "file:sons/01.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Chien", "audio": "file:sons/02.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Chat", "audio": "file:sons/03.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Cheval", "audio": "file:sons/04.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Vache", "audio": "file:sons/05.ogg" }
+    ] },
+    { "name": "MOYEN", "questions": [
+      { "q": "Quel animal entends-tu ?", "a": "Hibou", "audio": "file:sons/06.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Loup", "audio": "file:sons/07.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Dauphin", "audio": "file:sons/08.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Grenouille", "audio": "file:sons/09.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Éléphant", "audio": "file:sons/10.ogg" }
+    ] },
+    { "name": "DIFFICILE", "questions": [
+      { "q": "Quel animal entends-tu ?", "a": "Renard", "audio": "file:sons/11.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Paon", "audio": "file:sons/12.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Phoque", "audio": "file:sons/13.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Chouette", "audio": "file:sons/14.ogg" },
+      { "q": "Quel animal entends-tu ?", "a": "Baleine", "audio": "file:sons/15.ogg" }
+    ] }
+  ]
+}
