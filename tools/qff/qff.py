@@ -16,7 +16,7 @@
 SPEC : JSON « levels » court, le preset QFF est applique automatiquement (theme, intro rapide, outro, voix).
 Le dossier du SPEC contient img/ (images, credits dans img/credits.json). Voir RULES en bas du fichier.
 """
-import datetime, glob, hashlib, json, os, re, shutil, subprocess, sys, urllib.parse, urllib.request
+import datetime, glob, hashlib, json, os, re, shutil, subprocess, sys, time, urllib.parse, urllib.request
 
 D = os.environ.get("QFF_DIR", "/home/claude/qff-run")
 REPO = f"{D}/animatelier"
@@ -57,6 +57,21 @@ const spec = normalizeLevels(JSON.parse(fs.readFileSync(process.argv[2], "utf8")
 const { voiceScript } = compileQuiz(spec, undefined, { voiceDurations: {} });
 fs.writeFileSync(process.argv[3], JSON.stringify(voiceScript.map(({ id, text }) => ({ id, text }))));
 '''
+
+
+def ensure_ffmpeg():
+    """Certains environnements cloud n'ont pas ffmpeg/ffprobe : on prend ceux fournis par les paquets npm d'Animatelier."""
+    b = f"{D}/bin"
+    if os.path.isdir(b) and b not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = b + os.pathsep + os.environ.get("PATH", "")
+    for name, src in (("ffmpeg", f"{REPO}/node_modules/ffmpeg-static/ffmpeg"),
+                      ("ffprobe", f"{REPO}/node_modules/@ffprobe-installer/linux-x64/ffprobe")):
+        if not shutil.which(name) and os.path.exists(src):
+            os.makedirs(b, exist_ok=True)
+            if not os.path.lexists(f"{b}/{name}"):
+                os.symlink(src, f"{b}/{name}")
+            if b not in os.environ["PATH"]:
+                os.environ["PATH"] = b + os.pathsep + os.environ["PATH"]
 
 
 def sh(cmd, check=True, quiet=True, **kw):
@@ -272,7 +287,11 @@ def setup():
     for f in ("kokoro-v1.0.onnx", "voices-v1.0.bin"):
         if not os.path.exists(f"{KOK}/{f}"):
             sh(f"curl -sSL -o {KOK}/{f} {base}{f}")
-    print("setup ok")
+    ensure_ffmpeg()
+    miss = [x for x in ("ffmpeg", "ffprobe") if not shutil.which(x)]
+    if miss:
+        sh("apt-get install -y -q ffmpeg >/dev/null 2>&1 || (apt-get update -q >/dev/null && apt-get install -y -q ffmpeg >/dev/null)", check=False)
+    print("setup ok" if all(shutil.which(x) for x in ("ffmpeg", "ffprobe")) else "setup ok (ATTENTION : ffmpeg/ffprobe introuvables)")
 
 
 def state(kind=""):
@@ -522,7 +541,10 @@ def publish(spec_path, caption):
     r = subprocess.run(["curl", "-sS", "-m", "300", "-F", f"video=@{q}/final.mp4", "-F", f"caption={caption}",
                         "-F", "dry_run=" + os.environ.get("QFF_DRY", "false"), "-F", "facebook=true", "-F", "cover_at=2", PUB],
                        capture_output=True, text=True)
-    print(r.stdout or r.stderr)
+    print(r.stdout or r.stderr, flush=True)
+    if '"execution_id"' in (r.stdout or ""):
+        time.sleep(100)
+        print("100 s écoulées : lis maintenant l'exécution n8n.")
 
 
 def log(spec_path, topic="", reel=""):
@@ -627,11 +649,18 @@ def rules():
     print(RULES)
 
 
+def wait(sec="40"):
+    """Pause (les tâches cloud n'aiment pas les longs sleep lancés directement)."""
+    time.sleep(min(int(sec), 110))
+    print(f"{sec} s écoulées")
+
+
 if __name__ == "__main__":
     a = sys.argv[1:] or ["-h"]
     cmds = {"setup": setup, "state": state, "check": check, "find": find, "fetch": fetch,
-            "build": build, "publish": publish, "log": log, "rules": rules, "soundsearch": soundsearch}
+            "build": build, "publish": publish, "log": log, "rules": rules, "soundsearch": soundsearch, "wait": wait}
     if a[0] not in cmds:
         print(__doc__)
         sys.exit(0)
+    ensure_ffmpeg()
     cmds[a[0]](*a[1:])
