@@ -58,18 +58,61 @@ fs.writeFileSync(process.argv[3], JSON.stringify(voiceScript.map(({ id, text }) 
 
 # quiz liste (mode stack) : valeurs par defaut QFF, la spec peut tout surcharger
 STACK_DEFAULTS = {"preset": "qff-stack", "theme": "qff", "language": "en",
-                  "timing": {"show": 1, "listen": 3, "countdown": 1, "reveal": 1.5, "endHold": 6.5},
+                  "timing": {"show": 1, "listen": 3, "countdown": 3, "reveal": 1.5, "endHold": 6.5},
                   "end": {"text": "How many did you get?",
                           "say": "How many did you get? Tell us in the comments, and follow for a new quiz every day!"},
-                  "layout": {"mystery_icon": {"y": 0.27, "fontSize": 120}, "question": {"y": 0.375, "fontSize": 74}}}
+                  "layout": {"question": {"visible": False}, "mystery_icon": {"y": 0.235, "fontSize": 90}}}
+STACK_CTA_SAY = "Enjoying it? Hit like and follow!"
 
 
-def stack_full(raw):
+def stack_bg(img, names):
+    """Fonds flous plein ecran (pre-floutes ici : le flou d'Animatelier ne s'affiche pas au rendu)."""
+    from PIL import Image, ImageFilter, ImageEnhance
+    out = []
+    for n in names:
+        dst = f"bg_{os.path.splitext(n)[0]}.jpg"
+        if not os.path.exists(f"{img}/{dst}"):
+            im = Image.open(f"{img}/{n}").convert("RGB")
+            W, H = 1242, 2208  # 1080x1920 + 15 % de marge pour le zoom
+            r = max(W / im.width, H / im.height)
+            im = im.resize((int(im.width * r) + 1, int(im.height * r) + 1), Image.LANCZOS)
+            l, t = (im.width - W) // 2, (im.height - H) // 2
+            im = im.crop((l, t, l + W, t + H)).filter(ImageFilter.GaussianBlur(16))
+            ImageEnhance.Brightness(im).enhance(0.5).save(f"{img}/{dst}", quality=88)
+        out.append(dst)
+    return out
+
+
+def stack_full(raw, img=None):
     m = json.loads(json.dumps(STACK_DEFAULTS))
     for k, v in raw.items():
         m[k] = {**m[k], **v} if isinstance(v, dict) and isinstance(m.get(k), dict) else v
-    for k in ("cover", "stinger", "noCta"):
+    bgs = stack_bg(img, raw.get("backgrounds", [])) if img and raw.get("backgrounds") else []
+    for k in ("cover", "stinger", "noCta", "backgrounds"):
         m.pop(k, None)
+    for i, it in enumerate(m["items"]):
+        els = list(it.get("elements", []))
+        if bgs:  # fond flou qui zoome puis dezoome d'une question a l'autre
+            z = [1.0, 1.12] if i % 2 == 0 else [1.12, 1.0]
+            els.insert(0, {"id": "bg_photo", "type": "image", "src": f"file:{bgs[i % len(bgs)]}", "x": -81, "y": -144,
+                           "w": 1242, "h": 2208, "fit": "cover", "z": -5,
+                           "keyframes": {"scale": [{"t": 0, "v": z[0]}, {"t": 5, "v": z[1]}]}})
+        if it.get("q"):  # question sur plusieurs lignes, centree dans la carte
+            els.append({"id": "q_text", "type": "text", "text": it["q"], "x": 540, "y": 500, "fontSize": 56,
+                        "maxWidth": 760, "color": "#FFFFFF", "bold": True, "align": "center"})
+        if els:
+            it["elements"] = els
+    if len(m["items"]) > 4 and not raw.get("noCta"):  # appel like & follow au debut de la 4e question
+        it = m["items"][3]
+        it["say"] = STACK_CTA_SAY + " " + (it.get("say") or it.get("q") or "")
+        fade = {"opacity": [{"t": 0, "v": 1}, {"t": 2.3, "v": 1}, {"t": 2.55, "v": 0}]}
+        it.setdefault("elements", []).extend([
+            {"id": "cta_panel", "type": "rect", "x": 135, "y": 302, "w": 810, "h": 390, "fill": "#0F3678", "radius": 25, "keyframes": fade},
+            {"id": "cta_heart", "type": "image", "src": "file:heart.png", "x": 460, "y": 318, "w": 160, "h": 160, "fit": "contain", "keyframes": fade},
+            {"id": "cta_text", "type": "text", "text": "LIKE & FOLLOW", "x": 540, "y": 560, "fontSize": 72, "maxWidth": 760,
+             "color": "#FECD1B", "bold": True, "align": "center", "keyframes": fade},
+            {"id": "cta_handle", "type": "text", "text": "@quiz.factory.forever", "x": 540, "y": 640, "fontSize": 40, "maxWidth": 760,
+             "color": "#FFFFFF", "bold": True, "align": "center", "keyframes": fade}])
     return m
 
 
@@ -262,11 +305,19 @@ def draw_assets(img):
         return im
     sp = speaker(); sp.save(f"{img}/speaker_r.png"); sp.transpose(Image.FLIP_LEFT_RIGHT).save(f"{img}/speaker_l.png")
     bg = Image.new("RGB", (800, 800), "#0B4F9C"); big = speaker(800); bg.paste(big, (40, 0), big); bg.save(f"{img}/listen.png")
-    h = Image.new("RGBA", (400, 400), (0, 0, 0, 0)); d = ImageDraw.Draw(h)
-    for col, gp in ((N, 0), ("#FF3B5C", 14)):
-        d.ellipse((40 + gp, 60 + gp, 210 - gp, 230 - gp), fill=col); d.ellipse((190 + gp, 60 + gp, 360 - gp, 230 - gp), fill=col)
-        d.polygon([(48 + gp, 170), (352 - gp, 170), (200, 360 - gp * 1.5)], fill=col)
-    h.save(f"{img}/heart.png")
+    import math
+    S = 4  # coeur classique (courbe parametrique), dessine en x4 puis reduit pour des bords lisses
+    h = Image.new("RGBA", (400 * S, 400 * S), (0, 0, 0, 0)); d = ImageDraw.Draw(h)
+    def heart(scale):
+        pts = []
+        for i in range(360):
+            t = math.radians(i)
+            x = 16 * math.sin(t) ** 3
+            y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+            pts.append(((200 + x * scale) * S, (190 - y * scale) * S))
+        return pts
+    d.polygon(heart(11.5), fill=N); d.polygon(heart(10.3), fill="#FF3B5C")
+    h.resize((400, 400), Image.LANCZOS).save(f"{img}/heart.png")
 
 
 def make_loops(spec, img, L=5.0):
@@ -501,7 +552,7 @@ def mix(out, clips, music, dst):
     m = np.tile(m, int(np.ceil(N / len(m))))[:N]
     t = np.arange(N) / SR
     m *= np.minimum(1, t / 0.5) * np.clip((dur - t) / 2.5, 0, 1)
-    m = pyln.normalize.loudness(m, meter.integrated_loudness(m), -30)
+    m = pyln.normalize.loudness(m, meter.integrated_loudness(m), -33)  # fond musical (baisse a la demande d'Adel)
     env = np.convolve(np.abs(voice), np.ones(int(0.25 * SR)) / int(0.25 * SR), mode="same")
 
     gate = np.clip(env / (np.percentile(env[env > 1e-4], 30) + 1e-9), 0, 1)
@@ -562,7 +613,7 @@ def build(spec_path, slot):
     full = f"{q}/spec.full.json"
     voice = VOICES[slot_index(slot) % 4]
     if raw.get("mode") == "stack":  # quiz liste
-        json.dump(stack_full(raw), open(full, "w"))
+        json.dump(stack_full(raw, img), open(full, "w"))
         open(f"{REPO}/voice_script_stack.qff.mjs", "w").write(VOICE_SCRIPT_STACK_MJS)
         sh(f"cd {REPO} && node voice_script_stack.qff.mjs {full} {q}/voice-script.json")
     else:
