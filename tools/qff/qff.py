@@ -195,6 +195,7 @@ def merged(spec_path):
                     q["audio"] = "file:loop/" + os.path.splitext(os.path.basename(q["audio"]))[0] + ".wav"
                     q.pop("audioStart", None)
                     q.setdefault("image", "file:listen.png")
+    m.pop("stinger", None)
     cover = m.pop("cover", [])
     els = m["intro"].setdefault("elements", [])
     if not any(e.get("id") == "cover_logo_big" for e in els):
@@ -470,6 +471,36 @@ def mix(out, clips, music, dst):
     sf.write(dst, np.stack([voice + m + snd] * 2, 1), SR, subtype="FLOAT")
 
 
+def make_stinger(spec, img, dst, total=2.6):
+    """Jingle d'intro lie au theme : "stinger": ["file:sons/a.ogg", "file:sons/b.ogg"] (1 ou 2 sons droles/typiques,
+    pas ceux des questions). Le passage le plus fort de chacun, enchaines, 2,6 s max. Sans "stinger" : pas de jingle."""
+    import numpy as np, soundfile as sf, librosa, pyloudnorm as pyln
+    if os.path.exists(dst):
+        os.remove(dst)
+    src = [s[5:] if s.startswith("file:") else s for s in (spec.get("stinger") or [])][:2]
+    if not src:
+        return
+    SR = 48000
+    part = total / len(src) - 0.1
+    parts = []
+    for s in src:
+        y, _ = librosa.load(f"{img}/{s}", sr=SR, mono=True)
+        y, _ = librosa.effects.trim(y, top_db=40)
+        n = int(part * SR)
+        if len(y) > n:
+            r = librosa.feature.rms(y=y, hop_length=512)[0]; k = max(1, n // 512)
+            i = int(np.argmax(np.convolve(r ** 2, np.ones(k), "valid"))) if len(r) > k else 0
+            y = y[i * 512:i * 512 + n]
+        f = min(len(y) // 4, int(0.08 * SR))
+        if f:
+            y[:f] *= np.linspace(0, 1, f); y[-f:] *= np.linspace(1, 0, f)
+        parts += [y, np.zeros(int(0.1 * SR))]
+    out = np.concatenate(parts)[:int(total * SR)]
+    out = pyln.normalize.loudness(out, pyln.Meter(SR, block_size=0.2).integrated_loudness(out), -18)
+    out /= max(1, np.abs(out).max() / 0.95)
+    sf.write(dst, out, SR)
+
+
 def build(spec_path, slot):
     spec_path = os.path.abspath(spec_path)
     q = os.path.dirname(spec_path)
@@ -481,12 +512,7 @@ def build(spec_path, slot):
     if is_sound(raw):
         make_loops(raw, img)
         json.dump({"tick": None}, open(f"{q}/sfx.json", "w"))
-        if not os.path.exists(f"{q}/stinger.wav"):
-            try:
-                fid = [f["id"] for f in dfiles("tools") if f["name"] == "stinger.wav"][0]
-                open(f"{q}/stinger.wav", "wb").write(g("download", id=fid, raw=True))
-            except (SystemExit, Exception) as e:
-                print("jingle indisponible:", e, file=sys.stderr)
+        make_stinger(raw, img, f"{q}/stinger.wav")
     full = f"{q}/spec.full.json"
     json.dump(merged(spec_path), open(full, "w"))
     voice = VOICES[slot_index(slot) % 4]
@@ -635,11 +661,15 @@ RULES = """
   "explanation" (meme idee ecrite a l'ecran, 70 caracteres max). Ex : "Not a monkey! Old jungle movies used
   this Australian bird's laugh." Pas d'anecdote douteuse : en cas de doute, choisir un autre fait.
 QUIZ SONORE (question avec "audio") : le preset son s'applique tout seul (fond bleu clair, haut-parleurs,
-  son 5 s en boucle si court, pas de decompte, jingle d'intro). Par question : "audio":"file:sons/x.ogg"
+  son 5 s en boucle si court, pas de decompte).
+  Jingle d'intro : "stinger": ["file:sons/a.ogg", "file:sons/b.ogg"] a la racine = 1 ou 2 sons courts, droles ou
+  typiques, LIES AU THEME du quiz (ex. instruments : un gong + un kazoo ; vehicules : un klaxon), pas utilises dans
+  les questions. Sans "stinger", pas de jingle (jamais de sons d'animaux si le theme n'est pas les animaux). Par question : "audio":"file:sons/x.ogg"
   (optionnel "audioStart"), "answerImage":"file:x.jpg" (photo revelee), pas de "image". intro.title "SOUND QUIZ",
   intro.subtitle ex. "15 ANIMALS TO GUESS", intro.say ex. "Can you recognize these fifteen animals, just by their sound?".
   Niveau adulte : pas de reponses trop evidentes au niveau ROOKIE (pas d'animaux domestiques par ex.).
-  Sons : Wikimedia Commons uniquement (qff.py soundsearch), licences PD / CC0 / CC BY / CC BY-SA ;
+  Sons : Openverse audio (commons.py osearch/oget), Wikimedia Commons (commons.py search/get) ou toute source libre
+  (commons.py url), licences PD / CC0 / CC BY / CC BY-SA uniquement (jamais NC, ND, sampling+) ;
   credits dans img/sons/credits.json {"fichier": {"source": url, "credit": auteur, "license": licence}}.
   Legende : crediter a la fin tous les sons et photos CC BY / CC BY-SA (auteur + licence), une ligne compacte.
 """
