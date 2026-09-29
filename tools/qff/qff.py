@@ -48,6 +48,31 @@ PRESET = {
     "timing": {"read": "voice", "readPad": 0.3, "countdown": 3, "answer": 2.4, "levelCard": 1.8, "outro": 6, "maxDuration": 180},
 }
 
+VOICE_SCRIPT_STACK_MJS = r'''import { register } from "tsx/esm/api";
+register();
+const fs = await import("node:fs"); const path = await import("node:path");
+const { compileStack, stackSchema } = await import(path.join(process.cwd(), "packages/core/stack.ts"));
+const { voiceScript } = compileStack(stackSchema.parse(JSON.parse(fs.readFileSync(process.argv[2], "utf8"))));
+fs.writeFileSync(process.argv[3], JSON.stringify(voiceScript.map(({ id, text }) => ({ id, text }))));
+'''
+
+# quiz liste (mode stack) : valeurs par defaut QFF, la spec peut tout surcharger
+STACK_DEFAULTS = {"preset": "qff-stack", "theme": "qff", "language": "en",
+                  "timing": {"show": 1, "listen": 3, "countdown": 1, "reveal": 1.5, "endHold": 6.5},
+                  "end": {"text": "How many did you get?",
+                          "say": "How many did you get? Tell us in the comments, and follow for a new quiz every day!"},
+                  "layout": {"mystery_icon": {"y": 0.27, "fontSize": 120}, "question": {"y": 0.375, "fontSize": 74}}}
+
+
+def stack_full(raw):
+    m = json.loads(json.dumps(STACK_DEFAULTS))
+    for k, v in raw.items():
+        m[k] = {**m[k], **v} if isinstance(v, dict) and isinstance(m.get(k), dict) else v
+    for k in ("cover", "stinger", "noCta"):
+        m.pop(k, None)
+    return m
+
+
 VOICE_SCRIPT_MJS = r'''import { register } from "tsx/esm/api";
 register();
 const fs = await import("node:fs"); const path = await import("node:path");
@@ -212,8 +237,15 @@ def merged(spec_path):
     return m
 
 
+def allq(s):
+    """Toutes les questions d'un spec : niveaux (mode levels) ou items (mode stack, quiz liste)."""
+    if s.get("mode") == "stack":
+        return [dict(x, q=x.get("q", "")) for x in s.get("items", [])]
+    return [q for L in s.get("levels", []) for q in L.get("questions", [])]
+
+
 def is_sound(s):
-    return any("audio" in q for L in s.get("levels", []) for q in L.get("questions", []))
+    return any("audio" in q for q in allq(s))
 
 
 def draw_assets(img):
@@ -297,18 +329,30 @@ def setup():
 
 def state(kind=""):
     snd = kind == "sons"
-    plan = rng(TABS_SONS[0], "A2:E") if snd else rng(TABS[0], "A2:E")
+    plan = rng(TABS_SONS[0], "A2:G") if snd else rng(TABS[0], "A2:G")
     r = g("sheets", f"spreadsheets/{SHEET_SONS if snd else SHEET}/values:batchGet?ranges={plan}")
     r2 = g("sheets", f"spreadsheets/{SHEET}/values:batchGet?ranges={rng(TABS[1], 'A2:C')}&ranges={rng(TABS[2], 'A2:E')}")
     v = [r["valueRanges"][0].get("values", [])] + [x.get("values", []) for x in r2["valueRanges"]]
     sons = []
     if snd:
         sons = g("sheets", f"spreadsheets/{SHEET_SONS}/values:batchGet?ranges={rng(TABS_SONS[1], 'A2:E')}")["valueRanges"][0].get("values", [])
-    topics = [{"sujet": x[0], "type": (x + [""])[1], "fait": str((x + ["", ""])[2]).upper() == "TRUE", "date": (x + [""] * 4)[3]} for x in v[0] if x]
+    def _ord(x, i):
+        try:
+            return float(str((x + [""] * 6)[5]).replace(",", "."))
+        except ValueError:
+            return 1e6 + i
+    topics = [{"sujet": x[0], "type": (x + [""])[1], "fait": str((x + ["", ""])[2]).upper() == "TRUE",
+               "date": (x + [""] * 4)[3], "ordre": _ord(x, i), "commentaire": (x + [""] * 7)[6].strip()}
+              for i, x in enumerate(v[0]) if x and x[0].strip()]
+    topics.sort(key=lambda t: t["ordre"])
     st = {"topics": topics, "questions": [x + [""] * (3 - len(x)) for x in v[1] if x], "photos": [[x[0], (x + [""] * 5)[4]] for x in v[2] if x],
           "sons": [[x[0], (x + [""] * 5)[1], (x + [""] * 5)[4]] for x in sons if x]}
     json.dump(st, open(f"{D}/state.json", "w"))
     todo = [f"{t['sujet']}|{t['type']}" for t in topics if not t["fait"]]
+    nxt = next((t for t in topics if not t["fait"]), None)
+    if nxt:
+        print(f"PROCHAIN SUJET (ordre {nxt['ordre']:g}) : {nxt['sujet']} | type : {nxt['type']}")
+        print(f"COMMENTAIRE D'ADEL (a respecter) : {nxt['commentaire'] or 'aucun'}")
     done = [f"{t['sujet']} ({t['date'][:10]})" for t in topics if t["fait"]]
     print(f"A faire ({len(todo)}): " + "; ".join(todo))
     print("Deja faits: " + "; ".join(done))
@@ -324,14 +368,13 @@ def check(spec_path):
     s = json.load(open(spec_path))
     issues = []
     n = 0
-    for L in s["levels"]:
-        for q in L["questions"]:
-            n += 1
-            qa, qw = norm(q["a"]), set(norm(q["q"]))
-            for txt, w, a in asked:
-                if qa == a and (qw & w or not qw or not w):
-                    issues.append(f"Q{n} « {q['q']} → {q['a']} » ressemble a « {txt} »")
-                    break
+    for q in allq(s):
+        n += 1
+        qa, qw = norm(q["a"]), set(norm(q["q"]))
+        for txt, w, a in asked:
+            if qa == a and (qw & w or not qw or not w):
+                issues.append(f"Q{n} « {q['q']} → {q['a']} » ressemble a « {txt} »")
+                break
     known = {h for h, _ in st["photos"]}
     img = os.path.join(os.path.dirname(os.path.abspath(spec_path)), "img")
     for f in sorted(glob.glob(f"{img}/*")):
@@ -343,7 +386,10 @@ def check(spec_path):
     for f in sorted(glob.glob(f"{img}/sons/*")):
         if not f.endswith(".json") and hashlib.sha256(open(f, "rb").read()).hexdigest()[:16] in ksons:
             issues.append(f"son deja utilise : {os.path.basename(f)}")
-    if n != 15:
+    if s.get("mode") == "stack":
+        if not 5 <= n <= 15:
+            issues.append(f"{n} items (quiz liste : 5 a 15)")
+    elif n != 15:
         issues.append(f"{n} questions au lieu de 15")
     print("\n".join(issues) if issues else "OK, aucun doublon")
 
@@ -514,9 +560,14 @@ def build(spec_path, slot):
         json.dump({"tick": None}, open(f"{q}/sfx.json", "w"))
         make_stinger(raw, img, f"{q}/stinger.wav")
     full = f"{q}/spec.full.json"
-    json.dump(merged(spec_path), open(full, "w"))
     voice = VOICES[slot_index(slot) % 4]
-    sh(f"cd {REPO} && node voice_script.qff.mjs {full} {q}/voice-script.json")
+    if raw.get("mode") == "stack":  # quiz liste
+        json.dump(stack_full(raw), open(full, "w"))
+        open(f"{REPO}/voice_script_stack.qff.mjs", "w").write(VOICE_SCRIPT_STACK_MJS)
+        sh(f"cd {REPO} && node voice_script_stack.qff.mjs {full} {q}/voice-script.json")
+    else:
+        json.dump(merged(spec_path), open(full, "w"))
+        sh(f"cd {REPO} && node voice_script.qff.mjs {full} {q}/voice-script.json")
     shutil.rmtree(clips, ignore_errors=True)
     os.makedirs(clips)
     import numpy as np, soundfile as sf, librosa
@@ -580,12 +631,12 @@ def log(spec_path, topic="", reel=""):
     s = json.load(open(spec_path))
     quiz = s.get("title", "Quiz")
     date = str(today())
-    qs = [[f"{x['q']} → {x['a']}", date, quiz] for L in s["levels"] for x in L["questions"]]
+    qs = [[f"{x['q']} → {x['a']}", date, quiz] for x in allq(s)]
     credits = json.load(open(f"{q}/img/credits.json")) if os.path.exists(f"{q}/img/credits.json") else {}
     used = sorted({v.split("file:")[1] for v in re.findall(r'"(file:[^"]+)"', json.dumps(s))})
     used = [n for n in used if n.lower().endswith(IMG_EXT) and n not in GENERATED and "/" not in n]
     sound = is_sound(s)
-    snds = sorted({q["audio"][5:] for L in s["levels"] for q in L["questions"] if "audio" in q})
+    snds = sorted({q["audio"][5:] for q in allq(s) if "audio" in q})
     scred = json.load(open(f"{q}/img/sons/credits.json")) if os.path.exists(f"{q}/img/sons/credits.json") else {}
     srows = []
     photos, folder_url = [], ""
