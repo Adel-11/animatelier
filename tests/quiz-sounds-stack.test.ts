@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, readFile, copyFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { compileQuiz } from "../packages/core/quiz";
@@ -11,6 +11,9 @@ import {
   soundAmplitudes,
 } from "../packages/headless/audio";
 import { quizVideo } from "../packages/headless/pipeline";
+import { decodeImage } from "../packages/headless/assets";
+import { rasterFrame } from "../packages/headless/frame";
+import sharp from "sharp";
 
 it("inserts a bounded listening phase with readable question and deterministic visualizer", () => {
   const spec = {
@@ -108,6 +111,131 @@ it("compiles a ten-row vertical stack with cumulative reveals", () => {
       (entry) => entry.id === "loop_fade_out",
     ),
   ).toBe(true);
+});
+
+it("uses final voice durations for stack keyframes and shifts sequence, think and outro", () => {
+  const spec = {
+    mode: "stack",
+    title: "Football",
+    loopFade: false,
+    background: {
+      images: ["file:bg1.png", "file:bg2.png"],
+      blur: 16,
+      dim: 0.5,
+      motion: "pingpong",
+      zoom: 1.12,
+    },
+    timing: { show: 0.7, think: 2, countdown: 1, reveal: 1, endHold: 1 },
+    layout: { question: { w: 0.7, h: 0.2, fontSize: 56 } },
+    sequence: [
+      {
+        after: "question_3",
+        id: "like_follow",
+        duration: 2.5,
+        say: "Like and follow",
+        elements: [
+          {
+            id: "cta",
+            type: "text",
+            text: "LIKE",
+            keyframes: {
+              opacity: [
+                { t: 0, v: 0 },
+                { t: 4, v: 1 },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+    items: Array.from({ length: 5 }, (_, i) => ({
+      q: "Which club has won the most Champions League titles?",
+      a: `Answer ${i}`,
+      ...(i === 0
+        ? {
+            elements: [
+              {
+                id: "late",
+                type: "rect",
+                keyframes: {
+                  opacity: [
+                    { t: 0, v: 0 },
+                    { t: 8, v: 1 },
+                  ],
+                },
+              },
+            ],
+          }
+        : {}),
+    })),
+  };
+  const built = compileQuiz(spec, undefined, {
+    voiceDurations: { question_1: 8, like_follow: 4, outro: 3 },
+  });
+  expect(built.project.scenes.map((scene) => scene.id)).toEqual([
+    "question_1",
+    "question_2",
+    "question_3",
+    "like_follow",
+    "question_4",
+    "question_5",
+    "outro",
+  ]);
+  expect(built.project.scenes[0].duration).toBeGreaterThan(8);
+  expect(built.project.scenes[3].duration).toBeGreaterThan(4);
+  expect(built.project.scenes.at(-1)!.duration).toBeGreaterThan(3);
+  expect(
+    built.timeline.questions[0].reveal - built.timeline.questions[0].readEnd,
+  ).toBeCloseTo(3);
+  expect(built.timeline.questions[3].start).toBeGreaterThan(
+    built.timeline.questions[2].end + 4,
+  );
+  const first = flattenElements(built.project.scenes[0].elements);
+  const question = first.find((element) => element.id === "question");
+  expect(question?.type).toBe("text");
+  if (question?.type === "text") {
+    expect(question.align).toBe("center");
+    expect(question.maxWidth).toBe(756);
+    expect(question.text.split("\n").length).toBeLessThanOrEqual(3);
+  }
+  const background = first.find((element) => element.id === "background_image");
+  expect(background?.type).toBe("image");
+  if (background?.type === "image")
+    expect(background.keyframes.zoom[1].v).toBe(1.12);
+  expect(
+    flattenElements(built.project.scenes.at(-1)!.elements).some(
+      (element) => element.id === "background_image",
+    ),
+  ).toBe(true);
+});
+
+it("rasterizes a blurred background image in the frame", async () => {
+  const bytes = await readFile(
+    path.join(process.cwd(), "examples/quiz-stack-bg-1.png"),
+  );
+  const asset = await decodeImage(bytes);
+  const built = compileQuiz({
+    mode: "stack",
+    theme: "default",
+    loopFade: false,
+    assets: { bg: asset },
+    items: Array.from({ length: 5 }, (_, i) => ({
+      a: `Answer ${i}`,
+      ...(i === 0
+        ? {
+            backgroundImage: "asset:bg",
+            layout: { background_dim: { visible: false } },
+          }
+        : {}),
+    })),
+  });
+  const frame = rasterFrame(built.project, 0.5);
+  const pixel = await sharp(frame.asPng())
+    .extract({ left: 20, top: 20, width: 1, height: 1 })
+    .raw()
+    .toBuffer();
+  expect([...pixel.subarray(0, 3)]).not.toEqual([242, 238, 229]);
+  expect(pixel[0] + pixel[1] + pixel[2]).toBeGreaterThan(30);
 });
 
 it("withholds per-question answers and schedules a final recap", () => {
@@ -218,12 +346,23 @@ it("renders a short stack video with a synchronized sound stem", async () => {
     await synthesizeSfx(path.join(dir, "tone.wav"), 1, [
       { type: "reveal", time: 0.1 },
     ]);
+    await copyFile(
+      path.join(process.cwd(), "examples/quiz-stack-bg-1.png"),
+      path.join(dir, "bg.png"),
+    );
     const out = path.join(dir, "out"),
       soundsOut = path.join(out, "sounds.wav");
     const spec = {
       mode: "stack",
       theme: "default",
       title: "Sons",
+      background: {
+        images: ["file:bg.png"],
+        blur: 16,
+        dim: 0.5,
+        motion: "in",
+        zoom: 1.12,
+      },
       timing: { show: 0.3, listen: 0.5, countdown: 0, reveal: 0.7, endHold: 1 },
       items: Array.from({ length: 5 }, (_, i) => ({
         a: `Réponse ${i + 1}`,

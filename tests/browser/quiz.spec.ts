@@ -235,3 +235,66 @@ test("un agent charge une liste verticale cumulative et inspecte son rendu", asy
     fullPage: true,
   });
 });
+
+test("une liste verticale affiche une longue question et une scène insérée", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !!window.animatelier);
+  const result = await page.evaluate(() => {
+    const api = window.animatelier;
+    const built = api.loadQuiz({
+      mode: "stack",
+      title: "FOOTBALL QUIZ",
+      theme: "default",
+      loopFade: false,
+      timing: { show: 0.7, think: 1.5, countdown: 1, reveal: 1, endHold: 2 },
+      sequence: [
+        {
+          after: "question_3",
+          id: "like_follow",
+          duration: 2.5,
+          elements: [
+            {
+              id: "cta",
+              type: "text",
+              text: "LIKE & FOLLOW",
+              x: 540,
+              y: 500,
+              align: "center",
+              fontSize: 65,
+            },
+          ],
+        },
+      ],
+      items: Array.from({ length: 5 }, (_, i) => ({
+        q: "Which club has won the most Champions League titles?",
+        a: `Answer ${i + 1}`,
+      })),
+    });
+    api.seek(0.5);
+    const svg = api.renderSvg(0.5);
+    return {
+      scenes: built.project.scenes.map((scene) => scene.id),
+      question: svg.includes("Which club has won"),
+      mystery: built.project.scenes[0].elements.some(
+        (element) => element.id === "mystery_icon",
+      ),
+    };
+  });
+  expect(result.scenes).toEqual([
+    "question_1",
+    "question_2",
+    "question_3",
+    "like_follow",
+    "question_4",
+    "question_5",
+    "outro",
+  ]);
+  expect(result.question).toBe(true);
+  expect(result.mystery).toBe(false);
+  await page.screenshot({
+    path: "test-results/quiz-stack-long-question.png",
+    fullPage: true,
+  });
+});

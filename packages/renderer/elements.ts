@@ -83,7 +83,7 @@ export function renderElement(
     const clipId = `clip-${e.id}-${(hash >>> 0).toString(16)}`;
     content = `<defs><clipPath id="${clipId}" clipPathUnits="userSpaceOnUse">${clipShape(e.clip)}</clipPath></defs><g clip-path="url(#${clipId})">${content}</g>`;
   }
-  if (e.blur)
+  if (e.blur && e.type !== "image")
     content = `<defs><filter id="blur-${e.id}" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="${e.blur}"/></filter></defs><g filter="url(#blur-${e.id})">${content}</g>`;
   if (e.id === selected)
     content += `<circle cx="${e.anchor.x}" cy="${e.anchor.y}" r="7" fill="none" stroke="#7051d8" stroke-width="2"/><path d="M${e.anchor.x - 11} ${e.anchor.y}h22M${e.anchor.x} ${e.anchor.y - 11}v22" stroke="#7051d8" stroke-width="1"/>`;

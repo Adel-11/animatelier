@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { newElement, type SceneElement } from "./elements";
+import { newElement, identifier, type SceneElement } from "./elements";
 import { parseProject } from "./schema";
 import { resolveTheme, themeInputSchema } from "./themes";
 import { wrapText } from "./text";
@@ -8,6 +8,25 @@ import type { CompileOptions, QuizEvent, VoiceSlot } from "./levels";
 const label = z.string().trim().min(1).max(240);
 const media = z.string().regex(/^(asset:[a-zA-Z0-9_-]+|file:[^\\:]+)$/);
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const extraElements = z
+  .array(
+    z
+      .object({
+        id: identifier,
+        type: z.enum([
+          "rect",
+          "text",
+          "image",
+          "ellipse",
+          "line",
+          "path",
+          "group",
+        ]),
+      })
+      .passthrough(),
+  )
+  .max(50)
+  .optional();
 const layout = z.record(
   z
     .object({
@@ -30,6 +49,16 @@ export const stackSchema = z
     theme: themeInputSchema.optional(),
     language: z.enum(["fr", "en"]).default("fr"),
     bannerColor: hex.default("#C51E2A"),
+    background: z
+      .object({
+        images: z.array(media).min(1).max(15),
+        blur: z.number().finite().min(0).max(50).default(16),
+        dim: z.number().finite().min(0).max(1).default(0.5),
+        motion: z.enum(["in", "out", "pingpong"]).default("pingpong"),
+        zoom: z.number().finite().min(1).max(2).default(1.12),
+      })
+      .strict()
+      .optional(),
     loopFade: z.boolean().default(true),
     layout: layout.optional(),
     listenVisual: z.enum(["bars", "wave", "pulse"]).default("bars"),
@@ -37,6 +66,7 @@ export const stackSchema = z
       .object({
         show: z.number().min(0.3).max(10).default(0.7),
         listen: z.number().min(0.5).max(30).default(2),
+        think: z.number().min(0).max(30).default(0),
         countdown: z.number().min(0).max(10).default(0.5),
         reveal: z.number().min(0.5).max(10).default(1.5),
         endHold: z.number().min(1).max(30).default(2),
@@ -69,6 +99,7 @@ export const stackSchema = z
             audio: media.optional(),
             audioStart: z.number().finite().min(0).max(3600).default(0),
             listen: z.number().finite().min(0.5).max(30).optional(),
+            think: z.number().finite().min(0).max(30).optional(),
             audioGain: z.number().finite().min(-24).max(24).default(0),
             replayOnReveal: z.boolean().default(false),
             audioDuringCountdown: z
@@ -77,30 +108,27 @@ export const stackSchema = z
             say: label.optional(),
             sayAnswer: label.optional(),
             layout: layout.optional(),
-            elements: z
-              .array(
-                z
-                  .object({
-                    id: z.string().min(1),
-                    type: z.enum([
-                      "rect",
-                      "text",
-                      "image",
-                      "ellipse",
-                      "line",
-                      "path",
-                      "group",
-                    ]),
-                  })
-                  .passthrough(),
-              )
-              .max(50)
-              .optional(),
+            elements: extraElements,
           })
           .strict(),
       )
       .min(5)
       .max(15),
+    sequence: z
+      .array(
+        z
+          .object({
+            after: z.string().min(1).max(100),
+            id: identifier,
+            duration: z.number().finite().min(1).max(120),
+            elements: extraElements,
+            say: label.optional(),
+            showList: z.boolean().default(true),
+          })
+          .strict(),
+      )
+      .max(40)
+      .optional(),
   })
   .strict()
   .superRefine((spec, ctx) => {
@@ -166,10 +194,18 @@ export function compileStack(
       const mapped = {
         ...data,
         ...(style.x === undefined ? {} : { x: style.x * width }),
-        ...(style.y === undefined ? {} : { y: style.y * safeBottom }),
-        ...(style.w === undefined ? {} : { w: style.w * width }),
-        ...(style.h === undefined ? {} : { h: style.h * safeBottom }),
-        ...(style.fontSize === undefined ? {} : { fontSize: style.fontSize }),
+        ...(style.y === undefined || type === "text"
+          ? {}
+          : { y: style.y * safeBottom }),
+        ...(style.w === undefined || type === "text"
+          ? {}
+          : { w: style.w * width }),
+        ...(style.h === undefined || type === "text"
+          ? {}
+          : { h: style.h * safeBottom }),
+        ...(style.fontSize === undefined || type === "text"
+          ? {}
+          : { fontSize: style.fontSize }),
         ...(style.color === undefined ? {} : { color: style.color }),
         ...(style.fill === undefined ? {} : { fill: style.fill }),
         ...(visible === false ? { opacity: 0 } : {}),
@@ -196,21 +232,31 @@ export function compileStack(
       color = theme.text,
       extra = {},
     ) => {
-      let fontSize = size,
+      const override = item?.layout?.[id] ?? s.layout?.[id];
+      const boxW = override?.w === undefined ? w : override.w * width;
+      const boxH = override?.h === undefined ? h : override.h * safeBottom;
+      const boxY = override?.y === undefined ? y : override.y * safeBottom;
+      let fontSize = override?.fontSize ?? size,
         lines = [value];
       for (; fontSize >= 18; fontSize -= 2) {
-        lines = wrapText(value, fontSize, w, theme.typography.family, true);
-        if (lines.length * fontSize * 1.2 <= h) break;
+        lines = wrapText(value, fontSize, boxW, theme.typography.family, true);
+        if (lines.length * fontSize * 1.2 <= boxH) break;
       }
       add("text", {
         id,
         x,
-        y: y + fontSize,
+        y:
+          boxY +
+          fontSize +
+          (id === "question"
+            ? Math.max(0, (boxH - lines.length * fontSize * 1.2) / 2)
+            : 0),
         text: lines.join("\n"),
         fontSize,
-        maxWidth: w,
+        maxWidth: boxW,
         color,
         bold: true,
+        ...(id === "question" ? { align: "center" } : {}),
         ...extra,
       });
     };
@@ -223,12 +269,37 @@ export function compileStack(
       h: number,
       extra = {},
     ) => add("image", { id, src, x, y, w, h, fit: "cover", ...extra });
-    if (item?.backgroundImage) {
-      image("background_image", item.backgroundImage, 0, 0, width, height, {
-        blur: 22,
+    const backgroundIndex = id.startsWith("question_")
+      ? Number(id.slice(9)) - 1
+      : Math.max(0, count - 1);
+    const backgroundImage =
+      item?.backgroundImage ??
+      (s.background &&
+        s.background.images[backgroundIndex % s.background.images.length]);
+    if (backgroundImage) {
+      const bg = s.background;
+      const index = id === "outro" ? s.items.length : backgroundIndex;
+      const motionIn =
+        bg?.motion === "in" || (bg?.motion === "pingpong" && index % 2 === 0);
+      image("background_image", backgroundImage, 0, 0, width, height, {
+        blur: bg?.blur ?? 22,
+        ...(bg
+          ? {
+              zoom: motionIn ? 1 : bg.zoom,
+              keyframes: {
+                zoom: [
+                  { t: 0, v: motionIn ? 1 : bg.zoom },
+                  {
+                    t: Math.max(0, duration - 1 / 30),
+                    v: motionIn ? bg.zoom : 1,
+                  },
+                ],
+              },
+            }
+          : {}),
       });
       rect("background_dim", 0, 0, width, height, theme.background, {
-        opacity: 0.72,
+        opacity: bg?.dim ?? 0.72,
         radius: 0,
       });
     }
@@ -245,14 +316,24 @@ export function compileStack(
       rect("image_placeholder", 135, 302, 810, 390, theme.panel, {
         radius: 25,
       });
-      txt("mystery_icon", "?", 470, 382, 140, 200, 165, theme.accent);
+      if (!item?.q)
+        txt("mystery_icon", "?", 470, 382, 140, 200, 165, theme.accent);
     }
     if (item?.revealImage)
       image("reveal_image", item.revealImage, 135, 302, 810, 390, {
         radius: 25,
         start: revealAt,
       });
-    if (item?.q) txt("question", item.q, 158, 620, 764, 67, 46);
+    if (item?.q)
+      txt(
+        "question",
+        item.q,
+        540,
+        item.image ? 610 : 365,
+        764,
+        item.image ? 120 : 275,
+        item.image ? 46 : 56,
+      );
     for (let i = 0; i < s.items.length; i++) {
       const y = listTop + i * rowH;
       rect(`row_${i + 1}`, 90, y, 900, rowH - 7, theme.panel, {
@@ -438,6 +519,51 @@ export function compileStack(
       elements,
     });
   }
+  const sceneIds = new Set(s.items.map((_, i) => `question_${i + 1}`));
+  const sequenceIds = new Set<string>();
+  for (const entry of s.sequence ?? []) {
+    if (
+      sceneIds.has(entry.id) ||
+      entry.id === "outro" ||
+      sequenceIds.has(entry.id)
+    )
+      throw new Error(`Duplicate custom scene id: ${entry.id}`);
+    if (entry.after !== "start" && !sceneIds.has(entry.after))
+      throw new Error(`Unknown sequence anchor: ${entry.after}`);
+    sequenceIds.add(entry.id);
+  }
+  function insertSequence(after: string, count: number) {
+    for (const entry of s.sequence?.filter(
+      (candidate) => candidate.after === after,
+    ) ?? []) {
+      const duration = frame(
+        Math.max(
+          entry.duration,
+          (options.voiceDurations?.[entry.id] ?? 0) + 0.3,
+        ),
+      );
+      makeScene(entry.id, duration, count, undefined);
+      const scene = scenes.at(-1) as { elements: SceneElement[] };
+      if (!entry.showList)
+        scene.elements = scene.elements.filter(
+          (element) =>
+            element.id === "background_image" ||
+            element.id === "background_dim",
+        );
+      for (const element of entry.elements ?? [])
+        scene.elements.push(newElement(element.type, duration, element));
+      events.push({ time: now, type: "custom", id: entry.id });
+      if (entry.say)
+        voiceScript.push({
+          id: entry.id,
+          start: now,
+          maxDuration: duration,
+          text: entry.say,
+        });
+      now = frame(now + duration);
+    }
+  }
+  insertSequence("start", 0);
   s.items.forEach((item, index) => {
     const id = `question_${index + 1}`,
       start = now;
@@ -469,9 +595,10 @@ export function compileStack(
             : options.voiceDurations[`${id}_answer`] + 0.3,
         ),
       );
-    const reveal = frame(read + listen + countdown),
+    const think = item.audio ? 0 : frame(item.think ?? s.timing.think),
+      reveal = frame(read + listen + think + countdown),
       duration = frame(reveal + answer);
-    const ticks = countdown ? [frame(start + read + listen)] : [];
+    const ticks = countdown ? [frame(start + read + listen + think)] : [];
     questions.push({
       id,
       start,
@@ -495,6 +622,7 @@ export function compileStack(
       ...(item.audio
         ? [{ time: frame(start + read), type: "listen", id }]
         : []),
+      ...(think ? [{ time: frame(start + read), type: "think", id }] : []),
       ...ticks.map((time) => ({ time, type: "tick", id })),
       { time: frame(start + reveal), type: "reveal", id },
     );
@@ -508,11 +636,15 @@ export function compileStack(
     });
     makeScene(id, duration, index, reveal, item, undefined, read);
     now = frame(now + duration);
+    insertSequence(id, index + 1);
   });
   const outroStart = now;
+  const outroDuration = frame(
+    Math.max(s.timing.endHold, (options.voiceDurations?.outro ?? 0) + 0.3),
+  );
   makeScene(
     "outro",
-    frame(s.timing.endHold),
+    outroDuration,
     s.items.length,
     undefined,
     undefined,
@@ -523,10 +655,10 @@ export function compileStack(
     voiceScript.push({
       id: "outro",
       start: outroStart,
-      maxDuration: s.timing.endHold,
+      maxDuration: outroDuration,
       text: s.end.say,
     });
-  now = frame(now + s.timing.endHold);
+  now = frame(now + outroDuration);
   const project = parseProject({
     schemaVersion: 2,
     id: "quiz_compiled",

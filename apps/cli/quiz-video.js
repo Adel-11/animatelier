@@ -43,14 +43,17 @@ try {
         required: {
           levels: "1..10 levels, each with 1..30 questions; max 60 total",
           question: "q + a OR choices[2..4] + correctIndex",
-          stack: "items[5..15] with a, optional q/image/backgroundImage/audio",
+          stack:
+            "items[5..15] with a, optional q/image/backgroundImage/audio/think",
         },
         optional: {
           preset: "qff-reel (levels), qff-stack (stack), or --preset file.json",
           theme: "name or object",
           format: "reel-9x16|post-4x5|landscape",
           timing:
-            "levels: read:auto|voice|seconds, listen:4, countdown:4, answer:2.4, levelCard:2.2, outro:7; stack: show/listen/countdown/reveal/endHold",
+            "levels: read:auto|voice|seconds, listen:4, countdown:4, answer:2.4, levelCard:2.2, outro:7; stack: show/listen/think/countdown/reveal/endHold",
+          background:
+            "stack: images[file:|asset:], blur, dim, motion:in|out|pingpong, zoom",
           voice:
             "offsets, min, pad, seed, answerTemplates, questionPrefixes, pronounce",
           music: "bpm, root MIDI pitch, progression semitone offsets",
@@ -63,7 +66,8 @@ try {
           type: "standard|true-false|odd-one-out|estimate",
           countdownStyle: "ring|bar|digits",
           layout: "element-id or prefix*, normalized x/y/w/h and style",
-          sequence: "{after,id,duration,elements,actors,say}[]",
+          sequence:
+            "levels: {after,id,duration,elements,actors,say}[]; stack: {after,id,duration,elements,say,showList}[]",
           presenter: "actor config",
           defaults: "root/level question defaults",
         },

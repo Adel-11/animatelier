@@ -37,5 +37,16 @@ export function imageSvg(
     vx = width * crop.x + (width * crop.w - viewWidth) * e.focusX,
     vy = height * crop.y + (height * crop.h - viewHeight) * e.focusY,
     radius = Math.min(e.radius, e.w / 2, e.h / 2);
+  if ((e.blur ?? 0) > 0 && e.pixelate === 0) {
+    // resvg does not rasterize a filter wrapped around a nested <svg> image.
+    // Apply it to the image primitive, inside the viewport clip instead.
+    const scale =
+      e.fit === "cover"
+        ? Math.max(e.w / viewWidth, e.h / viewHeight)
+        : Math.min(e.w / viewWidth, e.h / viewHeight);
+    const x = (e.w - viewWidth * scale) / 2 - vx * scale;
+    const y = (e.h - viewHeight * scale) / 2 - vy * scale;
+    return `<defs><clipPath id="image-clip-${e.id}"><rect width="${e.w}" height="${e.h}" rx="${radius}" ry="${radius}"/></clipPath><filter id="image-blur-${e.id}" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="${e.blur}"/></filter></defs><g clip-path="url(#image-clip-${e.id})"><image href="data:${asset.mime};base64,${asset.data}" x="${x}" y="${y}" width="${width * scale}" height="${height * scale}" filter="url(#image-blur-${e.id})"/></g>`;
+  }
   return `<defs><clipPath id="image-clip-${e.id}"><rect width="${e.w}" height="${e.h}" rx="${radius}" ry="${radius}"/></clipPath></defs><g clip-path="url(#image-clip-${e.id})"><svg width="${e.w}" height="${e.h}" viewBox="${vx} ${vy} ${viewWidth} ${viewHeight}" preserveAspectRatio="xMidYMid ${e.fit === "cover" ? "slice" : "meet"}">${content}</svg></g>`;
 }

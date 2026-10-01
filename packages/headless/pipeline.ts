@@ -20,6 +20,7 @@ import { compileQuiz } from "../core/quiz";
 import { resolveTheme } from "../core/themes";
 import { resolveProjectAssets, decodeImage, localAssetFile } from "./assets";
 import { flattenElements } from "../core/elements";
+import { decodeBase64 } from "../core/assets";
 import { rasterFrame } from "./frame";
 import { renderVideo } from "./video";
 import {
@@ -71,6 +72,46 @@ async function jsonFile(filename: string) {
   if ((await stat(filename)).size > 5_000_000)
     throw new Error("JSON supérieur à 5 Mo.");
   return JSON.parse(await readFile(filename, "utf8"));
+}
+/** Bake constant image blur once for the raster worker; retain the editable source project. */
+async function rasterProjectWithBakedBlur(project: Project): Promise<Project> {
+  const renderProject = structuredClone(project);
+  const cache = new Map<string, string>();
+  for (const scene of renderProject.scenes)
+    for (const element of flattenElements(scene.elements)) {
+      if (
+        element.type !== "image" ||
+        !element.blur ||
+        element.keyframes.blur?.length
+      )
+        continue;
+      const asset = renderProject.assets?.[element.src.slice(6)];
+      if (!asset || !element.src.startsWith("asset:")) continue;
+      const scale = Math.max(
+        element.w / (asset.width ?? element.w),
+        element.h / (asset.height ?? element.h),
+      );
+      const sigma = Math.max(0.3, element.blur / Math.max(0.01, scale));
+      const key = `${asset.sha256}:${sigma}`;
+      let id = cache.get(key);
+      if (!id) {
+        const input = sharp(decodeBase64(asset.data)).blur(sigma);
+        const output = await (
+          asset.mime === "image/jpeg"
+            ? input.jpeg({ quality: 90 })
+            : asset.mime === "image/webp"
+              ? input.webp({ quality: 90 })
+              : input.png()
+        ).toBuffer();
+        const baked = await decodeImage(output);
+        id = `image_${baked.sha256}`;
+        renderProject.assets = { ...renderProject.assets, [id]: baked };
+        cache.set(key, id);
+      }
+      element.src = `asset:${id}`;
+      element.blur = 0;
+    }
+  return renderProject;
 }
 export function previewTimes(
   value: string | undefined,
@@ -494,6 +535,9 @@ export async function quizVideo(
         : {}),
     };
   if (!options.out) throw new Error("--out requis pour le rendu.");
+  const renderProject = options.audioPreview
+    ? project
+    : await rasterProjectWithBakedBlur(project);
   const directory = path.resolve(options.out);
   await mkdir(directory, { recursive: true });
   const coverTarget = options.cover
@@ -552,7 +596,7 @@ export async function quizVideo(
       await writeFile(
         path.join(staging, "preview.jpg"),
         await makePreview(
-          project,
+          renderProject,
           times,
           options.previewScale,
           options.safeZones,
@@ -561,7 +605,7 @@ export async function quizVideo(
       for (let i = 0; i < stillTimes.length; i++)
         await writeFile(
           path.join(staging, stillNames[i]),
-          await framePng(project, stillTimes[i], options.crop),
+          await framePng(renderProject, stillTimes[i], options.crop),
         );
       for (const target of outputs) {
         await link(path.join(staging, path.basename(target)), target);
@@ -759,7 +803,7 @@ export async function quizVideo(
       };
     }
     const result = await renderVideo(
-      project,
+      renderProject,
       {
         out: silent,
         jobs: options.jobs,
@@ -841,12 +885,12 @@ export async function quizVideo(
             project.height,
             effectiveTheme.background,
           )
-        : await jpeg(project, coverAt),
+        : await jpeg(renderProject, coverAt),
     );
     await writeFile(
       path.join(staging, "preview.jpg"),
       await makePreview(
-        project,
+        renderProject,
         times,
         options.previewScale,
         options.safeZones,
@@ -855,7 +899,7 @@ export async function quizVideo(
     for (let i = 0; i < stillTimes.length; i++)
       await writeFile(
         path.join(staging, stillNames[i]),
-        await framePng(project, stillTimes[i], options.crop),
+        await framePng(renderProject, stillTimes[i], options.crop),
       );
     const sources = [
       video,

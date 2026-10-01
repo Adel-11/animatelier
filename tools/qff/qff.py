@@ -58,61 +58,33 @@ fs.writeFileSync(process.argv[3], JSON.stringify(voiceScript.map(({ id, text }) 
 
 # quiz liste (mode stack) : valeurs par defaut QFF, la spec peut tout surcharger
 STACK_DEFAULTS = {"preset": "qff-stack", "theme": "qff", "language": "en",
-                  "timing": {"show": 1, "listen": 3, "countdown": 3, "reveal": 1.5, "endHold": 6.5},
+                  "timing": {"show": 1, "listen": 3, "think": 0, "countdown": 3, "reveal": 1.5, "endHold": 6.5},
                   "end": {"text": "How many did you get?",
-                          "say": "How many did you get? Tell us in the comments, and follow for a new quiz every day!"},
-                  "layout": {"question": {"visible": False}, "mystery_icon": {"y": 0.235, "fontSize": 90}}}
+                          "say": "How many did you get? Tell us in the comments, and follow for a new quiz every day!"}}
 STACK_CTA_SAY = "Enjoying it? Hit like and follow!"
-
-
-def stack_bg(img, names):
-    """Fonds flous plein ecran (pre-floutes ici : le flou d'Animatelier ne s'affiche pas au rendu)."""
-    from PIL import Image, ImageFilter, ImageEnhance
-    out = []
-    for n in names:
-        dst = f"bg_{os.path.splitext(n)[0]}.jpg"
-        if not os.path.exists(f"{img}/{dst}"):
-            im = Image.open(f"{img}/{n}").convert("RGB")
-            W, H = 1242, 2208  # 1080x1920 + 15 % de marge pour le zoom
-            r = max(W / im.width, H / im.height)
-            im = im.resize((int(im.width * r) + 1, int(im.height * r) + 1), Image.LANCZOS)
-            l, t = (im.width - W) // 2, (im.height - H) // 2
-            im = im.crop((l, t, l + W, t + H)).filter(ImageFilter.GaussianBlur(16))
-            ImageEnhance.Brightness(im).enhance(0.5).save(f"{img}/{dst}", quality=88)
-        out.append(dst)
-    return out
 
 
 def stack_full(raw, img=None):
     m = json.loads(json.dumps(STACK_DEFAULTS))
     for k, v in raw.items():
         m[k] = {**m[k], **v} if isinstance(v, dict) and isinstance(m.get(k), dict) else v
-    bgs = stack_bg(img, raw.get("backgrounds", [])) if img and raw.get("backgrounds") else []
+    if raw.get("backgrounds") and "background" not in raw:
+        m["background"] = {"images": [f"file:{name}" for name in raw["backgrounds"]],
+                           "blur": 16, "dim": 0.5, "motion": "pingpong", "zoom": 1.12}
     for k in ("cover", "stinger", "noCta", "backgrounds"):
         m.pop(k, None)
-    for i, it in enumerate(m["items"]):
-        els = list(it.get("elements", []))
-        if bgs:  # fond flou qui zoome puis dezoome d'une question a l'autre
-            z = [1.0, 1.12] if i % 2 == 0 else [1.12, 1.0]
-            els.insert(0, {"id": "bg_photo", "type": "image", "src": f"file:{bgs[i % len(bgs)]}", "x": -81, "y": -144,
-                           "w": 1242, "h": 2208, "fit": "cover", "z": -5,
-                           "keyframes": {"scale": [{"t": 0, "v": z[0]}, {"t": 5, "v": z[1]}]}})
-        if it.get("q"):  # question sur plusieurs lignes, centree dans la carte
-            els.append({"id": "q_text", "type": "text", "text": it["q"], "x": 540, "y": 500, "fontSize": 56,
-                        "maxWidth": 760, "color": "#FFFFFF", "bold": True, "align": "center"})
-        if els:
-            it["elements"] = els
-    if len(m["items"]) > 4 and not raw.get("noCta"):  # appel like & follow au debut de la 4e question
-        it = m["items"][3]
-        it["say"] = STACK_CTA_SAY + " " + (it.get("say") or it.get("q") or "")
-        fade = {"opacity": [{"t": 0, "v": 1}, {"t": 2.3, "v": 1}, {"t": 2.55, "v": 0}]}
-        it.setdefault("elements", []).extend([
-            {"id": "cta_panel", "type": "rect", "x": 135, "y": 302, "w": 810, "h": 390, "fill": "#0F3678", "radius": 25, "keyframes": fade},
-            {"id": "cta_heart", "type": "image", "src": "file:heart.png", "x": 460, "y": 318, "w": 160, "h": 160, "fit": "contain", "keyframes": fade},
-            {"id": "cta_text", "type": "text", "text": "LIKE & FOLLOW", "x": 540, "y": 560, "fontSize": 72, "maxWidth": 760,
-             "color": "#FECD1B", "bold": True, "align": "center", "keyframes": fade},
-            {"id": "cta_handle", "type": "text", "text": "@quiz.factory.forever", "x": 540, "y": 640, "fontSize": 40, "maxWidth": 760,
-             "color": "#FFFFFF", "bold": True, "align": "center", "keyframes": fade}])
+    if len(m["items"]) > 4 and not raw.get("noCta") and not any(
+            x.get("after") == "question_3" for x in m.get("sequence", [])):
+        m.setdefault("sequence", []).append({
+            "after": "question_3", "id": "cta_like", "duration": 2.5, "showList": True,
+            "say": STACK_CTA_SAY,
+            "elements": [
+                {"id": "cta_panel", "type": "rect", "x": 135, "y": 302, "w": 810, "h": 390, "fill": "#0F3678", "radius": 25},
+                {"id": "cta_heart", "type": "image", "src": "file:heart.png", "x": 460, "y": 318, "w": 160, "h": 160, "fit": "contain"},
+                {"id": "cta_text", "type": "text", "text": "LIKE & FOLLOW", "x": 540, "y": 560, "fontSize": 72,
+                 "maxWidth": 760, "color": "#FECD1B", "bold": True, "align": "center"},
+                {"id": "cta_handle", "type": "text", "text": "@quiz.factory.forever", "x": 540, "y": 640, "fontSize": 40,
+                 "maxWidth": 760, "color": "#FFFFFF", "bold": True, "align": "center"}]})
     return m
 
 

@@ -1,3 +1,11 @@
+# Point de reprise, 30 septembre 2026 — quiz liste avec fonds animés
+
+Le mode `stack` gère maintenant les fonds tournants floutés avec zoom `in`/`out`/`pingpong`, y compris sur l'outro. Le rendu SVG des images floues est corrigé ; la CLI prépare une copie raster avec flou pré-calculé pour la vidéo, tout en exportant le projet v2 éditable. Questions longues dans la carte avec surcharges de mise en page, temps `think` sans audio, scènes `sequence` après une question avec liste optionnelle et validation des keyframes sur les durées calculées avec les voix. `tools/qff/qff.py` utilise ces fonctions au lieu des éléments temporaires et du pré-flou manuel. Démo autonome : `examples/quiz-stack-bg.spec.json`, quatre fonds synthétiques originaux générés localement, dix questions et une scène like & follow.
+
+Vérifications : `npm test -- --maxWorkers=1` 80/80, `npm run build` réussi, parcours Chrome ciblé réussi, aperçu PNG headless inspecté, vidéo courte de 7 s générée et deux images décodées du MP4 inspectées, test vidéo avec fond flou et son validé. `examples/quiz-stack.spec.json --check` réussi. Le brouillon MP4 signale un edit list `elst` ; la vidéo complète de l'exemple de 65,5 s et un déploiement Netlify ne sont pas vérifiés. Quota consulté après le lot : 78 % restants sur cinq heures, 70 % sur la semaine ; aucun crédit de réinitialisation utilisé.
+
+---
+
 # Point de reprise technique, 25 septembre 2026 — sons et liste verticale de quiz
 
 Le compilateur `levels` accepte des questions avec `audio`, `audioStart`, `listen`, `audioGain`, `revealImage`, `replayOnReveal` et `audioDuringCountdown`. La phase d'écoute précède le compte à rebours ; le texte de question reste net. Les éléments `listen_*` et le calendrier exporté sont déterministes ; en CLI, les barres suivent les amplitudes réellement décodées. Les fichiers audio sont contrôlés dans `--assets-dir` et les alias `audioAssets` sont locaux. `--sounds-out` écrit un WAV stéréo 48 kHz aligné, également mixé au MP4 ; `--check` rapporte durée/loudness/crête. `--audio-preview` crée un MP3 sans rasterisation ; `--safe-zones` marque uniquement la planche d'aperçu. `revealMode:"end"` crée les récapitulatifs `recap_N` avant l'outro et déplace les voix de réponse ; `intro.logoSeconds:0` est accepté.

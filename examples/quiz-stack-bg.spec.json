@@ -1,0 +1,111 @@
+{
+  "mode": "stack",
+  "preset": "qff-stack",
+  "title": "FOOTBALL QUIZ",
+  "language": "en",
+  "theme": "qff",
+  "loopFade": false,
+  "background": {
+    "images": [
+      "file:quiz-stack-bg-1.png",
+      "file:quiz-stack-bg-2.png",
+      "file:quiz-stack-bg-3.png",
+      "file:quiz-stack-bg-4.png"
+    ],
+    "blur": 16,
+    "dim": 0.5,
+    "motion": "pingpong",
+    "zoom": 1.12
+  },
+  "timing": {
+    "show": 1,
+    "think": 1.5,
+    "countdown": 2,
+    "reveal": 1.5,
+    "endHold": 3
+  },
+  "end": { "text": "How many did you get?" },
+  "sequence": [
+    {
+      "after": "question_3",
+      "id": "like_follow",
+      "duration": 2.5,
+      "showList": true,
+      "say": "Like and follow for more football quizzes!",
+      "elements": [
+        {
+          "id": "cta_panel",
+          "type": "rect",
+          "x": 135,
+          "y": 302,
+          "w": 810,
+          "h": 390,
+          "fill": "#173665",
+          "radius": 25
+        },
+        {
+          "id": "cta_heart",
+          "type": "text",
+          "text": "♥",
+          "x": 540,
+          "y": 455,
+          "fontSize": 125,
+          "maxWidth": 500,
+          "align": "center",
+          "color": "#FECD1B"
+        },
+        {
+          "id": "cta_text",
+          "type": "text",
+          "text": "LIKE & FOLLOW",
+          "x": 540,
+          "y": 575,
+          "fontSize": 65,
+          "maxWidth": 760,
+          "align": "center",
+          "bold": true,
+          "color": "#FFFFFF"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "q": "Which club has won the most Champions League titles?",
+      "a": "Real Madrid"
+    },
+    {
+      "q": "Which country won the first men's World Cup in 1930?",
+      "a": "Uruguay"
+    },
+    {
+      "q": "Who holds the record for the most World Cup goals?",
+      "a": "Miroslav Klose"
+    },
+    {
+      "q": "Which player is widely known by the nickname King Pelé?",
+      "a": "Pelé"
+    },
+    {
+      "q": "Which nation won the women's World Cup in 2019?",
+      "a": "United States"
+    },
+    {
+      "q": "Which team plays its home matches at Anfield stadium?",
+      "a": "Liverpool"
+    },
+    {
+      "q": "Who scored the winning goal in the 2014 World Cup final?",
+      "a": "Mario Götze"
+    },
+    { "q": "Which country hosted the men's World Cup in 2022?", "a": "Qatar" },
+    {
+      "q": "Which Italian club plays its home games at San Siro?",
+      "a": "AC Milan"
+    },
+    {
+      "q": "Which player has won the most men's Ballon d'Or awards?",
+      "a": "Lionel Messi"
+    }
+  ]
+}
