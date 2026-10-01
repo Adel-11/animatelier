@@ -58,7 +58,10 @@ fs.writeFileSync(process.argv[3], JSON.stringify(voiceScript.map(({ id, text }) 
 
 # quiz liste (mode stack) : valeurs par defaut QFF, la spec peut tout surcharger
 STACK_DEFAULTS = {"preset": "qff-stack", "theme": "qff", "language": "en",
-                  "timing": {"show": 1, "listen": 3, "think": 0, "countdown": 3, "reveal": 1.5, "endHold": 6.5},
+                  "timing": {"show": 1, "listen": 3, "think": 0, "countdown": 2, "reveal": 1.5, "endHold": 6.5},
+                  # bandeau raccourci pour que le logo QFF soit visible a sa droite (il etait cache par la carte)
+                  "layout": {"title_banner": {"w": 0.78}, "title": {"w": 0.72},
+                             "brand_logo": {"x": 0.845, "y": 0.071, "w": 0.13, "h": 0.088}},
                   "end": {"text": "How many did you get?",
                           "say": "How many did you get? Tell us in the comments, and follow for a new quiz every day!"}}
 STACK_CTA_SAY = "Enjoying it? Hit like and follow!"
@@ -86,6 +89,33 @@ def stack_full(raw, img=None):
                 {"id": "cta_handle", "type": "text", "text": "@quiz.factory.forever", "x": 540, "y": 640, "fontSize": 40,
                  "maxWidth": 760, "color": "#FFFFFF", "bold": True, "align": "center"}]})
     return m
+
+
+def stack_timer(full, clips):
+    """Petit minuteur en haut de la carte pendant le temps de reflexion (calcule sur la duree reelle des voix)."""
+    import soundfile as sf
+    tm = full["timing"]
+    cd = tm.get("countdown", 0)
+    if cd < 1:
+        return full
+    d = lambda k: sf.info(f"{clips}/{k}.wav").duration if os.path.exists(f"{clips}/{k}.wav") else 0
+    fr = lambda x: round(x * 30) / 30
+    for i, it in enumerate(full["items"]):
+        if it.get("audio"):
+            continue
+        t0 = fr(max(tm["show"], d(f"question_{i + 1}") + 0.3) + it.get("think", tm.get("think", 0)))
+        vis = {"opacity": [{"t": 0, "v": 0}, {"t": max(0, t0 - 0.01), "v": 0}, {"t": t0, "v": 1},
+                           {"t": t0 + cd - 0.04, "v": 1}, {"t": t0 + cd, "v": 0}]}
+        els = [{"id": "timer_bg", "type": "rect", "x": 500, "y": 320, "w": 80, "h": 80, "radius": 40,
+                "fill": "#FECD1B", "keyframes": vis}]
+        for k in range(int(cd)):
+            a, b = t0 + k, t0 + k + 1 - 0.04
+            els.append({"id": f"timer_{k}", "type": "text", "text": str(int(cd) - k), "x": 540, "y": 378,
+                        "fontSize": 50, "color": "#0B1E4A", "bold": True, "align": "center",
+                        "keyframes": {"opacity": [{"t": 0, "v": 0}, {"t": max(0, a - 0.01), "v": 0}, {"t": a, "v": 1},
+                                                  {"t": b, "v": 1}, {"t": b + 0.02, "v": 0}]}})
+        it.setdefault("elements", []).extend(els)
+    return full
 
 
 VOICE_SCRIPT_MJS = r'''import { register } from "tsx/esm/api";
@@ -600,10 +630,18 @@ def build(spec_path, slot):
         w, sr = k.create(s["text"], voice=voice, speed=1.05, lang="en-gb" if voice[0] == "b" else "en-us")
         w, _ = librosa.effects.trim(w, top_db=38)
         sf.write(f"{clips}/{s['id']}.wav", librosa.resample(w, orig_sr=sr, target_sr=48000), 48000)
+    if raw.get("mode") == "stack":
+        json.dump(stack_timer(json.load(open(full)), clips), open(full, "w"))
     shutil.rmtree(out, ignore_errors=True)
     jobs = max(1, os.cpu_count() or 2)
     sfx = f"{q}/sfx.json" if os.path.exists(f"{q}/sfx.json") else "default"  # ex. {"tick": null}
-    r = sh(f"cd {REPO} && node apps/cli/quiz-video.js {full} --assets-dir {img} --voice-clips {clips} --sfx {sfx} "
+    vopt = f"--voice-clips {clips}"
+    if raw.get("mode") == "stack":  # durees passees d'emblee : les elements d'item (minuteur) sont valides avec les vraies durees
+        import soundfile as sf
+        json.dump({os.path.basename(f)[:-4]: round(sf.info(f).duration, 3) for f in glob.glob(f"{clips}/*.wav")},
+                  open(f"{q}/voice-durations.json", "w"))
+        vopt = f"--voice-durations {q}/voice-durations.json"
+    r = sh(f"cd {REPO} && node apps/cli/quiz-video.js {full} --assets-dir {img} {vopt} --sfx {sfx} "
            f"--preview auto --preview-scale 0.3 --jobs {jobs} --out {out}" + (f" --sounds-out {out}/sounds.wav" if '"audio"' in open(full).read() else ""))
     res = json.loads(r.strip().splitlines()[-1])
     # musique : alternance dans le dossier Drive Musiques
@@ -721,6 +759,10 @@ def log(spec_path, topic="", reel=""):
 
 RULES = """
 - 15 questions, 3 niveaux ROOKIE / MASTER / GOAT de 5, grand public meme au niveau GOAT, reponses verifiees.
+- VERIFIER LES FAITS RECENTS : toute question sur un record, un palmares, un titre, un « le plus... », un « dernier... »
+  ou un evenement des 3 dernieres annees doit etre verifiee par une recherche web (WebSearch / WebFetch) AVANT
+  publication, car ta memoire peut etre perimee (ex. l'Espagne a gagne la Coupe du monde 2026 : 2 titres ; Mbappe
+  est devenu le meilleur buteur de l'histoire de la Coupe du monde en 2026). En cas de doute non leve, change de question.
 - Anglais. Pas de question qui donne l'indice. Varier les formulations. Environ 1/3 de QCM (a + wrong:[3]).
 - Nombres en toutes lettres dans aSay si la reponse est un nombre. Prononciations difficiles : voice.pronounce.
 - Countdown : timing.countdown = 2 si la majorite des questions ont une image, sinon 3 (defaut du preset).
