@@ -173,6 +173,8 @@ Non livré dans ce lot : décodage d'un fichier vidéo comme arrière-plan anim�
 Chaque item contient :
 - `choices` : 3 à 6 choix. Un choix peut être un texte court, des emojis seuls ou une image `file:`/`asset:` (affichée en rond).
 - l'intrus : `correctIndex`, ou `a` égal à l'un des choix.
+
+Les choix sont mélangés par défaut (`shuffle: true`), de façon reproductible : même spec et même `seed`, même ordre. L'intrus change donc de place d'une question à l'autre. `shuffle: false` garde l'ordre écrit.
 - `explanation` (facultatif) : le texte écrit à la révélation.
 - `q` (facultatif) : une consigne affichée sous le titre.
 - `say`, `sayAnswer`, `think` (facultatifs).

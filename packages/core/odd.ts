@@ -48,6 +48,9 @@ export const oddSchema = z
     language: z.enum(["fr", "en"]).default("fr"),
     bannerColor: hex.default("#C51E2A"),
     oddColor: hex.default("#FF3B5C"),
+    // Mélange déterministe des choix : l'intrus ne tombe pas toujours au même endroit du cercle.
+    shuffle: z.boolean().default(true),
+    seed: z.number().int().min(0).max(1_000_000).default(0),
     background: z
       .object({
         images: z.array(media).min(1).max(15),
@@ -124,7 +127,8 @@ export const oddSchema = z
   .strict();
 
 export function compileOdd(input: unknown, baseTheme?: unknown, options: CompileOptions = {}) {
-  const s = oddSchema.parse(input);
+  const parsed = oddSchema.parse(input);
+  const s = parsed.shuffle ? { ...parsed, items: parsed.items.map((item, i) => shuffleItem(item, parsed.seed, i)) } : parsed;
   const theme = resolveTheme(
     typeof s.theme === "object" ? s.theme : (baseTheme ?? s.theme ?? (s.preset ? "qff" : "default")),
     baseTheme,
@@ -574,4 +578,20 @@ export function compileOdd(input: unknown, baseTheme?: unknown, options: Compile
     },
     voiceScript,
   };
+}
+
+/** Permutation pseudo-aléatoire reproductible (même spec, même rendu) ; l'intrus change de place d'une question à l'autre. */
+function shuffleItem<T extends { choices: string[]; correctIndex?: number; a?: string }>(item: T, seed: number, index: number): T {
+  const odd = item.correctIndex ?? item.choices.indexOf(item.a!);
+  let state = (Math.imul(seed + 1, 2654435761) ^ Math.imul(index + 7, 40503)) >>> 0;
+  const next = () => {
+    state = (Math.imul(state ^ (state >>> 15), 2246822519) + 0x9e3779b9) >>> 0;
+    return state / 4294967296;
+  };
+  const order = item.choices.map((_, k) => k);
+  for (let k = order.length - 1; k > 0; k--) {
+    const j = Math.floor(next() * (k + 1));
+    [order[k], order[j]] = [order[j], order[k]];
+  }
+  return { ...item, choices: order.map((k) => item.choices[k]), correctIndex: order.indexOf(odd) };
 }

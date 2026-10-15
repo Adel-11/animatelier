@@ -74,6 +74,8 @@ LIST_MODES = ("stack", "odd")
 
 def stack_full(raw, img=None):
     m = json.loads(json.dumps(ODD_DEFAULTS if raw.get("mode") == "odd" else STACK_DEFAULTS))
+    if raw.get("mode") == "odd":  # ordre des choix melange differemment chaque jour (l'intrus change de place)
+        m["seed"] = today().toordinal() % 1000000
     for k, v in raw.items():
         m[k] = {**m[k], **v} if isinstance(v, dict) and isinstance(m.get(k), dict) else v
     if raw.get("backgrounds") and "background" not in raw:
@@ -162,7 +164,8 @@ FOLDERS = {"photos": "1CsNoj2JJVOmoHYjzkSivZmBDLvT7k-T4", "tools": "1XLpyqA5pumJ
 MUSIC_OK = ["joyeux.mp3", "action-rock.mp3", "detente-lofi.mp3", "suspense.mp3"]  # sans Content ID signale
 TABS = ("Plannification quiz", "Questions posées", "Photos utilisées")
 SHEET_SONS = "10vdd1Mdgepypyiv_YkhRPVOHJssTehZq9VCCsExG9Aw"
-TABS_SONS = ("Plannification quiz sons", "Sons utilisés")
+# Sheet du matin : ancien quiz sons, devenu emoji et intrus le 15 octobre 2026 (onglet "Sons utilises" garde l'historique)
+TABS_SONS = ("Plannification emoji et intrus", "Sons utilisés")
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp")
 GENERATED = {"qff-logo.png", "listen.png", "speaker_l.png", "speaker_r.png", "heart.png"}
 CTA = {"after": "question_3", "id": "cta_like", "duration": 2.5,
@@ -389,7 +392,7 @@ def setup():
 
 
 def state(kind=""):
-    snd = kind == "sons"
+    snd = kind in ("sons", "matin")  # matin = Sheet emoji et intrus (7h)
     plan = rng(TABS_SONS[0], "A2:G") if snd else rng(TABS[0], "A2:G")
     r = g("sheets", f"spreadsheets/{SHEET_SONS if snd else SHEET}/values:batchGet?ranges={plan}")
     r2 = g("sheets", f"spreadsheets/{SHEET}/values:batchGet?ranges={rng(TABS[1], 'A2:C')}&ranges={rng(TABS[2], 'A2:E')}")
@@ -418,7 +421,7 @@ def state(kind=""):
     print(f"A faire ({len(todo)}): " + "; ".join(todo))
     print("Deja faits: " + "; ".join(done))
     print("Quiz deja publies: " + "; ".join(sorted({q[2] for q in st['questions']})))
-    if snd:
+    if kind == "sons":
         print("Sons deja utilises: " + "; ".join(sorted({x[1] for x in st["sons"]})))
     print(f"{len(st['questions'])} questions deja posees, {len(st['photos'])} photos connues (doublons verifies par check)")
 
@@ -701,6 +704,8 @@ def log(spec_path, topic="", reel=""):
     s = json.load(open(spec_path))
     quiz = s.get("title", "Quiz")
     date = str(today())
+    morning = topic.startswith("matin:")  # sujet du Sheet emoji et intrus (routine 7h)
+    topic = topic[6:].strip() if morning else topic
     qs = [[f"{x['q']} → {x['a']}", date, quiz] for x in allq(s)]
     credits = json.load(open(f"{q}/img/credits.json")) if os.path.exists(f"{q}/img/credits.json") else {}
     used = sorted({v.split("file:")[1] for v in re.findall(r'"(file:[^"]+)"', json.dumps(s))})
@@ -745,13 +750,13 @@ def log(spec_path, topic="", reel=""):
     if photos:
         data.append({"range": f"'{TABS[2]}'!A{npho}:E{npho + len(photos) - 1}", "values": photos})
     marked = False
-    if topic and not sound:
+    if topic and not sound and not morning:
         for i, row in enumerate(cols[0]):
             if row and row[0].strip().lower() == topic.strip().lower():
                 data.append({"range": f"'{TABS[0]}'!C{i + 1}:E{i + 1}", "values": [[True, date, folder_url]]})
                 marked = True
     g("sheets", f"spreadsheets/{SHEET}/values:batchUpdate", body={"valueInputOption": "USER_ENTERED", "data": data})
-    if sound:
+    if sound or morning:
         r = g("sheets", f"spreadsheets/{SHEET_SONS}/values:batchGet?ranges={rng(TABS_SONS[0], 'A:A')}&ranges={rng(TABS_SONS[1], 'A:A')}")
         c0, c1 = [x.get("values", []) for x in r["valueRanges"]]
         d2 = []

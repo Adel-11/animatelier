@@ -7,6 +7,7 @@ import { elementStates } from "../packages/core/element-state";
 const odd = {
   mode: "odd",
   language: "en",
+  shuffle: false,
   background: { images: ["file:bg.jpg"] },
   timing: { show: 1, countdown: 3, reveal: 2.5 },
   items: [
@@ -63,4 +64,18 @@ it("draws emoji-only stack questions as images", () => {
   const srcs = flattenElements(out.project.scenes[0].elements).flatMap((e) => (e.type === "image" ? [e.src] : []));
   expect(srcs).toEqual(expect.arrayContaining(["file:emoji/emoji_u1f6a2.png", "file:emoji/emoji_u1f494.png"]));
   expect(flattenElements(out.project.scenes[0].elements).some((e) => e.id === "question")).toBe(false);
+});
+
+it("shuffles choices so the odd one moves around the circle", () => {
+  const items = Array.from({ length: 8 }, () => ({ choices: ["A", "B", "C", "D"], correctIndex: 2 }));
+  const out = compileQuiz({ mode: "odd", items });
+  const slots = out.project.scenes
+    .filter((s) => s.id.startsWith("question_"))
+    .map((s) => flattenElements(s.elements).find((e) => /^choice_\d+_odd$/.test(e.id))!.id);
+  expect(new Set(slots).size).toBeGreaterThan(2);
+  // Deterministic: same spec, same order.
+  const again = compileQuiz({ mode: "odd", items });
+  expect(JSON.stringify(again.project.scenes.map((s) => s.elements.length))).toBe(
+    JSON.stringify(out.project.scenes.map((s) => s.elements.length)),
+  );
 });
