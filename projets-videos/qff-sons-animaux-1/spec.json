@@ -1,0 +1,382 @@
+{
+ "mode": "levels",
+ "preset": "qff-reel",
+ "title": "Sound quiz: animals",
+ "format": "reel-9x16",
+ "language": "en",
+ "intro": {
+  "logoSeconds": 0,
+  "title": "SOUND QUIZ",
+  "subtitle": "15 ANIMALS TO GUESS",
+  "tagline": "Rookie or GOAT?",
+  "say": "Can you recognize these fifteen animals, just by their sound?",
+  "elements": [
+   {
+    "id": "cover_logo_big",
+    "type": "image",
+    "src": "file:qff-logo.png",
+    "x": 340,
+    "y": 400,
+    "w": 400,
+    "h": 400,
+    "radius": 48
+   },
+   {
+    "id": "cover_spk_l",
+    "type": "image",
+    "src": "file:speaker_l.png",
+    "x": 20,
+    "y": 450,
+    "w": 300,
+    "h": 300
+   },
+   {
+    "id": "cover_spk_r",
+    "type": "image",
+    "src": "file:speaker_r.png",
+    "x": 760,
+    "y": 450,
+    "w": 300,
+    "h": 300
+   },
+   {
+    "id": "cover_lion",
+    "type": "image",
+    "src": "file:lion.jpg",
+    "fit": "cover",
+    "x": 150,
+    "y": 1060,
+    "w": 230,
+    "h": 230,
+    "radius": 115
+   },
+   {
+    "id": "cover_owl",
+    "type": "image",
+    "src": "file:owl.jpg",
+    "fit": "cover",
+    "x": 425,
+    "y": 1060,
+    "w": 230,
+    "h": 230,
+    "radius": 115
+   },
+   {
+    "id": "cover_dolphin",
+    "type": "image",
+    "src": "file:dolphin.jpg",
+    "fit": "cover",
+    "x": 700,
+    "y": 1060,
+    "w": 230,
+    "h": 230,
+    "radius": 115
+   }
+  ],
+  "layout": {
+   "brand_logo": {
+    "visible": false
+   },
+   "badge_*": {
+    "visible": false
+   },
+   "intro_title": {
+    "y": 0.1,
+    "fontSize": 140
+   },
+   "intro_subtitle": {
+    "y": 0.555,
+    "fontSize": 58
+   },
+   "intro_tagline": {
+    "y": 0.845,
+    "fontSize": 64
+   }
+  }
+ },
+ "questionEffect": "none",
+ "imageLayout": "hero",
+ "listenVisual": "bars",
+ "voice": {
+  "seed": 11,
+  "offsets": {
+   "intro": 2.7
+  }
+ },
+ "levels": [
+  {
+   "name": "ROOKIE",
+   "subtitle": "Warm-up time",
+   "say": "Level one. Rookie.",
+   "questions": [
+    {
+     "q": "Which animal makes this sound?",
+     "a": "Lion",
+     "aSay": "a lion",
+     "audio": "file:loop/lion.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:lion.jpg"
+    },
+    {
+     "q": "Who is making this noise?",
+     "a": "Elephant",
+     "aSay": "an elephant",
+     "audio": "file:loop/elephant.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:elephant.jpg"
+    },
+    {
+     "q": "Who is calling in the night?",
+     "a": "Wolf",
+     "aSay": "a wolf",
+     "audio": "file:loop/wolf.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:wolf.jpg"
+    },
+    {
+     "q": "Which animal is this?",
+     "a": "Chimpanzee",
+     "aSay": "a chimpanzee",
+     "audio": "file:loop/chimp.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:chimp.jpg",
+     "wrong": [
+      "Gorilla",
+      "Baboon",
+      "Orangutan"
+     ]
+    },
+    {
+     "q": "Who is laughing?",
+     "a": "Hyena",
+     "aSay": "a hyena",
+     "audio": "file:loop/hyena.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:hyena.jpg"
+    }
+   ]
+  },
+  {
+   "name": "MASTER",
+   "subtitle": "It gets serious",
+   "say": "Level two. Master.",
+   "questions": [
+    {
+     "q": "Which bird is this?",
+     "a": "Owl",
+     "aSay": "an owl",
+     "audio": "file:loop/owl.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:owl.jpg",
+     "wrong": [
+      "Pigeon",
+      "Crow",
+      "Eagle"
+     ]
+    },
+    {
+     "q": "Tricky one. Which bird is this?",
+     "a": "Peacock",
+     "aSay": "a peacock",
+     "audio": "file:loop/peacock.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:peacock.jpg",
+     "wrong": [
+      "Turkey",
+      "Goose",
+      "Eagle"
+     ]
+    },
+    {
+     "q": "Careful! What makes this sound?",
+     "a": "Rattlesnake",
+     "aSay": "a rattlesnake",
+     "audio": "file:loop/rattlesnake.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:rattlesnake.jpg"
+    },
+    {
+     "q": "Who sings this song?",
+     "a": "Humpback whale",
+     "aSay": "a humpback whale",
+     "audio": "file:loop/whale.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:whale.jpg"
+    },
+    {
+     "q": "Which animal is this?",
+     "a": "Dolphin",
+     "aSay": "a dolphin",
+     "audio": "file:loop/dolphin.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:dolphin.jpg",
+     "sayAnswer": "Most people say whale, but it's a dolphin! Each dolphin has its own whistle, like a name.",
+     "explanation": "Not a whale! Each dolphin has its own signature whistle, like a name."
+    }
+   ]
+  },
+  {
+   "name": "GOAT",
+   "subtitle": "Only legends survive",
+   "say": "Level three. Goat!",
+   "questions": [
+    {
+     "q": "Which animal makes this call?",
+     "a": "Elk",
+     "aSay": "an elk",
+     "audio": "file:loop/elk.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:elk.jpg",
+     "wrong": [
+      "Moose",
+      "Horse",
+      "Eagle"
+     ]
+    },
+    {
+     "q": "What is making this sound?",
+     "a": "Alligator",
+     "aSay": "an alligator",
+     "audio": "file:loop/alligator.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:alligator.jpg"
+    },
+    {
+     "q": "Which bird is this?",
+     "a": "Common loon",
+     "aSay": "a loon",
+     "audio": "file:loop/loon.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:loon.jpg",
+     "wrong": [
+      "Owl",
+      "Goose",
+      "Seagull"
+     ]
+    },
+    {
+     "q": "Which animal is this?",
+     "a": "Howler monkey",
+     "aSay": "a howler monkey",
+     "audio": "file:loop/howler.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:howler.jpg"
+    },
+    {
+     "q": "Last one! Which animal is this?",
+     "a": "Kookaburra",
+     "aSay": "a kookaburra",
+     "audio": "file:loop/kookaburra.wav",
+     "image": "file:listen.png",
+     "answerImage": "file:kookaburra.jpg",
+     "wrong": [
+      "Monkey",
+      "Parrot",
+      "Toucan"
+     ],
+     "sayAnswer": "Sounds like a monkey, right? It's a kookaburra, an Australian bird. Old jungle movies used its laugh!",
+     "explanation": "Not a monkey! Old jungle movies used this Australian bird's laugh."
+    }
+   ]
+  }
+ ],
+ "timing": {
+  "countdown": 1,
+  "listen": 4
+ },
+ "theme": {
+  "extends": "qff",
+  "panel": "#0B4F9C",
+  "track": "#1C6FC4",
+  "muted": "#D6ECFF",
+  "backdrop": {
+   "type": "linear",
+   "color": "#1E88E5",
+   "color2": "#64C3F7",
+   "angle": 160
+  }
+ },
+ "sequence": [
+  {
+   "after": "question_3",
+   "id": "cta_like",
+   "duration": 2.5,
+   "say": "Quick favor! Tap like, and follow the page. Now, let's keep going!",
+   "elements": [
+    {
+     "id": "cta_heart",
+     "type": "image",
+     "src": "file:heart.png",
+     "x": 390,
+     "y": 520,
+     "w": 300,
+     "h": 300,
+     "keyframes": {
+      "scale": [
+       {
+        "t": 0,
+        "v": 0.6
+       },
+       {
+        "t": 0.25,
+        "v": 1.1
+       },
+       {
+        "t": 0.4,
+        "v": 1
+       },
+       {
+        "t": 1.2,
+        "v": 1
+       },
+       {
+        "t": 1.35,
+        "v": 1.12
+       },
+       {
+        "t": 1.5,
+        "v": 1
+       }
+      ]
+     }
+    },
+    {
+     "id": "cta_t1",
+     "type": "text",
+     "x": 540,
+     "y": 960,
+     "align": "center",
+     "fontSize": 96,
+     "bold": true,
+     "color": "#FDF8E3",
+     "text": "LIKE & FOLLOW"
+    },
+    {
+     "id": "cta_t2",
+     "type": "text",
+     "x": 540,
+     "y": 1060,
+     "align": "center",
+     "fontSize": 52,
+     "bold": true,
+     "color": "#FECD1B",
+     "text": "then let's keep going!"
+    }
+   ]
+  }
+ ],
+ "defaults": {
+  "audioDuringCountdown": "continue"
+ },
+ "layout": {
+  "count_*": {
+   "visible": false
+  },
+  "countdown_*": {
+   "visible": false
+  },
+  "listen_remaining_*": {
+   "visible": false
+  }
+ }
+}

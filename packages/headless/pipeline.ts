@@ -1,5 +1,6 @@
 import { normalizeLevels, levelsSchema } from "../core/levels";
 import { stackSchema } from "../core/stack";
+import { oddSchema } from "../core/odd";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { constants } from "node:fs";
@@ -335,9 +336,16 @@ export async function quizVideo(
     input.mode === "stack"
       ? stackSchema.parse(input)
       : undefined;
+  const oddSpec =
+    input &&
+    typeof input === "object" &&
+    "mode" in input &&
+    input.mode === "odd"
+      ? oddSchema.parse(input)
+      : undefined;
   if (options.voiceClips) {
-    if (!voiceSpec && !stackSpec)
-      throw new Error("--voice-clips requiert le mode levels ou stack.");
+    if (!voiceSpec && !stackSpec && !oddSpec)
+      throw new Error("--voice-clips requiert le mode levels, stack ou odd.");
     const slots = compileQuiz(input, theme, { voiceDurations: {} }).voiceScript;
     const measured: Record<string, number> = {};
     for (const slot of slots) {
@@ -386,7 +394,7 @@ export async function quizVideo(
   });
   const voiceClips: VoiceClip[] = [];
   const overlaps: string[] = [];
-  if (options.voiceClips && (voiceSpec || stackSpec)) {
+  if (options.voiceClips && (voiceSpec || stackSpec || oddSpec)) {
     for (const slot of compiled.voiceScript) {
       const file = clipFiles.get(slot.id);
       if (!file) {

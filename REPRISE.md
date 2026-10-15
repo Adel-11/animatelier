@@ -1,3 +1,23 @@
+# Point de reprise, 13 octobre 2026 — trouve l'intrus et emojis
+
+Nouveau mode `odd` (`packages/core/odd.ts`), branché dans `compileQuiz`, `quizSchema` et la CLI (`--voice-clips` et `--voice-durations`).
+- Les choix sont disposés en cercle autour d'un minuteur natif.
+- À la révélation, les autres choix disparaissent et l'intrus vient au centre en rouge. Le libellé et l'explication s'affichent.
+- Le fond, le bandeau, le logo, `sequence` et la fin sont les mêmes que pour `stack`.
+
+Emojis en couleur : `packages/core/emoji.ts` détecte les textes faits uniquement d'emojis et les remplace par des images Noto Emoji `file:emoji/…`. `packages/headless/assets.ts` télécharge à la demande les images absentes (source figée, Apache 2.0). `stack` les utilise pour la question et accepte maintenant 3 items minimum.
+
+`tools/qff/qff.py` gère le mode `odd` (valeurs QFF par défaut, CTA, voix) et génère son script de voix par `compileQuiz`.
+
+Vérifications :
+- `tests/odd.test.ts` (4 tests) ; `npm test` 83/84, l'échec est le délai de 5 s de `tests/motion.test.ts` sous charge parallèle (le fichier seul passe, avant et après la modification) ;
+- `npm run build` réussi ;
+- deux vidéos QFF complètes générées (intrus et emojis), images extraites du MP4 inspectées.
+
+Non vérifié : parcours navigateur (e2e), MCP SDK client, déploiement Netlify.
+
+---
+
 # Point de reprise, 30 septembre 2026 — quiz liste avec fonds animés
 
 Le mode `stack` gère maintenant les fonds tournants floutés avec zoom `in`/`out`/`pingpong`, y compris sur l'outro. Le rendu SVG des images floues est corrigé ; la CLI prépare une copie raster avec flou pré-calculé pour la vidéo, tout en exportant le projet v2 éditable. Questions longues dans la carte avec surcharges de mise en page, temps `think` sans audio, scènes `sequence` après une question avec liste optionnelle et validation des keyframes sur les durées calculées avec les voix. `tools/qff/qff.py` utilise ces fonctions au lieu des éléments temporaires et du pré-flou manuel. Démo autonome : `examples/quiz-stack-bg.spec.json`, quatre fonds synthétiques originaux générés localement, dix questions et une scène like & follow.
@@ -15,6 +35,14 @@ Nouveau mode `stack` : 5–15 réponses cumulées en 9:16, titre en bandeau, ima
 Vérifications locales : nouveaux tests de compilation, source audio réelle, stem WAV et court MP4 avec musique + son + aperçu MP3 réussis ; `npm test` 78/78, `npm run build` réussi, `npm run test:e2e` 16/16 avec Chrome installé. Le mode `stack` a aussi été compilé par un vrai client SDK MCP. Captures du mode vertical et planche d'aperçu inspectées. Pas de déploiement Netlify vérifié.
 
 Limites non livrées : arrière-plan vidéo animé, raccord de mouvement parfaitement seamless (seul un fondu vers le même fond est livré), téléchargement audio/vidéo par `fetch-assets.js`, intégration des octets audio dans le projet v2 et garantie ±1 LU sur tous les sons. Le MP3 rapide n'applique pas le même ducking que le MP4. Un test historique de rasterisation CPU disposait d'un délai trop court sous la nouvelle charge parallèle ; seul son délai a été porté de 5 à 15 s, sans modifier ses assertions. Aucun crédit de réinitialisation utilisé. Derniers quotas lus : 47 % restants sur cinq heures et 53 % hebdomadaire.
+
+---
+
+# Point de reprise, 23 septembre 2026 — bibliothèque musicale de travail
+
+Dix MP3 Pixabay d'ambiances variées ont été téléchargés dans `projets-videos/musiques-pixabay/` pour les montages Instagram, renommés par thème. `PROVENANCE.md` dans ce dossier consigne titres, auteurs, pages exactes, durées, licence et signalements Content ID. Les dix fichiers sont lisibles par ffprobe ; aucune écoute subjective ni publication n'a été effectuée. Les MP3 restent des ressources de travail locales, sans intégration au logiciel distribué.
+
+Quota après téléchargement : 89 % restants sur cinq heures et 75 % hebdomadaire. Aucun crédit de réinitialisation utilisé.
 
 ---
 
@@ -251,3 +279,7 @@ Vérifications finales : npm test (13 réussis), npm run build et six parcours P
 Non livrés dans ce lot : pistes d’actions, casting partagé, hors champ, orientation automatique/profil, vitesse de marche, dialogues indépendants, décors/objets/transitions supplémentaires et script haut niveau. Les remarques 2–4 et 9–13 sont détaillées dans docs/ROADMAP.md ; commencer par un contrat versionné et une migration v1 testée.
 
 Quota avant les vérifications finales : 66 % de la fenêtre cinq heures et 41 % hebdomadaire restants. Aucun crédit de réinitialisation utilisé.
+
+## Lot documentaire — 23 septembre 2026
+
+Une archive indépendante du code, `livrables/15_styles_architecturaux_2026-09-23.zip`, contient 15 photographies JPG de styles architecturaux distincts, un tableau des sources institutionnelles de classification et les crédits/licences Wikimedia Commons de chaque image. Les 15 aperçus ont été inspectés visuellement ; l'intégrité du ZIP et le nombre de photos ont été vérifiés. Aucun module du logiciel n'a été modifié. Le quota cinq heures était à 15 % restants à la fin de ce lot ; aucune nouvelle fonctionnalité ne doit être lancée avant son renouvellement. Aucun crédit de réinitialisation utilisé.

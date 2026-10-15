@@ -1,0 +1,149 @@
+{
+ "dog.jpg": {
+  "f": "cand/dog0.jpg",
+  "license": "by",
+  "creator": "Brian Moriarty",
+  "url": "https://www.flickr.com/photos/54205562@N00/4239071999",
+  "title": "Dog barking, Iquitos"
+ },
+ "cat.jpg": {
+  "f": "cand/cat2.jpg",
+  "license": "by",
+  "creator": "gsloan",
+  "url": "https://www.flickr.com/photos/11523570@N03/3178154737",
+  "title": "Teddy The Bag Cat, meowing"
+ },
+ "rooster.jpg": {
+  "f": "cand/rooster2.jpg",
+  "license": "by",
+  "creator": "Cornelia Kopp",
+  "url": "https://www.flickr.com/photos/14111752@N07/8968745358",
+  "title": "our new rooster"
+ },
+ "cow.jpg": {
+  "f": "cand/cow2.jpg",
+  "license": "by",
+  "creator": "steve p2008",
+  "url": "https://www.flickr.com/photos/32558319@N03/3562536507",
+  "title": "cow"
+ },
+ "sheep.jpg": {
+  "f": "cand/sheep1.jpg",
+  "license": "by",
+  "creator": "dew drop157",
+  "url": "https://www.flickr.com/photos/117611583@N07/14147447209",
+  "title": "Sheep"
+ },
+ "horse.jpg": {
+  "f": "cand/horse2.jpg",
+  "license": "by",
+  "creator": "kulmalukko",
+  "url": "https://www.flickr.com/photos/28309180@N07/5395796262",
+  "title": "Horse"
+ },
+ "wolf.jpg": {
+  "f": "cand/wolf1.jpg",
+  "license": "pdm",
+  "creator": "USFWS Headquarters",
+  "url": "https://www.flickr.com/photos/50838842@N06/9129960062",
+  "title": "red wolf howl"
+ },
+ "lion.jpg": {
+  "f": "cand/lion0.jpg",
+  "license": "by",
+  "creator": "samuelrodgers752",
+  "url": "https://www.flickr.com/photos/130732751@N03/16488784643",
+  "title": "Lion roaring"
+ },
+ "owl.jpg": {
+  "f": "cand/owl2.jpg",
+  "license": "by",
+  "creator": "far closer",
+  "url": "https://www.flickr.com/photos/81624096@N00/4326840329",
+  "title": "Tawny Owl"
+ },
+ "elephant.jpg": {
+  "f": "cand/elephant2.jpg",
+  "license": "by",
+  "creator": "gudi&cris",
+  "url": "https://www.flickr.com/photos/54951409@N00/401930619",
+  "title": "Elephant"
+ },
+ "peacock.jpg": {
+  "f": "cand/peacock0.jpg",
+  "license": "cc0",
+  "creator": "Mathias Appel",
+  "url": "https://www.flickr.com/photos/91501748@N07/26409923420",
+  "title": "peacock"
+ },
+ "kookaburra.jpg": {
+  "f": "cand/kookaburra2.jpg",
+  "license": "by",
+  "creator": "James Niland",
+  "url": "https://www.flickr.com/photos/25027666@N02/7144652177",
+  "title": "Laughing Kookaburra"
+ },
+ "whale.jpg": {
+  "f": "cand/whale1.jpg",
+  "license": "by",
+  "creator": "rjshade",
+  "url": "https://www.flickr.com/photos/89466603@N00/15468783028",
+  "title": "Humpback Whale"
+ },
+ "dolphin.jpg": {
+  "f": "cand/dolphin2.jpg",
+  "license": "by",
+  "creator": "Just Taken Pics",
+  "url": "https://www.flickr.com/photos/63797645@N00/98391847",
+  "title": "Dolphin Encounter"
+ },
+ "howler.jpg": {
+  "f": "cand/howler0.jpg",
+  "license": "cc0",
+  "creator": "Terry Kearney",
+  "url": "https://www.flickr.com/photos/24490288@N04/26676947849",
+  "title": "Howler Monkey"
+ },
+ "chimp.jpg": {
+  "f": "cand/chimp0.jpg",
+  "license": "by",
+  "creator": "Charles Patrick Ewing",
+  "url": "https://www.flickr.com/photos/132033298@N04/29947102614",
+  "title": "Chimpanzee Portrait"
+ },
+ "hyena.jpg": {
+  "f": "cand/hyena0.jpg",
+  "license": "by",
+  "creator": "jurvetson",
+  "url": "https://www.flickr.com/photos/44124348109@N01/6989886446",
+  "title": "Spotted Hyena and Cubs"
+ },
+ "alligator.jpg": {
+  "f": "cand/alligator3.jpg",
+  "license": "by",
+  "creator": "wwarby",
+  "url": "https://www.flickr.com/photos/26782864@N00/4011473415",
+  "title": "Alligators"
+ },
+ "elk.jpg": {
+  "f": "cand/elk0.jpg",
+  "license": "pdm",
+  "creator": "Great Sand Dunes National Park and Preserve",
+  "url": "https://www.flickr.com/photos/94707653@N06/40899090223",
+  "title": "Elk Bull in Forest"
+ },
+ "loon.jpg": {
+  "f": "cand/loon0.jpg",
+  "license": "pdm",
+  "creator": "U.S. Fish and Wildlife Service - Midwest Region",
+  "url": "https://www.flickr.com/photos/49208525@N08/4514433523",
+  "title": "Common Loons by Gary J. Wege"
+ },
+ "rattlesnake.jpg": {
+  "f": "cand/rattlesnake0.jpg",
+  "license": "by",
+  "creator": "ZionNPS",
+  "url": "https://www.flickr.com/photos/54168808@N03/14460279424",
+  "title": "Great Basin Rattlesnake"
+ }
+}

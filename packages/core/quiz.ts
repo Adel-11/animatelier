@@ -5,6 +5,7 @@ import {
   type CompileOptions,
 } from "./levels";
 import { compileStack, stackSchema } from "./stack";
+import { compileOdd, oddSchema } from "./odd";
 import { resolveTheme, themeInputSchema } from "./themes";
 import { wrapText } from "./text";
 import { z } from "zod";
@@ -129,7 +130,7 @@ function fit(
 
 export const quizSchema = z.preprocess(
   normalizeLevels,
-  z.union([classicQuizSchema, levelsSchema, stackSchema]),
+  z.union([classicQuizSchema, levelsSchema, stackSchema, oddSchema]),
 );
 
 export function compileQuiz(
@@ -152,6 +153,13 @@ export function compileQuiz(
     input.mode === "stack"
   )
     return compileStack(input, baseTheme, options);
+  if (
+    input &&
+    typeof input === "object" &&
+    "mode" in input &&
+    input.mode === "odd"
+  )
+    return compileOdd(input, baseTheme, options);
   const spec = classicQuizSchema.parse(input);
   const duration = spec.revealDelay + spec.answerDuration;
   const theme = resolveTheme(

@@ -1,0 +1,226 @@
+{
+ "dog": {
+  "file": "dog.ogg",
+  "title": "Barking of a dog 2.ogg",
+  "license": "CC BY-SA 3.0",
+  "artist": "Amada44",
+  "page": "https://commons.wikimedia.org/wiki/File:Barking_of_a_dog_2.ogg"
+ },
+ "cat": {
+  "file": "cat.oga",
+  "title": "Meow of a pleading cat.oga",
+  "license": "Public domain",
+  "artist": "Heismark",
+  "page": "https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga"
+ },
+ "rooster": {
+  "file": "rooster.ogg",
+  "title": "Medium rooster crowing.ogg",
+  "license": "Public domain",
+  "artist": "alys",
+  "page": "https://commons.wikimedia.org/wiki/File:Medium_rooster_crowing.ogg"
+ },
+ "cow": {
+  "file": "cow.ogg",
+  "title": "Single Cow Moo.ogg",
+  "license": "CC BY-SA 4.0",
+  "artist": "MichaeltheFox8621",
+  "page": "https://commons.wikimedia.org/wiki/File:Single_Cow_Moo.ogg"
+ },
+ "sheep": {
+  "file": "sheep.ogg",
+  "title": "Sheep bleating.ogg",
+  "license": "Public domain",
+  "artist": "earthcalling",
+  "page": "https://commons.wikimedia.org/wiki/File:Sheep_bleating.ogg"
+ },
+ "horse": {
+  "file": "horse.ogg",
+  "title": "Wiehern.ogg",
+  "license": "Public domain",
+  "artist": "H\u00fc.",
+  "page": "https://commons.wikimedia.org/wiki/File:Wiehern.ogg"
+ },
+ "wolf": {
+  "file": "wolf.ogg",
+  "title": "Wolf howls.ogg",
+  "license": "Public domain",
+  "artist": "?",
+  "page": "https://commons.wikimedia.org/wiki/File:Wolf_howls.ogg"
+ },
+ "lion": {
+  "file": "lion.ogg",
+  "title": "Lion raring-sound1TamilNadu178.ogg",
+  "license": "Public domain",
+  "artist": "\u0ba4*\u0b89\u0bb4\u0bb5\u0ba9\u0bcd",
+  "page": "https://commons.wikimedia.org/wiki/File:Lion_raring-sound1TamilNadu178.ogg"
+ },
+ "owl": {
+  "file": "owl.oga",
+  "title": "Strix aluco male.oga",
+  "license": "CC BY-SA 4.0",
+  "artist": "Vianney Bajart",
+  "page": "https://commons.wikimedia.org/wiki/File:Strix_aluco_male.oga"
+ },
+ "elephant": {
+  "file": "elephant.ogg",
+  "title": "Elephant voice - trumpeting.ogg",
+  "license": "CC0",
+  "artist": "\u0ba4\u0b95\u0bb5\u0bb2\u0bc1\u0bb4\u0bb5\u0ba9\u0bcd",
+  "page": "https://commons.wikimedia.org/wiki/File:Elephant_voice_-_trumpeting.ogg"
+ },
+ "peacock": {
+  "file": "peacock.ogg",
+  "title": "Pavo cristatus (call).ogg",
+  "license": "Public domain",
+  "artist": "Ke4roh",
+  "page": "https://commons.wikimedia.org/wiki/File:Pavo_cristatus_(call).ogg"
+ },
+ "kookaburra": {
+  "file": "kookaburra.ogg",
+  "title": "LaughingKookaburra.ogg",
+  "license": "Public domain",
+  "artist": "Kuco",
+  "page": "https://commons.wikimedia.org/wiki/File:LaughingKookaburra.ogg"
+ },
+ "whale": {
+  "file": "whale.ogg",
+  "title": "Humpbackwhale2.ogg",
+  "license": "CC0",
+  "artist": "Spyrogumas",
+  "page": "https://commons.wikimedia.org/wiki/File:Humpbackwhale2.ogg"
+ },
+ "dolphin": {
+  "file": "dolphin.wav",
+  "title": "161691 felixblume dolphin-screaming-underwater-in-caribbean-sea-mexico.wav",
+  "license": "CC0",
+  "artist": "The user Felix.Blume\n\nhttps://freesound.org/people/felix.blume/",
+  "page": "https://commons.wikimedia.org/wiki/File:161691_felixblume_dolphin-screaming-underwater-in-caribbean-sea-mexico.wav"
+ },
+ "howler": {
+  "file": "howler.ogg",
+  "title": "Howler monkey.ogg",
+  "license": "CC BY 3.0",
+  "artist": "David O'Hara",
+  "page": "https://commons.wikimedia.org/wiki/File:Howler_monkey.ogg"
+ },
+ "frog": {
+  "file": "frog.oga",
+  "title": "Single Frog Croak.oga",
+  "license": "CC BY-SA 4.0",
+  "artist": "MichaeltheFox8621",
+  "page": "https://commons.wikimedia.org/wiki/File:Single_Frog_Croak.oga"
+ },
+ "rattlesnake": {
+  "file": "rattlesnake.ogg",
+  "title": "Rattlesnake.ogg",
+  "license": "Public domain",
+  "artist": "?",
+  "page": "https://commons.wikimedia.org/wiki/File:Rattlesnake.ogg"
+ },
+ "hyena1": {
+  "file": "hyena1.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S1.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S1.oga"
+ },
+ "hyena2": {
+  "file": "hyena2.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S2.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S2.oga"
+ },
+ "hyena3": {
+  "file": "hyena3.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S3.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S3.oga"
+ },
+ "hyena4": {
+  "file": "hyena4.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S4.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S4.oga"
+ },
+ "hyena5": {
+  "file": "hyena5.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S5.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S5.oga"
+ },
+ "hyena6": {
+  "file": "hyena6.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S6.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S6.oga"
+ },
+ "hyena7": {
+  "file": "hyena7.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S7.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S7.oga"
+ },
+ "hyena8": {
+  "file": "hyena8.ogg",
+  "title": "Giggling call of a spotted hyena (Crocuta crocuta) - 1472-6785-10-9-S8.oga",
+  "license": "CC BY 2.0",
+  "artist": "Mathevon N, Koralek A, Weldele M, Glickman S, Theunissen F",
+  "page": "https://commons.wikimedia.org/wiki/File:Giggling_call_of_a_spotted_hyena_(Crocuta_crocuta)_-_1472-6785-10-9-S8.oga"
+ },
+ "siamese": {
+  "file": "siamese.wav",
+  "title": "Meow of a Siamese cat - freemaster2.wav",
+  "license": "CC0",
+  "artist": "freemaster2",
+  "page": "https://commons.wikimedia.org/wiki/File:Meow_of_a_Siamese_cat_-_freemaster2.wav"
+ },
+ "hyena_long": {
+  "file": "hyena_long.ogg",
+  "title": "Spotted Hyaena (Crocuta crocuta) (W1CDR0000381 BD12).ogg",
+  "license": "CC BY 4.0",
+  "artist": "?",
+  "page": "https://commons.wikimedia.org/wiki/File:Spotted_Hyaena_(Crocuta_crocuta)_(W1CDR0000381_BD12).ogg"
+ },
+ "chimp": {
+  "file": "chimp.ogg",
+  "title": "Pant-hoot call made by a male chimpanzee.ogg",
+  "license": "CC BY 4.0",
+  "artist": "Pawel Fedurek et al.",
+  "page": "https://commons.wikimedia.org/wiki/File:Pant-hoot_call_made_by_a_male_chimpanzee.ogg"
+ },
+ "alligator": {
+  "file": "alligator.ogg",
+  "title": "Alligatorbellowedit.ogg",
+  "license": "Public domain",
+  "artist": "Borisblue",
+  "page": "https://commons.wikimedia.org/wiki/File:Alligatorbellowedit.ogg"
+ },
+ "elk": {
+  "file": "elk.ogg",
+  "title": "American Elk Bugling.ogg",
+  "license": "Public domain",
+  "artist": "Jim Pisarowicz",
+  "page": "https://commons.wikimedia.org/wiki/File:American_Elk_Bugling.ogg"
+ },
+ "loon": {
+  "file": "loon.ogg",
+  "title": "Loons.ogg",
+  "license": "Public domain",
+  "artist": "?",
+  "page": "https://commons.wikimedia.org/wiki/File:Loons.ogg"
+ },
+ "donkey": {
+  "file": "donkey.wav",
+  "title": "157763 felix-blume a-donkey-is-braying-in-his-enclosure-in-south-of-france.wav",
+  "license": "CC0",
+  "artist": "felix-blume",
+  "page": "https://commons.wikimedia.org/wiki/File:157763_felix-blume_a-donkey-is-braying-in-his-enclosure-in-south-of-france.wav"
+ }
+}

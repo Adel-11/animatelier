@@ -3,6 +3,7 @@ import { newElement, identifier, type SceneElement } from "./elements";
 import { parseProject } from "./schema";
 import { resolveTheme, themeInputSchema } from "./themes";
 import { wrapText } from "./text";
+import { emojiOnly, emojiRow } from "./emoji";
 import type { CompileOptions, QuizEvent, VoiceSlot } from "./levels";
 
 const label = z.string().trim().min(1).max(240);
@@ -112,7 +113,7 @@ export const stackSchema = z
           })
           .strict(),
       )
-      .min(5)
+      .min(3)
       .max(15),
     sequence: z
       .array(
@@ -324,7 +325,11 @@ export function compileStack(
         radius: 25,
         start: revealAt,
       });
-    if (item?.q)
+    const emojis = item?.q && !item.image ? emojiOnly(item.q) : undefined;
+    if (emojis)
+      for (const e of emojiRow("question", emojis, 540, 497, 700, 210))
+        add("image", e);
+    else if (item?.q)
       txt(
         "question",
         item.q,

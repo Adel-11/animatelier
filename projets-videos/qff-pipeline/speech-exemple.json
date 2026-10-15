@@ -1,0 +1,4 @@
+{ "intro": ["Welcome to Quiz Factory Forever!", "Fifteen questions. Three levels.", "How far can you go?"],
+  "levels": ["Level one. Rookie.", "Level two. Master.", "Level three. Goat."],
+  "answers": ["Three hundred sixty six.", "Green.", "The lion.", "Seven.", "Zero degrees.", "Ottawa.", "William Shakespeare.", "Diamond.", "Mercury.", "Eleven.", "Vatican City.", "Three!", "The femur.", "Nineteen twelve.", "The pancreas."],
+  "outro": "What's your score? Rookie, master, or goat? Drop it in the comments, and follow for more quizzes!" }

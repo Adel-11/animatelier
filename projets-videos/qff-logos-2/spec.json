@@ -1,0 +1,187 @@
+{
+ "mode": "levels",
+ "format": "reel-9x16",
+ "theme": "qff",
+ "language": "en",
+ "intro": {
+  "title": "15 LOGOS",
+  "subtitle": "3 LEVELS",
+  "tagline": "Ready?",
+  "say": "Welcome to Quiz Factory Forever! Fifteen logos, three levels. Ready?"
+ },
+ "levels": [
+  {
+   "questions": [
+    {
+     "q": "Which brand is this?",
+     "a": "Apple",
+     "image": "file:apple.png",
+     "imageEffect": "none",
+     "say": "First one. Which brand is this?",
+     "sayAnswer": "Of course, it's Apple!"
+    },
+    {
+     "q": "Name this logo!",
+     "a": "McDonald's",
+     "image": "file:mcdonalds.png",
+     "imageEffect": "none",
+     "say": "Name this logo!",
+     "sayAnswer": "McDonald's, obviously."
+    },
+    {
+     "q": "And this one?",
+     "a": "Nike",
+     "image": "file:nike.png",
+     "imageEffect": "none",
+     "say": "And this one?",
+     "sayAnswer": "Yes, it's Nike!"
+    },
+    {
+     "q": "Do you know this one?",
+     "a": "Instagram",
+     "image": "file:instagram.png",
+     "imageEffect": "none",
+     "say": "Do you know this one?",
+     "sayAnswer": "Instagram!"
+    },
+    {
+     "q": "Which brand is this?",
+     "a": "WhatsApp",
+     "image": "file:whatsapp.png",
+     "imageEffect": "none",
+     "say": "Which brand is this?",
+     "sayAnswer": "The answer is WhatsApp."
+    }
+   ],
+   "name": "ROOKIE",
+   "subtitle": "Warm-up time",
+   "say": "Level one. Rookie."
+  },
+  {
+   "questions": [
+    {
+     "q": "Name this logo!",
+     "a": "Mercedes-Benz",
+     "image": "file:mercedes.png",
+     "imageEffect": "none",
+     "say": "Name this logo!",
+     "sayAnswer": "Mercedes-Benz!"
+    },
+    {
+     "q": "Easy or not?",
+     "a": "Audi",
+     "image": "file:audi.png",
+     "imageEffect": "none",
+     "say": "Easy or not?",
+     "sayAnswer": "Yes, it's Audi."
+    },
+    {
+     "q": "And this one?",
+     "a": "Spotify",
+     "image": "file:spotify.png",
+     "imageEffect": "none",
+     "say": "And this one?",
+     "sayAnswer": "The answer is Spotify."
+    },
+    {
+     "q": "Which brand is this?",
+     "a": "Toyota",
+     "image": "file:toyota.png",
+     "imageEffect": "none",
+     "say": "Which brand is this?",
+     "sayAnswer": "Toyota, of course."
+    },
+    {
+     "q": "Do you know this one?",
+     "a": "Pepsi",
+     "image": "file:pepsi.png",
+     "imageEffect": "none",
+     "say": "Do you know this one?",
+     "sayAnswer": "It's Pepsi!"
+    }
+   ],
+   "name": "MASTER",
+   "subtitle": "Getting harder...",
+   "say": "Level two. Master."
+  },
+  {
+   "questions": [
+    {
+     "q": "Which brand is this?",
+     "a": "Mitsubishi",
+     "image": "file:mitsubishi.png",
+     "imageEffect": "none",
+     "say": "Only real fans know this one. Which brand?",
+     "sayAnswer": "Mitsubishi!"
+    },
+    {
+     "q": "Name this logo!",
+     "a": "Chevrolet",
+     "image": "file:chevrolet.png",
+     "imageEffect": "none",
+     "say": "Name this logo!",
+     "sayAnswer": "Yes, it's Chevrolet."
+    },
+    {
+     "q": "And this one?",
+     "a": "Hyundai",
+     "image": "file:hyundai.png",
+     "imageEffect": "none",
+     "say": "Getting tough. And this one?",
+     "sayAnswer": "The answer is Hyun-day."
+    },
+    {
+     "q": "Which brand is this?",
+     "a": "Dropbox",
+     "image": "file:dropbox.png",
+     "imageEffect": "none",
+     "say": "Which brand is this?",
+     "sayAnswer": "Dropbox!"
+    },
+    {
+     "q": "Last one! Which brand?",
+     "a": "Citroën",
+     "image": "file:citroen.png",
+     "imageEffect": "none",
+     "say": "Last one! Which brand?",
+     "sayAnswer": "It's Citro-en!"
+    }
+   ],
+   "name": "GOAT",
+   "subtitle": "Only legends survive",
+   "say": "Level three. Goat!"
+  }
+ ],
+ "questionEffect": "none",
+ "imageLayout": "hero",
+ "imageCard": {
+  "color": "#FFFFFF",
+  "radius": 40,
+  "padding": 70,
+  "shape": "square"
+ },
+ "timing": {
+  "read": "voice",
+  "readPad": 0.3,
+  "readMin": 1,
+  "readMax": 6,
+  "countdown": 3,
+  "answer": 2.4,
+  "levelCard": 2.2,
+  "outro": 7,
+  "maxDuration": 180
+ },
+ "outro": {
+  "title": "What's your score?",
+  "tiers": [
+   "0-5 · ROOKIE",
+   "6-10 · MASTER",
+   "11-15 · GOAT"
+  ],
+  "cta": [
+   "Drop it in the comments!",
+   "Follow Quiz Factory Forever"
+  ],
+  "say": "What's your score? Rookie, master, or goat? Tell us in the comments, and follow for more!"
+ }
+}

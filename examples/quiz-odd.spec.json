@@ -1,0 +1,17 @@
+{
+  "mode": "odd",
+  "title": "TROUVE L'INTRUS",
+  "language": "fr",
+  "theme": "qff",
+  "timing": { "show": 1, "countdown": 3, "reveal": 2.5, "endHold": 3 },
+  "end": { "text": "Combien en as-tu trouvé ?" },
+  "items": [
+    { "choices": ["Mercure", "Vénus", "Pluton", "Mars"], "correctIndex": 2, "explanation": "Pluton est une planète naine depuis 2006", "say": "Trouve l'intrus. Mercure, Vénus, Pluton, Mars." },
+    { "choices": ["Baleine", "Dauphin", "Requin", "Phoque"], "a": "Requin", "explanation": "Le requin est un poisson, les autres sont des mammifères" },
+    { "choices": ["🍎", "🍌", "🥕", "🍇"], "correctIndex": 2, "explanation": "La carotte est un légume", "sayAnswer": "La carotte !" },
+    { "choices": ["Paris", "Rome", "Sydney", "Madrid"], "a": "Sydney", "explanation": "Sydney n'est pas une capitale" },
+    { "choices": ["Triangle", "Carré", "Cercle", "Cube", "Losange"], "a": "Cube", "explanation": "Le cube est un solide en 3D" }
+  ],
+  "sequence": [{ "after": "question_3", "id": "cta_like", "duration": 2, "say": "Abonne-toi !",
+    "elements": [{ "id": "cta_text", "type": "text", "text": "LIKE & FOLLOW", "x": 540, "y": 900, "fontSize": 80, "maxWidth": 900, "color": "#FECD1B", "bold": true, "align": "center" }] }]
+}

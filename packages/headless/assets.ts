@@ -1,5 +1,6 @@
 import sharp from "sharp";
-import { readFile, realpath, stat } from "node:fs/promises";
+import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { EMOJI_FILE } from "../core/emoji";
 import path from "node:path";
 import {
   assetSchema,
@@ -71,6 +72,36 @@ export async function localAssetFile(directory: string, relative: string) {
     throw new Error("Image supérieure à 5 Mo.");
   return target;
 }
+// Noto Emoji (Apache 2.0, github.com/googlefonts/noto-emoji), version figée.
+export const EMOJI_SOURCES = [
+  "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.047/png/128/",
+  "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@v2.047/png/128/",
+];
+/** Télécharge dans le dossier d'assets une image emoji absente (file:emoji/emoji_u….png). */
+export async function ensureEmojiFile(directory: string, relative: string) {
+  if (!EMOJI_FILE.test(relative)) return;
+  const target = path.join(directory, relative);
+  try {
+    await stat(target);
+    return;
+  } catch {}
+  const { downloadPublicImage } = await import("./fetch-assets");
+  const name = relative.slice("emoji/".length);
+  let lastError: unknown;
+  for (const base of EMOJI_SOURCES)
+    try {
+      const bytes = await downloadPublicImage(base + name);
+      await decodeImage(bytes);
+      await mkdir(path.dirname(target), { recursive: true });
+      await writeFile(target, bytes);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  throw new Error(
+    `Emoji introuvable (${name}) : ${lastError instanceof Error ? lastError.message : lastError}`,
+  );
+}
 export async function resolveProjectAssets(
   input: unknown,
   assetsDir?: string,
@@ -89,6 +120,7 @@ export async function resolveProjectAssets(
       const relative = element.src.slice(5);
       let id = files.get(relative);
       if (!id) {
+        await ensureEmojiFile(assetsDir, relative);
         const image = await decodeImage(
           await readFile(await localAssetFile(assetsDir, relative)),
         );

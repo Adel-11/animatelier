@@ -39,12 +39,13 @@ try {
   if (values.schema) {
     console.log(
       JSON.stringify({
-        mode: "levels|stack",
+        mode: "levels|stack|odd",
         required: {
           levels: "1..10 levels, each with 1..30 questions; max 60 total",
           question: "q + a OR choices[2..4] + correctIndex",
           stack:
-            "items[5..15] with a, optional q/image/backgroundImage/audio/think",
+            "items[3..15] with a, optional q (emoji-only q drawn as images)/image/backgroundImage/audio/think",
+          odd: "items[3..15] with choices[3..6] (text, emojis or file:), correctIndex or a, optional explanation/say/sayAnswer",
         },
         optional: {
           preset: "qff-reel (levels), qff-stack (stack), or --preset file.json",

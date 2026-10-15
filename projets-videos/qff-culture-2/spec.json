@@ -1,0 +1,161 @@
+{
+ "mode": "levels",
+ "format": "reel-9x16",
+ "language": "en",
+ "theme": {
+  "extends": "qff",
+  "backdrop": {"type": "linear", "color": "#07275F", "color2": "#0B3E93", "angle": 160}
+ },
+ "intro": {
+  "title": "15 QUESTIONS",
+  "subtitle": "3 LEVELS",
+  "tagline": "How far can you go?",
+  "say": "Welcome back to Quiz Factory Forever! Fifteen new questions. Let's go!"
+ },
+ "questionEffect": "none",
+ "imageLayout": "hero",
+ "levels": [
+  {
+   "name": "ROOKIE",
+   "subtitle": "Warm-up time",
+   "say": "Level one. Rookie.",
+   "questions": [
+    {
+     "q": "How many colors are there in a rainbow?",
+     "a": "Seven",
+     "say": "Easy start. How many colors are there in a rainbow?",
+     "sayAnswer": "Seven colors."
+    },
+    {
+     "q": "What is the largest animal on Earth?",
+     "choices": ["Elephant", "Blue whale", "Giraffe", "Great white shark"],
+     "correctIndex": 1,
+     "a": "Blue whale",
+     "say": "What is the largest animal on Earth?",
+     "sayAnswer": "Of course, the blue whale!"
+    },
+    {
+     "q": "What do bees make?",
+     "a": "Honey",
+     "say": "What do bees make?",
+     "sayAnswer": "Honey!"
+    },
+    {
+     "q": "What is the capital of Japan?",
+     "a": "Tokyo",
+     "say": "What is the capital of Japan?",
+     "sayAnswer": "Yes, it's Tokyo."
+    },
+    {
+     "q": "What does a caterpillar turn into?",
+     "choices": ["A bee", "A butterfly", "A beetle", "A dragonfly"],
+     "correctIndex": 1,
+     "a": "A butterfly",
+     "say": "Last easy one. What does a caterpillar turn into?",
+     "sayAnswer": "A butterfly."
+    }
+   ]
+  },
+  {
+   "name": "MASTER",
+   "subtitle": "It gets serious",
+   "say": "Level two. Master.",
+   "questions": [
+    {
+     "q": "What is the tallest mountain in the world?",
+     "a": "Mount Everest",
+     "say": "What is the tallest mountain in the world?",
+     "sayAnswer": "The answer is Mount Everest."
+    },
+    {
+     "q": "Who wrote Harry Potter?",
+     "choices": ["J.R.R. Tolkien", "J.K. Rowling", "Roald Dahl", "Stephen King"],
+     "correctIndex": 1,
+     "a": "J.K. Rowling",
+     "say": "Who wrote Harry Potter?",
+     "sayAnswer": "Jay Kay Rowling, of course."
+    },
+    {
+     "q": "How many strings does a standard guitar have?",
+     "a": "Six",
+     "say": "How many strings does a standard guitar have?",
+     "sayAnswer": "Six strings."
+    },
+    {
+     "q": "Which planet is famous for its rings?",
+     "choices": ["Mars", "Saturn", "Venus", "Neptune"],
+     "correctIndex": 1,
+     "a": "Saturn",
+     "say": "Which planet is famous for its rings?",
+     "sayAnswer": "Yes, it's Saturn!"
+    },
+    {
+     "q": "What is the largest country in the world?",
+     "a": "Russia",
+     "say": "What is the largest country in the world?",
+     "sayAnswer": "Russia, by far."
+    }
+   ]
+  },
+  {
+   "name": "GOAT",
+   "subtitle": "Only legends survive",
+   "say": "Level three. Goat!",
+   "questions": [
+    {
+     "q": "How many teeth does an adult usually have?",
+     "choices": ["28", "30", "32", "36"],
+     "correctIndex": 2,
+     "a": "32",
+     "say": "How many teeth does an adult usually have?",
+     "sayAnswer": "Thirty two, with the wisdom teeth."
+    },
+    {
+     "q": "Which is the only mammal that can truly fly?",
+     "a": "The bat",
+     "say": "Which is the only mammal that can truly fly?",
+     "sayAnswer": "The bat!"
+    },
+    {
+     "q": "In which year did World War II end?",
+     "choices": ["1943", "1944", "1945", "1946"],
+     "correctIndex": 2,
+     "a": "1945",
+     "say": "In which year did World War Two end?",
+     "sayAnswer": "Nineteen forty five."
+    },
+    {
+     "q": "Which blood type is the universal donor?",
+     "a": "O negative",
+     "say": "Tricky one. Which blood type is the universal donor?",
+     "sayAnswer": "The answer is O negative."
+    },
+    {
+     "q": "How many keys does a standard piano have?",
+     "choices": ["66", "76", "88", "92"],
+     "correctIndex": 2,
+     "a": "88",
+     "say": "Last one! How many keys does a standard piano have?",
+     "sayAnswer": "Eighty eight keys."
+    }
+   ]
+  }
+ ],
+ "outro": {
+  "title": "What's your score?",
+  "tiers": ["0-5 · ROOKIE", "6-10 · MASTER", "11-15 · GOAT"],
+  "cta": ["Drop it in the comments!", "Follow Quiz Factory Forever"],
+  "say": "So, what's your score? Rookie, master, or goat? Tell us in the comments, and follow for more!"
+ },
+ "timing": {
+  "read": "voice",
+  "readPad": 0.35,
+  "readMin": 1.2,
+  "readMax": 7,
+  "countdown": 3,
+  "answer": 2.8,
+  "levelCard": 2.2,
+  "outro": 7,
+  "maxDuration": 180
+ }
+}

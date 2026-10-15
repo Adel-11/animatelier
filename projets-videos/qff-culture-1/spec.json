@@ -1,0 +1,215 @@
+{
+ "mode": "levels",
+ "format": "reel-9x16",
+ "language": "en",
+ "theme": {
+  "extends": "qff",
+  "backdrop": {
+   "type": "linear",
+   "color": "#07275F",
+   "color2": "#0B3E93",
+   "angle": 160
+  }
+ },
+ "intro": {
+  "title": "15 QUESTIONS",
+  "subtitle": "3 LEVELS",
+  "tagline": "How far can you go?",
+  "say": "Welcome to Quiz Factory Forever! Fifteen questions, three levels."
+ },
+ "questionEffect": "none",
+ "imageLayout": "hero",
+ "levels": [
+  {
+   "name": "ROOKIE",
+   "subtitle": "Warm-up time",
+   "say": "Level one. Rookie.",
+   "questions": [
+    {
+     "q": "How many continents are there?",
+     "choices": [
+      "Five",
+      "Six",
+      "Seven",
+      "Eight"
+     ],
+     "correctIndex": 2,
+     "a": "Seven",
+     "say": "Let's start easy. How many continents are there?",
+     "sayAnswer": "Seven, of course."
+    },
+    {
+     "q": "Which city is this?",
+     "a": "Paris",
+     "image": "file:eiffel.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.5,
+     "focusY": 0.35,
+     "say": "Which city is this?",
+     "sayAnswer": "Yes, it's Paris!"
+    },
+    {
+     "q": "What is the largest ocean on Earth?",
+     "a": "The Pacific",
+     "say": "What is the largest ocean on Earth?",
+     "sayAnswer": "The answer is the Pacific."
+    },
+    {
+     "q": "Which planet is known as the Red Planet?",
+     "choices": [
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Mercury"
+     ],
+     "correctIndex": 1,
+     "a": "Mars",
+     "say": "Which planet is known as the Red Planet?",
+     "sayAnswer": "Mars!"
+    },
+    {
+     "q": "How many legs does a spider have?",
+     "a": "Eight",
+     "say": "Last easy one. How many legs does a spider have?",
+     "sayAnswer": "Eight legs."
+    }
+   ]
+  },
+  {
+   "name": "MASTER",
+   "subtitle": "It gets serious",
+   "say": "Level two. Master.",
+   "questions": [
+    {
+     "q": "Who painted this?",
+     "a": "Leonardo da Vinci",
+     "image": "file:monalisa.jpg",
+     "imageEffect": "pixelate",
+     "say": "Who painted this?",
+     "sayAnswer": "Leonardo da Vinci."
+    },
+    {
+     "q": "What is the capital of Australia?",
+     "a": "Canberra",
+     "say": "Careful with this one. What is the capital of Australia?",
+     "sayAnswer": "Not Sydney! It's Canberra."
+    },
+    {
+     "q": "Which country hosted the 2016 Summer Olympics?",
+     "choices": [
+      "China",
+      "Brazil",
+      "Japan",
+      "Greece"
+     ],
+     "correctIndex": 1,
+     "a": "Brazil",
+     "say": "Which country hosted the twenty sixteen Summer Olympics?",
+     "sayAnswer": "Brazil, in Rio."
+    },
+    {
+     "q": "In which country is this?",
+     "a": "Italy",
+     "image": "file:colosseum.jpg",
+     "imageEffect": "blur",
+     "say": "In which country is this?",
+     "sayAnswer": "Yes, it's Italy."
+    },
+    {
+     "q": "What is the chemical symbol for gold?",
+     "choices": [
+      "Go",
+      "Gd",
+      "Au",
+      "Ag"
+     ],
+     "correctIndex": 2,
+     "a": "Au",
+     "say": "What is the chemical symbol for gold?",
+     "sayAnswer": "The answer is A U."
+    }
+   ]
+  },
+  {
+   "name": "GOAT",
+   "subtitle": "Only legends survive",
+   "say": "Level three. Goat!",
+   "questions": [
+    {
+     "q": "Which is the smallest ocean?",
+     "choices": [
+      "Arctic",
+      "Indian",
+      "Southern",
+      "Atlantic"
+     ],
+     "correctIndex": 0,
+     "a": "The Arctic",
+     "say": "Which is the smallest ocean?",
+     "sayAnswer": "The Arctic ocean."
+    },
+    {
+     "q": "Which country is this?",
+     "a": "Peru",
+     "image": "file:machupicchu.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.55,
+     "focusY": 0.5,
+     "say": "Which country is this?",
+     "sayAnswer": "Peru! Machu Picchu."
+    },
+    {
+     "q": "How many minutes are there in a day?",
+     "a": "1,440",
+     "say": "How many minutes are there in a day?",
+     "sayAnswer": "One thousand four hundred and forty."
+    },
+    {
+     "q": "Which country's flag is this?",
+     "a": "South Korea",
+     "image": "file:koreaflag.png",
+     "imageEffect": "pixelate",
+     "say": "Which country's flag is this?",
+     "sayAnswer": "South Korea."
+    },
+    {
+     "q": "In which year did the Berlin Wall fall?",
+     "choices": [
+      "1987",
+      "1989",
+      "1991",
+      "1993"
+     ],
+     "correctIndex": 1,
+     "a": "1989",
+     "say": "Last one! In which year did the Berlin Wall fall?",
+     "sayAnswer": "Nineteen eighty nine."
+    }
+   ]
+  }
+ ],
+ "outro": {
+  "title": "What's your score?",
+  "tiers": [
+   "0-5 \u00b7 ROOKIE",
+   "6-10 \u00b7 MASTER",
+   "11-15 \u00b7 GOAT"
+  ],
+  "cta": [
+   "Drop it in the comments!",
+   "Follow Quiz Factory Forever"
+  ],
+  "say": "So, what's your score? Rookie, master, or goat? Tell us in the comments, and follow for more!"
+ },
+ "timing": {
+  "read": "voice",
+  "readPad": 0.35,
+  "readMin": 1.2,
+  "readMax": 7,
+  "countdown": 3,
+  "answer": 2.8,
+  "levelCard": 2.2,
+  "outro": 7,
+  "maxDuration": 180
+ }
+}

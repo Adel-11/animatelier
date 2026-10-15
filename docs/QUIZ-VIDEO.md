@@ -163,3 +163,35 @@ Le nouveau mode `stack` produit un projet v2 portrait 1080 × 1920, 5 à 15 entr
 `sequence:[{"after":"question_3","id":"like_follow","duration":2.5,"showList":true,"elements":[...],"say":"..."}]` insère une scène après la troisième question ; `showList:false` masque la liste et la carte, tout en conservant le fond. Les scènes insérées et les éléments d'item sont validés avec la durée calculée après mesure des voix (`--voice-clips`) ; leurs keyframes restent exprimées en secondes depuis le début de leur scène. L'outil QFF utilise désormais ces options natives ; son ancien champ `backgrounds` est converti en `background.images` sans prétraitement de l'image. L'exemple `examples/quiz-stack-bg.spec.json` contient quatre fonds illustratifs originaux, dix questions longues, une scène insérée et un fond sur l'outro. Les PNG sont générés par `tools/generate-stack-example-assets.mjs` ; aucune ressource externe n'a été téléchargée. Lancer avec `--assets-dir examples`.
 
 Non livré dans ce lot : décodage d'un fichier vidéo comme arrière-plan animé, raccord de mouvement véritablement seamless (le fondu ne l'est pas), téléchargement d'audio/vidéo par `fetch-assets.js`, et contrôle de normalisation à ±1 LU sur des extraits silencieux ou très courts. Ces points demandent un contrat média qui reste cohérent entre projet v2 éditable, navigateur et rendu headless ; les annoncer comme limites, pas comme options existantes.
+
+## Trouve l'intrus et emojis (13 octobre 2026)
+
+### Mode `odd`
+
+`"mode":"odd"` crée une série de 3 à 15 questions « trouve l'intrus » en 9:16. Le format a le même habillage que `stack` : `background` flou animé, bandeau `title`, logo, progression, `sequence`, fin `end` et `layout` par identifiant (`title_banner`, `title`, `brand_logo`, etc.).
+
+Chaque item contient :
+- `choices` : 3 à 6 choix. Un choix peut être un texte court, des emojis seuls ou une image `file:`/`asset:` (affichée en rond).
+- l'intrus : `correctIndex`, ou `a` égal à l'un des choix.
+- `explanation` (facultatif) : le texte écrit à la révélation.
+- `q` (facultatif) : une consigne affichée sous le titre.
+- `say`, `sayAnswer`, `think` (facultatifs).
+
+Déroulé d'une question :
+- Les choix sont disposés en cercle. Au centre, un disque affiche « ? » pendant la lecture, puis le compte à rebours `timing.countdown`.
+- À la révélation, les autres choix s'effacent en rétrécissant (0,45 s). L'intrus glisse au centre, grossit (×1,3), passe en `oddColor` (#FF3B5C par défaut) et tremble.
+- Ensuite s'affichent le libellé « L'INTRUS ! » (« ODD ONE OUT! » en anglais) et `explanation` dans un panneau.
+
+Les identifiants de voix sont ceux du mode `stack` : `question_N`, `question_N_answer`, `outro` et les identifiants de `sequence`. `timing` accepte `show`, `think`, `countdown`, `reveal` (1,5 s minimum) et `endHold`. Exemple : `examples/quiz-odd.spec.json`.
+
+### Emojis en couleur
+
+resvg 2.6 ne rend pas les polices emoji couleur. Les textes composés uniquement d'emojis sont donc dessinés en images `file:emoji/emoji_u<codes>.png` (Noto Emoji 128 px, Apache 2.0, googlefonts/noto-emoji v2.047). Cela concerne :
+- la question `q` d'un item `stack` sans image ;
+- les choix du mode `odd`.
+
+Au rendu headless, une image absente de `--assets-dir/emoji/` est téléchargée une fois depuis raw.githubusercontent.com, ou cdn.jsdelivr.net en secours, puis gardée dans ce dossier. Ce téléchargement demande un accès réseau.
+
+Limite : un texte qui mélange lettres et emojis n'est pas pris en charge. Les emojis y restent des carrés vides.
+
+`stack` accepte maintenant 3 items minimum (au lieu de 5).

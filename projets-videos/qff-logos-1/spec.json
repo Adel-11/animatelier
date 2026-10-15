@@ -1,0 +1,144 @@
+{
+ "mode": "levels",
+ "format": "reel-9x16",
+ "theme": "qff",
+ "language": "en",
+ "intro": {
+  "title": "15 LOGOS",
+  "subtitle": "3 LEVELS",
+  "tagline": "Can you name them all?"
+ },
+ "levels": [
+  {
+   "questions": [
+    {
+     "q": "Which brand is this?",
+     "a": "Apple",
+     "image": "file:apple.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Easy one: which brand?",
+     "a": "McDonald's",
+     "image": "file:mcdonalds.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Name this logo!",
+     "a": "Nike",
+     "image": "file:nike.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Do you know this one?",
+     "a": "Instagram",
+     "image": "file:instagram.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Which app is this?",
+     "a": "WhatsApp",
+     "image": "file:whatsapp.png",
+     "imageEffect": "none"
+    }
+   ],
+   "name": "ROOKIE",
+   "subtitle": "Warm-up time"
+  },
+  {
+   "questions": [
+    {
+     "q": "Which car brand is this?",
+     "a": "Mercedes-Benz",
+     "image": "file:mercedes.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "And this one?",
+     "a": "Audi",
+     "image": "file:audi.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Which app uses this logo?",
+     "a": "Spotify",
+     "image": "file:spotify.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Which car brand is this?",
+     "a": "Toyota",
+     "image": "file:toyota.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Which drink brand is this?",
+     "a": "Pepsi",
+     "image": "file:pepsi.png",
+     "imageEffect": "none"
+    }
+   ],
+   "name": "MASTER",
+   "subtitle": "Getting harder..."
+  },
+  {
+   "questions": [
+    {
+     "q": "Only real fans know this one",
+     "a": "Mitsubishi",
+     "image": "file:mitsubishi.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Which car brand uses this?",
+     "a": "Chevrolet",
+     "image": "file:chevrolet.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Getting tough: which brand?",
+     "a": "Hyundai",
+     "image": "file:hyundai.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Which company is this?",
+     "a": "Dropbox",
+     "image": "file:dropbox.png",
+     "imageEffect": "none"
+    },
+    {
+     "q": "Last one: which car brand?",
+     "a": "Citroën",
+     "image": "file:citroen.png",
+     "imageEffect": "none"
+    }
+   ],
+   "name": "GOAT",
+   "subtitle": "Only legends survive"
+  }
+ ],
+ "questionEffect": "none",
+ "timing": {
+  "read": "auto",
+  "readMin": 3.5,
+  "readMax": 4.5,
+  "countdown": 2,
+  "answer": 2.4,
+  "levelCard": 2.2,
+  "outro": 7,
+  "maxDuration": 180
+ },
+ "outro": {
+  "title": "What's your score?",
+  "tiers": [
+   "0-5 · ROOKIE",
+   "6-10 · MASTER",
+   "11-15 · GOAT"
+  ],
+  "cta": [
+   "Drop it in the comments!",
+   "Follow Quiz Factory Forever"
+  ]
+ }
+}

@@ -51,8 +51,8 @@ PRESET = {
 VOICE_SCRIPT_STACK_MJS = r'''import { register } from "tsx/esm/api";
 register();
 const fs = await import("node:fs"); const path = await import("node:path");
-const { compileStack, stackSchema } = await import(path.join(process.cwd(), "packages/core/stack.ts"));
-const { voiceScript } = compileStack(stackSchema.parse(JSON.parse(fs.readFileSync(process.argv[2], "utf8"))));
+const { compileQuiz } = await import(path.join(process.cwd(), "packages/core/quiz.ts"));
+const { voiceScript } = compileQuiz(JSON.parse(fs.readFileSync(process.argv[2], "utf8")), undefined, { voiceDurations: {} });
 fs.writeFileSync(process.argv[3], JSON.stringify(voiceScript.map(({ id, text }) => ({ id, text }))));
 '''
 
@@ -65,10 +65,15 @@ STACK_DEFAULTS = {"preset": "qff-stack", "theme": "qff", "language": "en",
                   "end": {"text": "How many did you get?",
                           "say": "How many did you get? Tell us in the comments, and follow for a new quiz every day!"}}
 STACK_CTA_SAY = "Enjoying it? Hit like and follow!"
+# trouve l'intrus (mode odd) : choix en cercle, minuteur natif au centre
+ODD_DEFAULTS = {"theme": "qff", "language": "en", "title": "FIND THE ODD ONE OUT",
+                "timing": {"show": 1, "think": 0, "countdown": 3, "reveal": 2.5, "endHold": 6.5},
+                "layout": STACK_DEFAULTS["layout"], "end": STACK_DEFAULTS["end"]}
+LIST_MODES = ("stack", "odd")
 
 
 def stack_full(raw, img=None):
-    m = json.loads(json.dumps(STACK_DEFAULTS))
+    m = json.loads(json.dumps(ODD_DEFAULTS if raw.get("mode") == "odd" else STACK_DEFAULTS))
     for k, v in raw.items():
         m[k] = {**m[k], **v} if isinstance(v, dict) and isinstance(m.get(k), dict) else v
     if raw.get("backgrounds") and "background" not in raw:
@@ -286,6 +291,9 @@ def allq(s):
     """Toutes les questions d'un spec : niveaux (mode levels) ou items (mode stack, quiz liste)."""
     if s.get("mode") == "stack":
         return [dict(x, q=x.get("q", "")) for x in s.get("items", [])]
+    if s.get("mode") == "odd":  # q = les choix, a = l'intrus
+        return [dict(x, q=", ".join(x["choices"]), a=x.get("a") or x["choices"][x.get("correctIndex", 0)])
+                for x in s.get("items", [])]
     return [q for L in s.get("levels", []) for q in L.get("questions", [])]
 
 
@@ -439,7 +447,7 @@ def check(spec_path):
     for f in sorted(glob.glob(f"{img}/sons/*")):
         if not f.endswith(".json") and hashlib.sha256(open(f, "rb").read()).hexdigest()[:16] in ksons:
             issues.append(f"son deja utilise : {os.path.basename(f)}")
-    if s.get("mode") == "stack":
+    if s.get("mode") in LIST_MODES:
         if not 5 <= n <= 15:
             issues.append(f"{n} items (quiz liste : 5 a 15)")
     elif n != 15:
@@ -614,12 +622,13 @@ def build(spec_path, slot):
         make_stinger(raw, img, f"{q}/stinger.wav")
     full = f"{q}/spec.full.json"
     voice = VOICES[slot_index(slot) % 4]
-    if raw.get("mode") == "stack":  # quiz liste
+    if raw.get("mode") in LIST_MODES:  # quiz liste ou intrus
         json.dump(stack_full(raw, img), open(full, "w"))
         open(f"{REPO}/voice_script_stack.qff.mjs", "w").write(VOICE_SCRIPT_STACK_MJS)
         sh(f"cd {REPO} && node voice_script_stack.qff.mjs {full} {q}/voice-script.json")
     else:
         json.dump(merged(spec_path), open(full, "w"))
+        open(f"{REPO}/voice_script.qff.mjs", "w").write(VOICE_SCRIPT_MJS)
         sh(f"cd {REPO} && node voice_script.qff.mjs {full} {q}/voice-script.json")
     shutil.rmtree(clips, ignore_errors=True)
     os.makedirs(clips)
@@ -630,13 +639,13 @@ def build(spec_path, slot):
         w, sr = k.create(s["text"], voice=voice, speed=1.05, lang="en-gb" if voice[0] == "b" else "en-us")
         w, _ = librosa.effects.trim(w, top_db=38)
         sf.write(f"{clips}/{s['id']}.wav", librosa.resample(w, orig_sr=sr, target_sr=48000), 48000)
-    if raw.get("mode") == "stack":
+    if raw.get("mode") == "stack":  # le mode odd a son minuteur natif
         json.dump(stack_timer(json.load(open(full)), clips), open(full, "w"))
     shutil.rmtree(out, ignore_errors=True)
     jobs = max(1, os.cpu_count() or 2)
     sfx = f"{q}/sfx.json" if os.path.exists(f"{q}/sfx.json") else "default"  # ex. {"tick": null}
     vopt = f"--voice-clips {clips}"
-    if raw.get("mode") == "stack":  # durees passees d'emblee : les elements d'item (minuteur) sont valides avec les vraies durees
+    if raw.get("mode") in LIST_MODES:  # durees passees d'emblee : les elements d'item (minuteur) sont valides avec les vraies durees
         import soundfile as sf
         json.dump({os.path.basename(f)[:-4]: round(sf.info(f).duration, 3) for f in glob.glob(f"{clips}/*.wav")},
                   open(f"{q}/voice-durations.json", "w"))

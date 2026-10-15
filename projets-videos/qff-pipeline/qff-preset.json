@@ -1,0 +1,83 @@
+{
+ "preset": "qff-reel",
+ "format": "reel-9x16",
+ "language": "en",
+ "theme": {
+  "extends": "qff",
+  "backdrop": {
+   "type": "linear",
+   "color": "#07275F",
+   "color2": "#0B3E93",
+   "angle": 160
+  }
+ },
+ "intro": {
+  "logoSeconds": 1,
+  "subtitle": "15 QUESTIONS",
+  "tagline": "Rookie or GOAT?",
+  "say": "Answer these fifteen questions, and find out if you're a rookie... or a goat!",
+  "elements": [
+   {
+    "id": "cover_logo_big",
+    "type": "image",
+    "src": "file:qff-logo.png",
+    "x": 370,
+    "y": 300,
+    "w": 340,
+    "h": 340,
+    "radius": 40
+   }
+  ],
+  "layout": {
+   "brand_logo": {
+    "visible": false
+   },
+   "badge_*": {
+    "visible": false
+   },
+   "intro_title": {
+    "y": 0.481
+   },
+   "intro_subtitle": {
+    "y": 0.553
+   },
+   "intro_tagline": {
+    "y": 0.781
+   }
+  }
+ },
+ "questionEffect": "none",
+ "imageLayout": "hero",
+ "voice": {
+  "seed": 7,
+  "answerTemplates": [
+   "Of course, it's {a}!",
+   "Yes, it's {a}.",
+   "The answer is {a}.",
+   "{a}!",
+   "That's {a}."
+  ]
+ },
+ "outro": {
+  "title": "What's your score?",
+  "tiers": [
+   "0-5 · ROOKIE",
+   "6-10 · MASTER",
+   "11-15 · GOAT"
+  ],
+  "cta": [
+   "Drop it in the comments!",
+   "Follow Quiz Factory Forever"
+  ],
+  "say": "So, what's your score? Rookie, master, or goat? Tell us in the comments, and follow for more!"
+ },
+ "timing": {
+  "read": "voice",
+  "readPad": 0.3,
+  "countdown": 3,
+  "answer": 2.4,
+  "levelCard": 1.8,
+  "outro": 6,
+  "maxDuration": 180
+ }
+}

@@ -1,0 +1,225 @@
+{
+ "mode": "levels",
+ "format": "reel-9x16",
+ "language": "en",
+ "theme": {
+  "extends": "qff",
+  "backdrop": {
+   "type": "linear",
+   "color": "#07275F",
+   "color2": "#0B3E93",
+   "angle": 160
+  }
+ },
+ "intro": {
+  "title": "15 STARS",
+  "subtitle": "EYES ONLY",
+  "tagline": "Can you name them?",
+  "say": "Welcome to Quiz Factory Forever! Fifteen stars, only their eyes."
+ },
+ "questionEffect": "none",
+ "imageLayout": "hero",
+ "imageCard": {
+  "color": "#FDF8E3",
+  "radius": 32,
+  "padding": 14,
+  "shape": "square"
+ },
+ "levels": [
+  {
+   "name": "ROOKIE",
+   "subtitle": "Warm-up time",
+   "say": "Level one. Rookie.",
+   "questions": [
+    {
+     "q": "Whose eyes are these?",
+     "a": "Dwayne Johnson",
+     "image": "file:dwayne.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.5,
+     "focusY": 0.426,
+     "say": "Let's start easy. Whose eyes are these?",
+     "sayAnswer": "Dwayne Johnson, The Rock!"
+    },
+    {
+     "q": "Who is it?",
+     "a": "Taylor Swift",
+     "image": "file:taylorswift.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.497,
+     "focusY": 0.409,
+     "say": "A singer now. Who is it?",
+     "sayAnswer": "Taylor Swift!"
+    },
+    {
+     "q": "Name this star!",
+     "a": "Keanu Reeves",
+     "image": "file:keanu.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.492,
+     "focusY": 0.402,
+     "say": "Name this star!",
+     "sayAnswer": "Of course, Keanu Reeves."
+    },
+    {
+     "q": "And these eyes?",
+     "a": "Ed Sheeran",
+     "image": "file:edsheeran.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.5,
+     "focusY": 0.426,
+     "say": "And these eyes?",
+     "sayAnswer": "Yes, it's Ed Sheeran."
+    },
+    {
+     "q": "Who is hiding here?",
+     "a": "Will Smith",
+     "image": "file:willsmith.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.477,
+     "focusY": 0.424,
+     "say": "Who is hiding here?",
+     "sayAnswer": "Will Smith!"
+    }
+   ]
+  },
+  {
+   "name": "MASTER",
+   "subtitle": "It gets serious",
+   "say": "Level two. Master.",
+   "questions": [
+    {
+     "q": "Whose eyes are these?",
+     "a": "Tom Cruise",
+     "image": "file:tomcruise.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.509,
+     "focusY": 0.419,
+     "say": "Whose eyes are these?",
+     "sayAnswer": "Tom Cruise."
+    },
+    {
+     "q": "Which singer is this?",
+     "a": "Dua Lipa",
+     "image": "file:dualipa.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.49,
+     "focusY": 0.42,
+     "say": "Which singer is this?",
+     "sayAnswer": "It's Dua Lipa."
+    },
+    {
+     "q": "Name this legend!",
+     "a": "Jackie Chan",
+     "image": "file:jackiechan.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.5,
+     "focusY": 0.372,
+     "say": "Name this legend!",
+     "sayAnswer": "Jackie Chan, of course."
+    },
+    {
+     "q": "And this one?",
+     "a": "Margot Robbie",
+     "image": "file:margot.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.518,
+     "focusY": 0.408,
+     "say": "And this one?",
+     "sayAnswer": "Yes, Margot Robbie."
+    },
+    {
+     "q": "Who is it?",
+     "a": "Katy Perry",
+     "image": "file:katyperry.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.43,
+     "focusY": 0.401,
+     "say": "Getting harder. Who is it?",
+     "sayAnswer": "Katy Perry!"
+    }
+   ]
+  },
+  {
+   "name": "GOAT",
+   "subtitle": "Only legends survive",
+   "say": "Level three. Goat!",
+   "questions": [
+    {
+     "q": "Whose eyes are these?",
+     "a": "Zendaya",
+     "image": "file:zendaya.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.505,
+     "focusY": 0.411,
+     "say": "Only real fans get this one.",
+     "sayAnswer": "Zendaya."
+    },
+    {
+     "q": "Who is behind these eyes?",
+     "a": "Ryan Reynolds",
+     "image": "file:ryanreynolds.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.457,
+     "focusY": 0.422,
+     "say": "Who is behind these eyes?",
+     "sayAnswer": "Ryan Reynolds."
+    },
+    {
+     "q": "Name this actress!",
+     "a": "Jennifer Lawrence",
+     "image": "file:jenniferlawrence.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.568,
+     "focusY": 0.401,
+     "say": "Name this actress!",
+     "sayAnswer": "Jennifer Lawrence."
+    },
+    {
+     "q": "Which singer is this?",
+     "a": "Shawn Mendes",
+     "image": "file:shawnmendes.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.5,
+     "focusY": 0.426,
+     "say": "One more singer. Which one?",
+     "sayAnswer": "Shawn Mendes!"
+    },
+    {
+     "q": "Last one! Who is it?",
+     "a": "Tom Holland",
+     "image": "file:tomholland.jpg",
+     "imageEffect": "zoom",
+     "focusX": 0.486,
+     "focusY": 0.412,
+     "say": "Last one! Who is it?",
+     "sayAnswer": "Tom Holland. Spider-Man!"
+    }
+   ]
+  }
+ ],
+ "outro": {
+  "title": "What's your score?",
+  "tiers": [
+   "0-5 \u00b7 ROOKIE",
+   "6-10 \u00b7 MASTER",
+   "11-15 \u00b7 GOAT"
+  ],
+  "cta": [
+   "Drop it in the comments!",
+   "Follow Quiz Factory Forever"
+  ],
+  "say": "So, what's your score? Rookie, master, or goat? Tell us in the comments, and follow for more!"
+ },
+ "timing": {
+  "read": "voice",
+  "readPad": 0.35,
+  "readMin": 1.2,
+  "readMax": 7,
+  "countdown": 3,
+  "answer": 2.8,
+  "levelCard": 2.2,
+  "outro": 7,
+  "maxDuration": 180
+ }
+}
