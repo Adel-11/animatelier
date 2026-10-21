@@ -613,6 +613,22 @@ def make_stinger(spec, img, dst, total=2.6):
     sf.write(dst, out, SR)
 
 
+def make_cover(q, img, full, clips, out_jpg):
+    """Couverture Instagram : l'ecran titre (intro) rendu a part, car la video n'a plus d'intro (intro.skip)."""
+    import soundfile as sf
+    from PIL import Image
+    s = json.load(open(full))
+    s["intro"] = {**s.get("intro", {}), "skip": False, "logoSeconds": 0}
+    json.dump(s, open(f"{q}/spec.cover.json", "w"))
+    json.dump({os.path.basename(f)[:-4]: round(sf.info(f).duration, 3) for f in glob.glob(f"{clips}/*.wav")},
+              open(f"{q}/cover-durations.json", "w"))
+    shutil.rmtree(f"{q}/cover-out", ignore_errors=True)
+    sh(f"cd {REPO} && node apps/cli/quiz-video.js {q}/spec.cover.json --assets-dir {img} "
+       f"--voice-durations {q}/cover-durations.json --preview-only --frames 1.5 --out {q}/cover-out")
+    Image.open(f"{q}/cover-out/frame-01.png").convert("RGB").save(out_jpg, quality=90)
+    print("couverture :", out_jpg, os.path.getsize(out_jpg), "octets")
+
+
 def build(spec_path, slot):
     spec_path = os.path.abspath(spec_path)
     q = os.path.dirname(spec_path)
@@ -672,6 +688,8 @@ def build(spec_path, slot):
     except (SystemExit, Exception) as e:
         print("musique indisponible:", e, file=sys.stderr)
         music = None
+    if raw.get("mode") not in LIST_MODES:  # quiz liste / intrus : pas d'intro, la couverture reste l'image a 2 s
+        make_cover(q, img, full, clips, f"{q}/cover.jpg")
     mixf = f"{q}/mix.wav"
     mix(out, clips, music, mixf)
     sh(f"ffmpeg -loglevel error -y -i {out}/video.mp4 -an -c:v copy {out}/silent.mp4")
@@ -690,9 +708,14 @@ def build(spec_path, slot):
 
 def publish(spec_path, caption):
     q = os.path.dirname(os.path.abspath(spec_path))
-    r = subprocess.run(["curl", "-sS", "-m", "300", "-F", f"video=@{q}/final.mp4", "-F", f"caption={caption}",
-                        "-F", "dry_run=" + os.environ.get("QFF_DRY", "false"), "-F", "facebook=true", "-F", "cover_at=2", PUB],
-                       capture_output=True, text=True)
+    cmd = ["curl", "-sS", "-m", "300", "-F", f"video=@{q}/final.mp4", "-F", f"caption={caption}",
+           "-F", "dry_run=" + os.environ.get("QFF_DRY", "false"), "-F", "facebook=" + os.environ.get("QFF_FB", "true"),
+           "-F", "cover_at=2"]
+    if os.path.exists(f"{q}/cover.jpg"):  # couverture rendue a part (le workflow n8n l'utilise a la place de l'image a cover_at)
+        import base64
+        open(f"{q}/cover.b64", "w").write(base64.b64encode(open(f"{q}/cover.jpg", "rb").read()).decode())
+        cmd += ["-F", f"cover_b64=<{q}/cover.b64"]
+    r = subprocess.run(cmd + [PUB], capture_output=True, text=True)
     print(r.stdout or r.stderr, flush=True)
     if '"execution_id"' in (r.stdout or ""):
         time.sleep(100)
@@ -779,14 +802,17 @@ RULES = """
   ou un evenement des 3 dernieres annees doit etre verifiee par une recherche web (WebSearch / WebFetch) AVANT
   publication, car ta memoire peut etre perimee (ex. l'Espagne a gagne la Coupe du monde 2026 : 2 titres ; Mbappe
   est devenu le meilleur buteur de l'histoire de la Coupe du monde en 2026). En cas de doute non leve, change de question.
-- PAS D'INTRO : la video demarre directement par la carte du niveau 1 puis la question 1 (preset intro.skip = true).
-  Inutile d'ecrire intro.say, intro.elements ni "cover". La couverture Instagram (cover_at=2) est donc une image de jeu.
+- PAS D'INTRO : la video demarre directement sur la question 1, sans ecran titre, sans carte « niveau 1 » (preset
+  intro.skip = true). L'ecran titre (logo + intro.title + illustrations) n'est plus dans la video : il est rendu a part
+  et envoye a Instagram comme COUVERTURE (cover.jpg, fait par build). Intro.say n'est plus utile.
 - Anglais. Pas de question qui donne l'indice. Varier les formulations. Environ 1/3 de QCM (a + wrong:[3]).
 - Nombres en toutes lettres dans aSay si la reponse est un nombre. Prononciations difficiles : voice.pronounce.
 - Countdown : timing.countdown = 2 si la majorite des questions ont une image, sinon 3 (defaut du preset).
 - Images : libres de droits uniquement (Openverse commercial, domaine public). Pas d'effet (imageEffect none).
-  Sinon passer le theme en questions texte.
-- intro.title = intitule du quiz en majuscules, court (ex. GUESS THE FLAG), sert au journal (plus affiche : pas d'intro).
+  Sinon passer le theme en questions texte. Ajouter a intro.elements le logo (cover_logo_big) ET une petite
+  illustration (sauf culture G) entre y=985 et y=1145 : l'ecran titre sert de couverture (grille Insta 3:4).
+- intro.title = intitule du quiz en majuscules, court (ex. GUESS THE FLAG), ecrit sur la couverture.
+- "cover": ["a.jpg","b.jpg","c.jpg"] a la racine du spec = 3 petites illustrations de couverture (placement auto).
 - Apres la question 3, une scene « LIKE & FOLLOW » est ajoutee automatiquement (rien a ecrire).
 - Anecdotes : sur UNE question MASTER et UNE question GOAT, celles ou le public risque le plus de se tromper,
   ajouter "sayAnswer" (voix, 12 a 20 mots : l'erreur probable + un fait vrai, verifiable, amusant) et
@@ -798,7 +824,7 @@ QUIZ SONORE (question avec "audio") : le preset son s'applique tout seul (fond b
   typiques, LIES AU THEME du quiz (ex. instruments : un gong + un kazoo ; vehicules : un klaxon), pas utilises dans
   les questions. Sans "stinger", pas de jingle (jamais de sons d'animaux si le theme n'est pas les animaux). Par question : "audio":"file:sons/x.ogg"
   (optionnel "audioStart"), "answerImage":"file:x.jpg" (photo revelee), pas de "image". intro.title "SOUND QUIZ"
-  (pas d'intro affichee ni dite : la video commence par le niveau 1).
+  intro.subtitle ex. "15 ANIMALS TO GUESS" (couverture seulement ; la video commence par la question 1).
   Niveau adulte : pas de reponses trop evidentes au niveau ROOKIE (pas d'animaux domestiques par ex.).
   Sons : Openverse audio (commons.py osearch/oget), Wikimedia Commons (commons.py search/get) ou toute source libre
   (commons.py url), licences PD / CC0 / CC BY / CC BY-SA uniquement (jamais NC, ND, sampling+) ;

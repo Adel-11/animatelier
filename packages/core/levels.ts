@@ -601,8 +601,11 @@ export function compileLevels(
   const titleDuration = s.intro.skip
       ? 0
       : slotLength("intro", s.intro.titleSeconds, "intro"),
+    // intro.skip also drops the first level card: the video opens on question 1.
     levelDurations = s.levels.map((_, i) =>
-      slotLength(`level_${i + 1}`, t.levelCard, "level"),
+      s.intro.skip && i === 0
+        ? 0
+        : slotLength(`level_${i + 1}`, t.levelCard, "level"),
     ),
     outroDuration = slotLength("outro", t.outro, "outro");
   const fixed =
@@ -1167,49 +1170,52 @@ export function compileLevels(
     const levelColor = theme.levels[li % theme.levels.length],
       ls = now,
       lid = `level_${li + 1}`;
-    events.push({ time: ls, type: "level", id: lid });
-    scene(lid, levelDurations[li], "level", (d) => {
-      progressBars(d, li, -1, true);
-      d.text(
-        "level_number",
-        `${s.labels?.level ?? (s.language === "fr" ? "NIVEAU" : "LEVEL")} ${li + 1}`,
-        width * 0.08,
-        safeH * 0.39,
-        width * 0.84,
-        safeH * 0.12,
-        90 * unit,
-      );
-
-      d.text(
-        "level_name",
-        level.name,
-        width * 0.08,
-        safeH * 0.5,
-        width * 0.84,
-        safeH * 0.15,
-        200 * unit,
-        levelColor,
-      );
-      if (level.subtitle)
+    const skipCard = levelDurations[li] === 0;
+    if (!skipCard) events.push({ time: ls, type: "level", id: lid });
+    if (!skipCard)
+      scene(lid, levelDurations[li], "level", (d) => {
+        progressBars(d, li, -1, true);
         d.text(
-          "level_subtitle",
-          level.subtitle,
+          "level_number",
+          `${s.labels?.level ?? (s.language === "fr" ? "NIVEAU" : "LEVEL")} ${li + 1}`,
           width * 0.08,
-          safeH * 0.64,
+          safeH * 0.39,
           width * 0.84,
-          safeH * 0.1,
-          50 * unit,
-          theme.muted,
+          safeH * 0.12,
+          90 * unit,
         );
-    });
+
+        d.text(
+          "level_name",
+          level.name,
+          width * 0.08,
+          safeH * 0.5,
+          width * 0.84,
+          safeH * 0.15,
+          200 * unit,
+          levelColor,
+        );
+        if (level.subtitle)
+          d.text(
+            "level_subtitle",
+            level.subtitle,
+            width * 0.08,
+            safeH * 0.64,
+            width * 0.84,
+            safeH * 0.1,
+            50 * unit,
+            theme.muted,
+          );
+      });
     levelCards.push({ id: lid, start: ls, end: now });
-    voice(
-      lid,
-      ls,
-      levelDurations[li],
-      `${s.labels?.level ?? (s.language === "fr" ? "Niveau" : "Level")} ${li + 1}. ${level.name}. ${level.subtitle ?? ""}`,
-      level.say,
-    );
+    if (!skipCard)
+      voice(
+        lid,
+        ls,
+        levelDurations[li],
+        `${s.labels?.level ?? (s.language === "fr" ? "Niveau" : "Level")} ${li + 1}. ${level.name}. ${level.subtitle ?? ""}`,
+        level.say,
+      );
     level.questions.forEach((q, qi) => {
       const number = ++index,
         id = `question_${number}`,

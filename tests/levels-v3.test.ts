@@ -86,11 +86,12 @@ it("uses identical pill geometry and label size on level and question SVG", () =
   expect(rect(questionSvg, "progress_0_0")).toContain('rx="11" ry="11"');
 });
 
-it("skips the intro: no scene, no voice slot, first level card starts at 0", () => {
+it("skips the intro and the first level card: question 1 starts at 0", () => {
   const spec = { ...base(), intro: { skip: true } };
   const built = compileLevels(spec);
   expect(built.timeline.intro.end - built.timeline.intro.start).toBe(0);
-  expect(built.timeline.levels[0].start).toBe(0);
+  expect(built.timeline.questions[0].start).toBe(0);
+  expect(built.voiceScript.some((slot) => slot.id === "level_1")).toBe(false);
   expect(built.voiceScript.some((slot) => slot.id === "intro")).toBe(false);
   expect(
     built.project.scenes.some((scene) => /^intro/.test(String(scene.id))),
