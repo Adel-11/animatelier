@@ -35,7 +35,9 @@ TZ = ZoneInfo("America/Toronto")  # Ottawa, heure d'ete/hiver geree automatiquem
 PRESET = {
     "preset": "qff-reel", "format": "reel-9x16", "language": "en",
     "theme": {"extends": "qff", "backdrop": {"type": "linear", "color": "#07275F", "color2": "#0B3E93", "angle": 160}},
-    "intro": {"logoSeconds": 1, "subtitle": "15 QUESTIONS", "tagline": "Rookie or GOAT?",
+    # intro.skip : pas d'ecran d'intro ni de voix d'intro, la video commence directement par le niveau 1
+    # (mettre "intro": {"skip": false} dans une spec pour la retablir)
+    "intro": {"skip": True, "logoSeconds": 1, "subtitle": "15 QUESTIONS", "tagline": "Rookie or GOAT?",
               "say": "Answer these fifteen questions, and find out if you're a rookie... or a goat!",
               "elements": [{"id": "cover_logo_big", "type": "image", "src": "file:qff-logo.png", "x": 370, "y": 300, "w": 340, "h": 340, "radius": 40}],
               "layout": {"brand_logo": {"visible": False}, "badge_*": {"visible": False}, "intro_title": {"y": 0.481},
@@ -777,14 +779,14 @@ RULES = """
   ou un evenement des 3 dernieres annees doit etre verifiee par une recherche web (WebSearch / WebFetch) AVANT
   publication, car ta memoire peut etre perimee (ex. l'Espagne a gagne la Coupe du monde 2026 : 2 titres ; Mbappe
   est devenu le meilleur buteur de l'histoire de la Coupe du monde en 2026). En cas de doute non leve, change de question.
+- PAS D'INTRO : la video demarre directement par la carte du niveau 1 puis la question 1 (preset intro.skip = true).
+  Inutile d'ecrire intro.say, intro.elements ni "cover". La couverture Instagram (cover_at=2) est donc une image de jeu.
 - Anglais. Pas de question qui donne l'indice. Varier les formulations. Environ 1/3 de QCM (a + wrong:[3]).
 - Nombres en toutes lettres dans aSay si la reponse est un nombre. Prononciations difficiles : voice.pronounce.
 - Countdown : timing.countdown = 2 si la majorite des questions ont une image, sinon 3 (defaut du preset).
 - Images : libres de droits uniquement (Openverse commercial, domaine public). Pas d'effet (imageEffect none).
-  Sinon passer le theme en questions texte. Ajouter a intro.elements le logo (cover_logo_big) ET une petite
-  illustration (sauf culture G) entre y=985 et y=1145 : l'ecran titre sert de couverture (grille Insta 3:4).
-- intro.title = intitule du quiz en majuscules, court (ex. GUESS THE FLAG).
-- "cover": ["a.jpg","b.jpg","c.jpg"] a la racine du spec = 3 petites illustrations de couverture (placement auto).
+  Sinon passer le theme en questions texte.
+- intro.title = intitule du quiz en majuscules, court (ex. GUESS THE FLAG), sert au journal (plus affiche : pas d'intro).
 - Apres la question 3, une scene « LIKE & FOLLOW » est ajoutee automatiquement (rien a ecrire).
 - Anecdotes : sur UNE question MASTER et UNE question GOAT, celles ou le public risque le plus de se tromper,
   ajouter "sayAnswer" (voix, 12 a 20 mots : l'erreur probable + un fait vrai, verifiable, amusant) et
@@ -795,8 +797,8 @@ QUIZ SONORE (question avec "audio") : le preset son s'applique tout seul (fond b
   Jingle d'intro : "stinger": ["file:sons/a.ogg", "file:sons/b.ogg"] a la racine = 1 ou 2 sons courts, droles ou
   typiques, LIES AU THEME du quiz (ex. instruments : un gong + un kazoo ; vehicules : un klaxon), pas utilises dans
   les questions. Sans "stinger", pas de jingle (jamais de sons d'animaux si le theme n'est pas les animaux). Par question : "audio":"file:sons/x.ogg"
-  (optionnel "audioStart"), "answerImage":"file:x.jpg" (photo revelee), pas de "image". intro.title "SOUND QUIZ",
-  intro.subtitle ex. "15 ANIMALS TO GUESS", intro.say ex. "Can you recognize these fifteen animals, just by their sound?".
+  (optionnel "audioStart"), "answerImage":"file:x.jpg" (photo revelee), pas de "image". intro.title "SOUND QUIZ"
+  (pas d'intro affichee ni dite : la video commence par le niveau 1).
   Niveau adulte : pas de reponses trop evidentes au niveau ROOKIE (pas d'animaux domestiques par ex.).
   Sons : Openverse audio (commons.py osearch/oget), Wikimedia Commons (commons.py search/get) ou toute source libre
   (commons.py url), licences PD / CC0 / CC BY / CC BY-SA uniquement (jamais NC, ND, sampling+) ;

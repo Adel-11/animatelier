@@ -240,6 +240,7 @@ export const levelsSchema = z
     layout: layoutSchema.optional(),
     intro: z
       .object({
+        skip: z.boolean().default(false),
         logoSeconds: z.number().finite().min(0).max(30).optional(),
         title: label.default("QUIZ"),
         subtitle: label.default("LEVELS"),
@@ -593,10 +594,13 @@ export function compileLevels(
     );
   });
   let answer = frame(s.revealMode === "end" ? 0.5 : t.answer);
-  const logoDuration = theme.logo
-    ? frame(s.intro.logoSeconds ?? theme.logo.introSeconds)
-    : 0;
-  const titleDuration = slotLength("intro", s.intro.titleSeconds, "intro"),
+  const logoDuration =
+    theme.logo && !s.intro.skip
+      ? frame(s.intro.logoSeconds ?? theme.logo.introSeconds)
+      : 0;
+  const titleDuration = s.intro.skip
+      ? 0
+      : slotLength("intro", s.intro.titleSeconds, "intro"),
     levelDurations = s.levels.map((_, i) =>
       slotLength(`level_${i + 1}`, t.levelCard, "level"),
     ),
@@ -1095,67 +1099,70 @@ export function compileLevels(
     });
   }
   const titleStart = now;
-  scene("intro", titleDuration, "intro", (d) => {
-    d.text(
-      "intro_title",
-      s.intro.title,
-      width * 0.08,
-      safeH * 0.26,
-      width * 0.84,
-      safeH * 0.1,
-      90 * unit,
-    );
-    d.text(
-      "intro_subtitle",
-      s.intro.subtitle,
-      width * 0.08,
-      safeH * 0.37,
-      width * 0.84,
-      safeH * 0.1,
-      75 * unit,
-      theme.accent,
-    );
-    d.text(
-      "intro_tagline",
-      s.intro.tagline,
-      width * 0.08,
-      safeH * 0.78,
-      width * 0.84,
-      safeH * 0.1,
-      48 * unit,
-    );
-    s.levels.forEach((l, i) => {
-      const rowH = Math.min(104 * unit, (safeH * 0.28) / s.levels.length),
-        y = safeH * 0.49 + i * rowH;
-      d.rect(
-        `badge_${i}`,
-        width * 0.25,
-        y,
-        width * 0.5,
-        rowH * 0.85,
-        theme.levels[i % theme.levels.length],
+  if (!s.intro.skip) {
+    scene("intro", titleDuration, "intro", (d) => {
+      d.text(
+        "intro_title",
+        s.intro.title,
+        width * 0.08,
+        safeH * 0.26,
+        width * 0.84,
+        safeH * 0.1,
+        90 * unit,
       );
       d.text(
-        `badge_text_${i}`,
-        l.name,
-        width * 0.27,
-        y,
-        width * 0.46,
-        rowH * 0.85,
-        50 * unit,
-        theme.background,
+        "intro_subtitle",
+        s.intro.subtitle,
+        width * 0.08,
+        safeH * 0.37,
+        width * 0.84,
+        safeH * 0.1,
+        75 * unit,
+        theme.accent,
       );
+      d.text(
+        "intro_tagline",
+        s.intro.tagline,
+        width * 0.08,
+        safeH * 0.78,
+        width * 0.84,
+        safeH * 0.1,
+        48 * unit,
+      );
+      s.levels.forEach((l, i) => {
+        const rowH = Math.min(104 * unit, (safeH * 0.28) / s.levels.length),
+          y = safeH * 0.49 + i * rowH;
+        d.rect(
+          `badge_${i}`,
+          width * 0.25,
+          y,
+          width * 0.5,
+          rowH * 0.85,
+          theme.levels[i % theme.levels.length],
+        );
+        d.text(
+          `badge_text_${i}`,
+          l.name,
+          width * 0.27,
+          y,
+          width * 0.46,
+          rowH * 0.85,
+          50 * unit,
+          theme.background,
+        );
+      });
     });
-  });
-  voice(
-    "intro",
-    titleStart,
-    titleDuration,
-    `${s.intro.title}. ${s.intro.subtitle}. ${s.intro.tagline}`,
-    s.intro.say,
-  );
+    voice(
+      "intro",
+      titleStart,
+      titleDuration,
+      `${s.intro.title}. ${s.intro.subtitle}. ${s.intro.tagline}`,
+      s.intro.say,
+    );
+  }
   const intro = { start: introStart, end: now };
-  events.push({ time: introStart, type: "intro", id: "intro" });
+  if (!s.intro.skip)
+    events.push({ time: introStart, type: "intro", id: "intro" });
   s.levels.forEach((level, li) => {
     const levelColor = theme.levels[li % theme.levels.length],
       ls = now,
