@@ -1,3 +1,44 @@
+# Point de reprise, 2 novembre 2026 — quiz liste fluide
+
+Constats sur le quiz liste (`stack`) :
+- coupe franche entre photos de fond ;
+- saut de zoom sur les scènes insérées et sur l'outro ;
+- bande vide à droite dès que le fond zoome (bug du rendu SVG imbriqué sous resvg, toutes les images zoomées en `cover`) ;
+- zone de flou tronquée dans les aperçus et l'éditeur ;
+- logo qui mordait sur la carte ;
+- réponse qui arrivait depuis le bord de l'écran.
+
+Corrections :
+- `packages/core/background.ts`, partagé par `stack` et `odd` : plan continu par photo, fondu `background.transition`, débord hors cadre ;
+- `packages/renderer/images.ts` : image placée directement sous le clip et filtre de flou limité au cadre ;
+- `packages/headless/pipeline.ts` : rognage des bandes unies avant le flou.
+
+Habillage `stack` :
+- `timer: "row"` : ligne surlignée, barre qui se vide, chiffres, éclair de réponse ;
+- fondus de la carte ;
+- progression animée ;
+- logo à côté du bandeau ;
+- message de fin dans la carte.
+
+`qff.py` n'ajoute plus son minuteur. Démo : `projets-videos/demo-liste-animaux/` (photos sans crédits documentés, ne pas publier telle quelle). Détails : `docs/QUIZ-VIDEO.md`.
+
+Vérifications faites :
+- `npm run build` réussi ;
+- `npm test` 84/86. Les deux échecs sont des délais de 5 s pendant qu'un rendu vidéo tournait en parallèle : à relancer seuls ;
+- images clés de la démo rendues et inspectées : fondu, minuteur, éclair, CTA, fin ;
+- bord droit mesuré au pixel à plusieurs niveaux de zoom.
+
+Reste à faire (pause demandée, redémarrage du PC) :
+1. relancer `npm test` sans autre charge ;
+2. rendre la vidéo démo complète, interrompue deux fois (une fois pendant les tests, une fois par la pause) :
+   `node apps/cli/quiz-video.js projets-videos/demo-liste-animaux/spec.json --assets-dir projets-videos/qff-sons-animaux-1/img --out projets-videos/demo-liste-animaux/out --jobs 4 --sfx default --music default --frames 7.5,62.5`
+   (supprimer d'abord `out/` s'il existe), puis inspecter des images extraites du MP4 ;
+3. le parcours navigateur n'a pas tourné : les navigateurs Playwright ne sont pas installés, les télécharger demande l'accord de l'utilisateur.
+
+Non vérifié : MCP SDK client, une production QFF réelle avec voix, Netlify. Rien n'est commité.
+
+---
+
 # Point de reprise, 13 octobre 2026 — trouve l'intrus et emojis
 
 Nouveau mode `odd` (`packages/core/odd.ts`), branché dans `compileQuiz`, `quizSchema` et la CLI (`--voice-clips` et `--voice-durations`).

@@ -197,3 +197,29 @@ Au rendu headless, une image absente de `--assets-dir/emoji/` est téléchargée
 Limite : un texte qui mélange lettres et emojis n'est pas pris en charge. Les emojis y restent des carrés vides.
 
 `stack` accepte maintenant 3 items minimum (au lieu de 5).
+
+## Quiz liste : fond fluide et habillage (2 novembre 2026)
+
+### Fond photo (`stack` et `odd`, `packages/core/background.ts`)
+
+- Le fond est posé après le calcul des durées. Les scènes consécutives qui partagent une photo (question, scène `sequence` insérée, outro) forment un seul plan : le zoom Ken Burns est continu, sans saut.
+- Au changement de photo, la précédente passe au-dessus (`background_previous`), poursuit son mouvement et s'efface en `background.transition` secondes (0,7 par défaut, 0 pour une coupe franche).
+- L'image déborde du cadre de `3 × blur + 24` px : le flou n'assombrit jamais les bords.
+- Au rendu headless, les bandes unies d'une photo floutée (letterbox noir, cadre blanc) sont rognées avant le flou. Le rognage est ignoré s'il garderait moins de 60 % de l'image.
+- `odd` garde sa règle de choix des photos (l'outro passe à la photo suivante), mais avec le même fondu.
+
+Deux défauts du rendu sont corrigés pour toutes les images :
+- une image zoomée en `cover` laissait une bande vide sur un côté (le `<svg>` imbriqué était mal rendu par resvg) ; l'image est maintenant placée directement sous le clip ;
+- la zone du filtre de flou était relative à l'image agrandie ; trop grande, resvg la tronquait. Elle est maintenant limitée au cadre visible.
+
+### Habillage `stack`
+
+- `timer: "row"` (défaut) : la ligne à deviner est entourée d'un contour pulsé. Une barre se vide dans la ligne pendant l'écoute ou la réflexion. Les chiffres du compte à rebours (`timing.countdown` ≥ 1 s) s'affichent à droite de la ligne. À la révélation, un éclair de la couleur `answer` du thème apparaît et la réponse glisse de 24 px en fondu, sans sortir de sa ligne. `timer: "none"` retire ce minuteur.
+- La question, l'image et les emojis de la carte apparaissent et s'effacent en fondu (0,25 s). La carte reste en place dessous.
+- La barre de progression s'allonge en 0,4 s à chaque réponse.
+- Avec un logo de thème, le bandeau est raccourci (842 px) et le logo se range à sa droite, sans mordre sur la carte.
+- Le message `end.text` s'affiche au centre de la carte finale.
+
+`tools/qff/qff.py` n'ajoute plus son propre minuteur aux quiz liste : il ferait doublon avec le minuteur natif.
+
+Démo : `projets-videos/demo-liste-animaux/spec.json`, à lancer avec `--assets-dir projets-videos/qff-sons-animaux-1/img`. Les crédits de ces photos ne sont pas documentés dans le dépôt : ne pas publier la démo sans les retrouver.

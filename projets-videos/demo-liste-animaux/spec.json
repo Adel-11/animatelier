@@ -1,0 +1,51 @@
+{
+  "mode": "stack",
+  "preset": "qff-stack",
+  "title": "ANIMAL RECORDS",
+  "language": "en",
+  "theme": "qff",
+  "background": {
+    "images": [
+      "file:whale.jpg",
+      "file:peacock.jpg",
+      "file:lion.jpg",
+      "file:elephant.jpg",
+      "file:owl.jpg",
+      "file:kookaburra.jpg",
+      "file:howler.jpg",
+      "file:dolphin.jpg"
+    ],
+    "blur": 14,
+    "dim": 0.45,
+    "motion": "pingpong",
+    "zoom": 1.15,
+    "transition": 0.8
+  },
+  "timing": { "show": 1.5, "think": 1, "countdown": 3, "reveal": 1.8, "endHold": 3 },
+  "end": { "text": "How many did you get?" },
+  "sequence": [
+    {
+      "after": "question_3",
+      "id": "like_follow",
+      "duration": 2.5,
+      "showList": true,
+      "elements": [
+        { "id": "cta_panel", "type": "rect", "x": 135, "y": 302, "w": 810, "h": 390, "fill": "#0F3678", "radius": 25 },
+        { "id": "cta_heart", "type": "text", "text": "♥", "x": 540, "y": 470, "fontSize": 140, "maxWidth": 500, "align": "center", "color": "#FF3B5C",
+          "keyframes": { "scale": [ { "t": 0, "v": 0.6 }, { "t": 0.35, "v": 1.1, "ease": "easeOut" }, { "t": 0.6, "v": 1 } ] }, "anchor": { "x": 540, "y": 420 } },
+        { "id": "cta_text", "type": "text", "text": "LIKE & FOLLOW", "x": 540, "y": 580, "fontSize": 72, "maxWidth": 760, "align": "center", "bold": true, "color": "#FECD1B" },
+        { "id": "cta_handle", "type": "text", "text": "@quiz.factory.forever", "x": 540, "y": 650, "fontSize": 40, "maxWidth": 760, "align": "center", "bold": true, "color": "#FFFFFF" }
+      ]
+    }
+  ],
+  "items": [
+    { "q": "Which animal is the largest that has ever lived?", "a": "Blue whale" },
+    { "q": "Which bird shows off a fan of eye-spotted feathers?", "a": "Peacock" },
+    { "q": "Which big cat is called the king of the jungle?", "a": "Lion" },
+    { "q": "Which land animal has the biggest ears?", "a": "African elephant" },
+    { "q": "Which bird can turn its head about 270 degrees?", "a": "Owl" },
+    { "q": "Which Australian bird is famous for its laughing call?", "a": "Kookaburra" },
+    { "q": "Which monkey is one of the loudest land animals?", "a": "Howler monkey" },
+    { "q": "Which sea mammal sleeps with half its brain awake?", "a": "Dolphin" }
+  ]
+}

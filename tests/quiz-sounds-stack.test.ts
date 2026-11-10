@@ -200,8 +200,32 @@ it("uses final voice durations for stack keyframes and shifts sequence, think an
   }
   const background = first.find((element) => element.id === "background_image");
   expect(background?.type).toBe("image");
-  if (background?.type === "image")
-    expect(background.keyframes.zoom[1].v).toBe(1.12);
+  if (background?.type === "image") {
+    // Le plan de la photo 1 se prolonge pendant le fondu vers la photo 2.
+    expect(background.keyframes.zoom[0].v).toBe(1);
+    expect(background.keyframes.zoom[1].v).toBeGreaterThan(1.1);
+    expect(background.x).toBeLessThan(0);
+  }
+  const second = flattenElements(built.project.scenes[1].elements);
+  expect(second.map((element) => element.id).slice(0, 3)).toEqual([
+    "background_image",
+    "background_previous",
+    "background_dim",
+  ]);
+  // La scène insérée reprend la photo de la question 3 sans saut de zoom.
+  const zoomOf = (index: number) =>
+    flattenElements(built.project.scenes[index].elements).find(
+      (element) => element.id === "background_image",
+    ) as unknown as { keyframes: { zoom: { v: number }[] } };
+  expect(zoomOf(3).keyframes.zoom[0].v).toBeCloseTo(
+    zoomOf(2).keyframes.zoom[1].v,
+    2,
+  );
+  expect(
+    flattenElements(built.project.scenes[3].elements).some(
+      (element) => element.id === "background_previous",
+    ),
+  ).toBe(false);
   expect(
     flattenElements(built.project.scenes.at(-1)!.elements).some(
       (element) => element.id === "background_image",

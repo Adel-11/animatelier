@@ -4,6 +4,7 @@ import { parseProject } from "./schema";
 import { resolveTheme, themeInputSchema } from "./themes";
 import { measureText, wrapText } from "./text";
 import { emojiOnly, emojiRow } from "./emoji";
+import { applyPhotoBackground, photoBackgroundSchema } from "./background";
 import type { CompileOptions, QuizEvent, VoiceSlot } from "./levels";
 
 // Mode « odd » : trouve l'intrus. Les choix sont disposés en cercle autour d'un
@@ -51,16 +52,7 @@ export const oddSchema = z
     // Mélange déterministe des choix : l'intrus ne tombe pas toujours au même endroit du cercle.
     shuffle: z.boolean().default(true),
     seed: z.number().int().min(0).max(1_000_000).default(0),
-    background: z
-      .object({
-        images: z.array(media).min(1).max(15),
-        blur: z.number().finite().min(0).max(50).default(16),
-        dim: z.number().finite().min(0).max(1).default(0.5),
-        motion: z.enum(["in", "out", "pingpong"]).default("pingpong"),
-        zoom: z.number().finite().min(1).max(2).default(1.12),
-      })
-      .strict()
-      .optional(),
+    background: photoBackgroundSchema.optional(),
     loopFade: z.boolean().default(true),
     layout: layout.optional(),
     timing: z
@@ -149,7 +141,8 @@ export function compileOdd(input: unknown, baseTheme?: unknown, options: Compile
       reveal: number;
       end: number;
     }[] = [],
-    scenes: unknown[] = [],
+    scenes: ({ id: string; duration: number; elements: SceneElement[] } & Record<string, unknown>)[] = [],
+    backgroundSources: (string | undefined)[] = [],
     warnings: string[] = [];
   let now = 0;
   const center = { x: 540, y: 960 };
@@ -231,20 +224,9 @@ export function compileOdd(input: unknown, baseTheme?: unknown, options: Compile
     // Fond photo flou animé, bandeau, logo : identiques au mode stack.
     const index = id.startsWith("question_") ? Number(id.slice(9)) - 1 : id === "outro" ? s.items.length : Math.max(0, count - 1);
     const bg = s.background;
-    if (bg) {
-      const motionIn = bg.motion === "in" || (bg.motion === "pingpong" && index % 2 === 0);
-      image("background_image", bg.images[index % bg.images.length], 0, 0, width, height, {
-        blur: bg.blur,
-        zoom: motionIn ? 1 : bg.zoom,
-        keyframes: {
-          zoom: [
-            { t: 0, v: motionIn ? 1 : bg.zoom },
-            { t: Math.max(0, duration - 1 / 30), v: motionIn ? bg.zoom : 1 },
-          ],
-        },
-      });
-      rect("background_dim", 0, 0, width, height, theme.background, { opacity: bg.dim, radius: 0 });
-    }
+    backgroundSources.push(bg?.images[index % bg.images.length]);
+    // La photo elle-même est posée par applyPhotoBackground une fois les durées connues.
+    if (bg) rect("background_dim", 0, 0, width, height, theme.background, { opacity: bg.dim, radius: 0 });
     rect("title_banner", 36, 120, 1008, 150, s.bannerColor);
     txt("title", s.title, 72, 160, 940, 92, 70, "#FFFFFF");
     if (theme.logo?.scenes.includes("question"))
@@ -490,9 +472,7 @@ export function compileOdd(input: unknown, baseTheme?: unknown, options: Compile
       makeScene(entry.id, duration, count);
       const scene = scenes.at(-1) as { elements: SceneElement[] };
       if (!entry.showList)
-        scene.elements = scene.elements.filter(
-          (e) => e.id === "background_image" || e.id === "background_dim",
-        );
+        scene.elements = scene.elements.filter((e) => e.id.startsWith("background_"));
       for (const element of entry.elements ?? []) scene.elements.push(newElement(element.type, duration, element));
       events.push({ time: now, type: "custom", id: entry.id });
       if (entry.say) voiceScript.push({ id: entry.id, start: now, maxDuration: duration, text: entry.say });
@@ -550,6 +530,7 @@ export function compileOdd(input: unknown, baseTheme?: unknown, options: Compile
   events.push({ time: outroStart, type: "outro", id: "outro" });
   if (s.end.say) voiceScript.push({ id: "outro", start: outroStart, maxDuration: outroDuration, text: s.end.say });
   now = frame(now + outroDuration);
+  if (s.background) applyPhotoBackground(scenes, backgroundSources, s.background, width, height);
   const project = parseProject({
     schemaVersion: 2,
     id: "quiz_compiled",

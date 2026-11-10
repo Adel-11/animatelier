@@ -74,6 +74,24 @@ async function jsonFile(filename: string) {
     throw new Error("JSON supérieur à 5 Mo.");
   return JSON.parse(await readFile(filename, "utf8"));
 }
+/**
+ * Retire les bandes unies (letterbox noir, cadre blanc) d'une photo de fond :
+ * floutées, elles deviennent une bordure sombre au bord de la vidéo.
+ * Un rognage qui garderait moins de 60 % de l'image est ignoré.
+ */
+async function withoutBorders(bytes: Uint8Array) {
+  try {
+    const { width = 0, height = 0 } = await sharp(bytes).metadata();
+    const { data, info } = await sharp(bytes)
+      .trim({ threshold: 18 })
+      .toBuffer({ resolveWithObject: true });
+    return info.width >= width * 0.6 && info.height >= height * 0.6
+      ? data
+      : bytes;
+  } catch {
+    return bytes; // image entièrement unie : rien à rogner
+  }
+}
 /** Bake constant image blur once for the raster worker; retain the editable source project. */
 async function rasterProjectWithBakedBlur(project: Project): Promise<Project> {
   const renderProject = structuredClone(project);
@@ -96,7 +114,8 @@ async function rasterProjectWithBakedBlur(project: Project): Promise<Project> {
       const key = `${asset.sha256}:${sigma}`;
       let id = cache.get(key);
       if (!id) {
-        const input = sharp(decodeBase64(asset.data)).blur(sigma);
+        const source = await withoutBorders(decodeBase64(asset.data));
+        const input = sharp(source).blur(sigma);
         const output = await (
           asset.mime === "image/jpeg"
             ? input.jpeg({ quality: 90 })

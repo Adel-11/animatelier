@@ -4,6 +4,7 @@ import { parseProject } from "./schema";
 import { resolveTheme, themeInputSchema } from "./themes";
 import { wrapText } from "./text";
 import { emojiOnly, emojiRow } from "./emoji";
+import { applyPhotoBackground, photoBackgroundSchema } from "./background";
 import type { CompileOptions, QuizEvent, VoiceSlot } from "./levels";
 
 const label = z.string().trim().min(1).max(240);
@@ -50,17 +51,10 @@ export const stackSchema = z
     theme: themeInputSchema.optional(),
     language: z.enum(["fr", "en"]).default("fr"),
     bannerColor: hex.default("#C51E2A"),
-    background: z
-      .object({
-        images: z.array(media).min(1).max(15),
-        blur: z.number().finite().min(0).max(50).default(16),
-        dim: z.number().finite().min(0).max(1).default(0.5),
-        motion: z.enum(["in", "out", "pingpong"]).default("pingpong"),
-        zoom: z.number().finite().min(1).max(2).default(1.12),
-      })
-      .strict()
-      .optional(),
+    background: photoBackgroundSchema.optional(),
     loopFade: z.boolean().default(true),
+    // Ligne à deviner surlignée, barre qui se vide et chiffres du compte à rebours.
+    timer: z.enum(["row", "none"]).default("row"),
     layout: layout.optional(),
     listenVisual: z.enum(["bars", "wave", "pulse"]).default("bars"),
     timing: z
@@ -173,7 +167,8 @@ export function compileStack(
       reveal: number;
       end: number;
     }[] = [],
-    scenes: unknown[] = [],
+    scenes: ({ id: string; duration: number; elements: SceneElement[] } & Record<string, unknown>)[] = [],
+    backgroundSources: (string | undefined)[] = [],
     warnings: string[] = [];
   let now = 0;
   const listTop = 775,
@@ -243,13 +238,15 @@ export function compileStack(
         lines = wrapText(value, fontSize, boxW, theme.typography.family, true);
         if (lines.length * fontSize * 1.2 <= boxH) break;
       }
+      const centered =
+        id === "question" || (extra as { align?: string }).align === "center";
       add("text", {
         id,
         x,
         y:
           boxY +
           fontSize +
-          (id === "question"
+          (centered
             ? Math.max(0, (boxH - lines.length * fontSize * 1.2) / 2)
             : 0),
         text: lines.join("\n"),
@@ -257,7 +254,7 @@ export function compileStack(
         maxWidth: boxW,
         color,
         bold: true,
-        ...(id === "question" ? { align: "center" } : {}),
+        ...(centered ? { align: "center" } : {}),
         ...extra,
       });
     };
@@ -270,65 +267,64 @@ export function compileStack(
       h: number,
       extra = {},
     ) => add("image", { id, src, x, y, w, h, fit: "cover", ...extra });
-    const backgroundIndex = id.startsWith("question_")
-      ? Number(id.slice(9)) - 1
-      : Math.max(0, count - 1);
-    const backgroundImage =
-      item?.backgroundImage ??
-      (s.background &&
-        s.background.images[backgroundIndex % s.background.images.length]);
-    if (backgroundImage) {
-      const bg = s.background;
-      const index = id === "outro" ? s.items.length : backgroundIndex;
-      const motionIn =
-        bg?.motion === "in" || (bg?.motion === "pingpong" && index % 2 === 0);
-      image("background_image", backgroundImage, 0, 0, width, height, {
-        blur: bg?.blur ?? 22,
-        ...(bg
-          ? {
-              zoom: motionIn ? 1 : bg.zoom,
-              keyframes: {
-                zoom: [
-                  { t: 0, v: motionIn ? 1 : bg.zoom },
-                  {
-                    t: Math.max(0, duration - 1 / 30),
-                    v: motionIn ? bg.zoom : 1,
-                  },
-                ],
-              },
-            }
-          : {}),
-      });
+    // Une question garde sa photo ; scènes insérées et fin reprennent la précédente.
+    const backgroundImage = id.startsWith("question_")
+      ? (item?.backgroundImage ??
+        (s.background &&
+          s.background.images[(Number(id.slice(9)) - 1) % s.background.images.length]))
+      : backgroundSources.at(-1);
+    backgroundSources.push(backgroundImage);
+    if (backgroundImage)
+      // Le fond lui-même est posé par applyPhotoBackground une fois les durées connues.
       rect("background_dim", 0, 0, width, height, theme.background, {
-        opacity: bg?.dim ?? 0.72,
+        opacity: s.background?.dim ?? 0.72,
         radius: 0,
       });
-    }
-    rect("title_banner", 36, 120, 1008, 150, s.bannerColor);
-    txt("title", s.title, 72, 160, 940, 92, 70, "#FFFFFF");
-    if (theme.logo?.scenes.includes("question")) {
-      image("brand_logo", theme.logo.src, 920, 292, 100, 100, {
+    // Le logo se range à droite d'un bandeau raccourci au lieu de mordre sur la carte.
+    const logo = theme.logo?.scenes.includes("question");
+    rect("title_banner", 36, 120, logo ? 842 : 1008, 150, s.bannerColor);
+    txt("title", s.title, 72, 160, logo ? 778 : 940, 92, 70, "#FFFFFF");
+    if (logo)
+      image("brand_logo", theme.logo!.src, 900, 120, 150, 150, {
         fit: "contain",
       });
-    }
+    // Le contenu de la carte apparaît et s'efface en fondu entre deux questions.
+    const fade = item
+      ? {
+          opacity: [
+            { t: 0, v: 0 },
+            { t: Math.min(0.25, duration / 4), v: 1, ease: "easeOut" },
+            { t: Math.max(duration / 2, duration - 0.25), v: 1 },
+            { t: Math.max(0, duration - 1 / 30), v: 0, ease: "easeIn" },
+          ],
+        }
+      : undefined;
+    // La carte reste en place sous l'image : le fondu ne laisse jamais voir le fond.
+    rect("image_placeholder", 135, 302, 810, 390, theme.panel, {
+      radius: 25,
+    });
     if (item?.image)
-      image("item_image", item.image, 135, 302, 810, 390, { radius: 25 });
-    else {
-      rect("image_placeholder", 135, 302, 810, 390, theme.panel, {
+      image("item_image", item.image, 135, 302, 810, 390, {
         radius: 25,
+        ...(fade ? { keyframes: fade } : {}),
       });
-      if (!item?.q)
-        txt("mystery_icon", "?", 470, 382, 140, 200, 165, theme.accent);
-    }
-    if (item?.revealImage)
+    else if (!item?.q && !endText)
+      txt("mystery_icon", "?", 470, 382, 140, 200, 165, theme.accent);
+    if (item?.revealImage && revealAt !== undefined)
       image("reveal_image", item.revealImage, 135, 302, 810, 390, {
         radius: 25,
         start: revealAt,
+        keyframes: {
+          opacity: [
+            { t: revealAt, v: 0 },
+            { t: Math.min(duration - 1 / 30, revealAt + 0.3), v: 1, ease: "easeOut" },
+          ],
+        },
       });
     const emojis = item?.q && !item.image ? emojiOnly(item.q) : undefined;
     if (emojis)
       for (const e of emojiRow("question", emojis, 540, 497, 700, 210))
-        add("image", e);
+        add("image", fade ? { ...e, keyframes: fade } : e);
     else if (item?.q)
       txt(
         "question",
@@ -338,6 +334,8 @@ export function compileStack(
         764,
         item.image ? 120 : 275,
         item.image ? 46 : 56,
+        theme.text,
+        fade ? { keyframes: fade } : {},
       );
     for (let i = 0; i < s.items.length; i++) {
       const y = listTop + i * rowH;
@@ -345,6 +343,69 @@ export function compileStack(
         opacity: i < count ? 0.95 : 0.62,
         radius: 10,
       });
+      const guessing = i === count && item && revealAt !== undefined;
+      if (guessing && s.timer === "row") {
+        // Ligne en cours : contour pulsé jusqu'à la réponse, puis éclair de bonne réponse.
+        const pulse: { t: number; v: number; ease?: "easeInOut" }[] = [];
+        for (let t = 0; t < revealAt; t += 0.4)
+          pulse.push({ t: frame(t), v: pulse.length % 2 ? 0.35 : 1, ease: "easeInOut" });
+        const settle = Math.min(duration - 1 / 30, revealAt + 0.6);
+        rect(`row_focus`, 90, y, 900, rowH - 7, "none", {
+          stroke: theme.accent,
+          strokeWidth: 4,
+          radius: 10,
+          end: settle,
+          keyframes: {
+            opacity: [
+              ...pulse.filter((p) => p.t < revealAt),
+              { t: revealAt, v: 1 },
+              { t: settle, v: 0, ease: "easeIn" },
+            ],
+          },
+        });
+        rect(`row_flash`, 90, y, 900, rowH - 7, theme.answer, {
+          radius: 10,
+          start: revealAt,
+          end: settle,
+          keyframes: {
+            opacity: [
+              { t: revealAt, v: 0.9 },
+              { t: settle, v: 0, ease: "easeOut" },
+            ],
+          },
+        });
+        // Barre qui se vide pendant le temps de réflexion, à l'intérieur de la ligne.
+        if (revealAt - readTime > 0.1)
+          rect(`row_timer`, 102, y + rowH - 17, 876, 5, theme.accent, {
+          radius: 2,
+          start: readTime,
+          end: revealAt - 1 / 60,
+          keyframes: {
+            w: [
+              { t: readTime, v: 876 },
+              { t: revealAt - 1 / 60, v: 0 },
+            ],
+          },
+        });
+        const countdown = s.timing.countdown;
+        if (countdown >= 1)
+          for (let v = Math.floor(countdown); v >= 1; v--)
+            txt(
+              `row_timer_${v}`,
+              String(v),
+              962,
+              y + 7,
+              80,
+              rowH - 14,
+              43,
+              theme.accent,
+              {
+                align: "right",
+                start: frame(revealAt - v),
+                end: frame(revealAt - v + 1) - 1 / 60,
+              },
+            );
+      }
       txt(
         `row_number_${i + 1}`,
         `${i + 1}.`,
@@ -376,11 +437,16 @@ export function compileStack(
           43,
           theme.text,
           {
+            // Glisse de quelques pixels seulement : la réponse ne sort jamais de sa ligne.
             start: revealAt,
             keyframes: {
               x: [
-                { t: revealAt, v: 1000 },
-                { t: Math.min(duration, revealAt + 0.35), v: 212 },
+                { t: revealAt, v: 236 },
+                { t: Math.min(duration - 1 / 30, revealAt + 0.3), v: 212, ease: "easeOut" },
+              ],
+              opacity: [
+                { t: revealAt, v: 0 },
+                { t: Math.min(duration - 1 / 30, revealAt + 0.3), v: 1, ease: "easeOut" },
               ],
             },
           },
@@ -409,7 +475,20 @@ export function compileStack(
         (900 * (count + 1)) / s.items.length,
         22,
         theme.accent,
-        { radius: 11, start: revealAt },
+        {
+          radius: 11,
+          start: revealAt,
+          keyframes: {
+            w: [
+              { t: revealAt, v: (900 * count) / s.items.length },
+              {
+                t: Math.min(duration - 1 / 30, revealAt + 0.4),
+                v: (900 * (count + 1)) / s.items.length,
+                ease: "easeOut",
+              },
+            ],
+          },
+        },
       );
     txt(
       "progress_label",
@@ -434,7 +513,17 @@ export function compileStack(
         theme.muted,
         { start: revealAt },
       );
-    if (endText) txt("end_text", endText, 90, 685, 900, 80, 48, theme.accent);
+    // Message de fin au centre de la carte, avec une entrée en fondu.
+    if (endText)
+      txt("end_text", endText, 540, 330, 764, 335, 72, theme.accent, {
+        align: "center",
+        keyframes: {
+          opacity: [
+            { t: 0, v: 0 },
+            { t: Math.min(0.4, duration / 2), v: 1, ease: "easeOut" },
+          ],
+        },
+      });
     if (item?.audio && revealAt !== undefined) {
       const listenStart = readTime,
         listenEnd = revealAt - s.timing.countdown;
@@ -550,10 +639,8 @@ export function compileStack(
       makeScene(entry.id, duration, count, undefined);
       const scene = scenes.at(-1) as { elements: SceneElement[] };
       if (!entry.showList)
-        scene.elements = scene.elements.filter(
-          (element) =>
-            element.id === "background_image" ||
-            element.id === "background_dim",
+        scene.elements = scene.elements.filter((element) =>
+          element.id.startsWith("background_"),
         );
       for (const element of entry.elements ?? [])
         scene.elements.push(newElement(element.type, duration, element));
@@ -664,6 +751,13 @@ export function compileStack(
       text: s.end.say,
     });
   now = frame(now + outroDuration);
+  applyPhotoBackground(
+    scenes,
+    backgroundSources,
+    s.background ?? { blur: 22, zoom: 1, motion: "in", transition: 0.7 },
+    width,
+    height,
+  );
   const project = parseProject({
     schemaVersion: 2,
     id: "quiz_compiled",
