@@ -50,10 +50,15 @@ export function imageSvg(
     // Zone du filtre limitée au cadre visible : relative à une image agrandie
     // (cover, zoom), elle devient immense et resvg la tronque (bord vide).
     const margin = Math.ceil((e.blur ?? 0) * 3);
+    // Sous une opacité (fondu), resvg tronque aussi une image plus large que
+    // le cadre : un filtre neutre limité au cadre fixe la taille du calque.
+    const fading = e.opacity < 1 || (e.keyframes.opacity?.length ?? 0) > 0;
     const filter =
       (e.blur ?? 0) > 0
         ? `<filter id="image-blur-${e.id}" filterUnits="userSpaceOnUse" x="${-margin}" y="${-margin}" width="${e.w + 2 * margin}" height="${e.h + 2 * margin}"><feGaussianBlur stdDeviation="${e.blur}"/></filter>`
-        : "";
+        : fading
+          ? `<filter id="image-blur-${e.id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${e.w}" height="${e.h}"><feOffset dx="0" dy="0"/></filter>`
+          : "";
     return `<defs><clipPath id="image-clip-${e.id}"><rect width="${e.w}" height="${e.h}" rx="${radius}" ry="${radius}"/></clipPath>${filter}</defs><g clip-path="url(#image-clip-${e.id})"><image href="data:${asset.mime};base64,${asset.data}" x="${x}" y="${y}" width="${width * scale}" height="${height * scale}" preserveAspectRatio="none"${filter ? ` filter="url(#image-blur-${e.id})"` : ""}/></g>`;
   }
   return `<defs><clipPath id="image-clip-${e.id}"><rect width="${e.w}" height="${e.h}" rx="${radius}" ry="${radius}"/></clipPath></defs><g clip-path="url(#image-clip-${e.id})"><svg width="${e.w}" height="${e.h}" viewBox="${vx} ${vy} ${viewWidth} ${viewHeight}" preserveAspectRatio="xMidYMid ${e.fit === "cover" ? "slice" : "meet"}">${content}</svg></g>`;

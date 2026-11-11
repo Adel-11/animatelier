@@ -210,7 +210,10 @@ Limite : un texte qui mélange lettres et emojis n'est pas pris en charge. Les e
 
 Deux défauts du rendu sont corrigés pour toutes les images :
 - une image zoomée en `cover` laissait une bande vide sur un côté (le `<svg>` imbriqué était mal rendu par resvg) ; l'image est maintenant placée directement sous le clip ;
-- la zone du filtre de flou était relative à l'image agrandie ; trop grande, resvg la tronquait. Elle est maintenant limitée au cadre visible.
+- la zone du filtre de flou était relative à l'image agrandie ; trop grande, resvg la tronquait. Elle est maintenant limitée au cadre visible ;
+- une image semi-transparente (fondu) plus large que son cadre était aussi tronquée par resvg, dans la vidéo seulement (le flou y est pré-calculé, donc sans filtre). Un filtre neutre limité au cadre est ajouté aux images dont l'opacité est inférieure à 1 ou animée.
+
+Coût de rendu : une photo plein écran prend environ 1,5 à 2 s par image sur un PC de bureau, contre 0,35 s pour une image sans fond. Une vidéo de 64 s demande environ 20 min avec `--jobs 4`.
 
 ### Habillage `stack`
 

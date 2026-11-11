@@ -10,7 +10,10 @@ Constats sur le quiz liste (`stack`) :
 
 Corrections :
 - `packages/core/background.ts`, partagé par `stack` et `odd` : plan continu par photo, fondu `background.transition`, débord hors cadre ;
-- `packages/renderer/images.ts` : image placée directement sous le clip et filtre de flou limité au cadre ;
+- `packages/renderer/images.ts` :
+  - image placée directement sous le clip ;
+  - filtre de flou limité au cadre ;
+  - filtre neutre sur les images en fondu (resvg tronquait le calque semi-transparent ; test de régression vérifié en échec sans le correctif) ;
 - `packages/headless/pipeline.ts` : rognage des bandes unies avant le flou.
 
 Habillage `stack` :
@@ -22,20 +25,24 @@ Habillage `stack` :
 
 `qff.py` n'ajoute plus son minuteur. Démo : `projets-videos/demo-liste-animaux/` (photos sans crédits documentés, ne pas publier telle quelle). Détails : `docs/QUIZ-VIDEO.md`.
 
-Vérifications faites :
+Vérifications (11 novembre) :
 - `npm run build` réussi ;
-- `npm test` 84/86. Les deux échecs sont des délais de 5 s pendant qu'un rendu vidéo tournait en parallèle : à relancer seuls ;
-- images clés de la démo rendues et inspectées : fondu, minuteur, éclair, CTA, fin ;
+- tests : 87/87 avec `npx vitest run --no-file-parallelism --testTimeout=60000`. En parallèle sur ce PC, `npm test` échoue sur des tests qui dépassent la limite de 5 s ;
+- vidéo démo complète rendue : `projets-videos/demo-liste-animaux/demo-liste-animaux.mp4`, 63,9 s, H.264 1080×1920 30 fps, AAC 48 kHz, en 19 min sur ce PC avec `--jobs 4` ;
+- images extraites du MP4 et inspectées : fondu baleine → paon, ligne surlignée avec minuteur, CTA, liste 8/8, message de fin centré, aucune bordure ;
 - bord droit mesuré au pixel à plusieurs niveaux de zoom.
 
-Reste à faire (pause demandée, redémarrage du PC) :
-1. relancer `npm test` sans autre charge ;
-2. rendre la vidéo démo complète, interrompue deux fois (une fois pendant les tests, une fois par la pause) :
-   `node apps/cli/quiz-video.js projets-videos/demo-liste-animaux/spec.json --assets-dir projets-videos/qff-sons-animaux-1/img --out projets-videos/demo-liste-animaux/out --jobs 4 --sfx default --music default --frames 7.5,62.5`
-   (supprimer d'abord `out/` s'il existe), puis inspecter des images extraites du MP4 ;
-3. le parcours navigateur n'a pas tourné : les navigateurs Playwright ne sont pas installés, les télécharger demande l'accord de l'utilisateur.
+Performance : une photo plein écran coûte environ 1,5 à 2 s par image sur ce PC (0,35 s sans fond). Ce coût existait avant ce lot ; le débord et le fondu l'augmentent d'environ 30 %. Pistes testées :
+- `image-rendering="optimizeSpeed"` divise le temps par 2, mais n'est pas adopté (risque de pixels visibles) ;
+- pré-agrandir le fond flou est plus lent (le décodage coûte plus cher).
 
-Non vérifié : MCP SDK client, une production QFF réelle avec voix, Netlify. Rien n'est commité.
+Non vérifié :
+- parcours navigateur : les navigateurs Playwright ne sont pas installés, les télécharger demande l'accord de l'utilisateur ;
+- MCP SDK client ;
+- une production QFF réelle avec voix ;
+- Netlify.
+
+Rien n'est commité (git n'est plus dans le PATH de cette session après le redémarrage).
 
 ---
 

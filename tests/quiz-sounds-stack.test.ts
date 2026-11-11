@@ -262,6 +262,42 @@ it("rasterizes a blurred background image in the frame", async () => {
   expect(pixel[0] + pixel[1] + pixel[2]).toBeGreaterThan(30);
 });
 
+it("covers the whole frame with a zoomed, fading full-screen photo", async () => {
+  // Photo paysage agrandie en cover : resvg laissait une bande vide à droite
+  // dès que l'image était zoomée, puis à nouveau pendant un fondu d'opacité.
+  const bytes = await sharp({
+    create: { width: 1024, height: 683, channels: 3, background: "#d04020" },
+  })
+    .jpeg()
+    .toBuffer();
+  const photo = await decodeImage(bytes);
+  const built = compileQuiz({
+    mode: "stack",
+    theme: "default",
+    loopFade: false,
+    assets: { photo },
+    background: { images: ["asset:photo"], blur: 0, dim: 0 },
+    items: Array.from({ length: 3 }, (_, i) => ({ a: `Answer ${i}` })),
+  });
+  const scene = built.project.scenes[0];
+  scene.elements = scene.elements.filter((e) => e.id === "background_image");
+  const image = scene.elements[0];
+  if (image.type === "image") {
+    // Conditions relevées sur la vidéo démo : zoom 1,15 et fondu à 0,93.
+    image.zoom = 1.15;
+    image.keyframes = {};
+    image.opacity = 0.93;
+  }
+  for (const time of [0.1]) {
+    const pixel = await sharp(rasterFrame(built.project, time).asPng())
+      .extract({ left: 1070, top: 960, width: 1, height: 1 })
+      .raw()
+      .toBuffer();
+    // Rouge de la photo : 208 ; fond du thème visible à travers une bande : 16.
+    expect(pixel[0]).toBeGreaterThan(150);
+  }
+});
+
 it("withholds per-question answers and schedules a final recap", () => {
   const built = compileQuiz({
     mode: "levels",

@@ -32,7 +32,7 @@
       "elements": [
         { "id": "cta_panel", "type": "rect", "x": 135, "y": 302, "w": 810, "h": 390, "fill": "#0F3678", "radius": 25 },
         { "id": "cta_heart", "type": "text", "text": "♥", "x": 540, "y": 470, "fontSize": 140, "maxWidth": 500, "align": "center", "color": "#FF3B5C",
-          "keyframes": { "scale": [ { "t": 0, "v": 0.6 }, { "t": 0.35, "v": 1.1, "ease": "easeOut" }, { "t": 0.6, "v": 1 } ] }, "anchor": { "x": 540, "y": 420 } },
+          "keyframes": { "scale": [ { "t": 0, "v": 0.6 }, { "t": 0.35, "v": 1.1, "ease": "easeOut" }, { "t": 0.6, "v": 1 } ] }, "anchor": { "x": 0, "y": -50 } },
         { "id": "cta_text", "type": "text", "text": "LIKE & FOLLOW", "x": 540, "y": 580, "fontSize": 72, "maxWidth": 760, "align": "center", "bold": true, "color": "#FECD1B" },
         { "id": "cta_handle", "type": "text", "text": "@quiz.factory.forever", "x": 540, "y": 650, "fontSize": 40, "maxWidth": 760, "align": "center", "bold": true, "color": "#FFFFFF" }
       ]
