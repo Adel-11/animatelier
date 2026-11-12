@@ -1,0 +1,41 @@
+{
+  "mode": "levels",
+  "title": "Animal quiz",
+  "intro": { "title": "ANIMAL QUIZ", "subtitle": "15 QUESTIONS", "tagline": "Rookie or GOAT?" },
+  "cover": ["lion.jpg", "owl.jpg", "dolphin.jpg"],
+  "levels": [
+    {
+      "name": "ROOKIE",
+      "subtitle": "Warm-up time",
+      "questions": [
+        { "q": "Which animal is the king of the jungle?", "a": "Lion", "image": "file:lion.jpg" },
+        { "q": "What is the largest animal on Earth?", "choices": ["Elephant", "Blue whale", "Giraffe", "Shark"], "correctIndex": 1, "a": "Blue whale" },
+        { "q": "Which farm animal gives us wool?", "a": "Sheep", "image": "file:sheep.jpg" },
+        { "q": "How many legs does a spider have?", "a": "Eight" },
+        { "q": "Which bird is a symbol of wisdom?", "a": "Owl", "image": "file:owl.jpg" }
+      ]
+    },
+    {
+      "name": "MASTER",
+      "subtitle": "Getting harder",
+      "questions": [
+        { "q": "Which bird has the most colorful tail feathers?", "choices": ["Peacock", "Parrot", "Flamingo", "Toucan"], "correctIndex": 0, "a": "Peacock", "image": "file:peacock.jpg" },
+        { "q": "Which Australian bird laughs?", "a": "Kookaburra", "image": "file:kookaburra.jpg" },
+        { "q": "What is a group of wolves called?", "a": "A pack", "image": "file:wolf.jpg" },
+        { "q": "Which mammal can sleep with half its brain awake?", "a": "Dolphin" },
+        { "q": "What does a cow have four of?", "choices": ["Hearts", "Stomachs", "Lungs", "Brains"], "correctIndex": 1, "a": "Stomachs", "image": "file:cow.jpg" }
+      ]
+    },
+    {
+      "name": "GOAT",
+      "subtitle": "Only legends",
+      "questions": [
+        { "q": "Which monkey is one of the loudest land animals?", "a": "Howler monkey", "image": "file:howler.jpg" },
+        { "q": "How long is an elephant's pregnancy, roughly?", "choices": ["9 months", "12 months", "22 months", "30 months"], "correctIndex": 2, "a": "22 months" },
+        { "q": "Which animal has the most powerful bite on land?", "a": "Hippopotamus" },
+        { "q": "How many hearts does an octopus have?", "a": "Three" },
+        { "q": "What is the fastest bird in a dive?", "a": "Peregrine falcon" }
+      ]
+    }
+  ]
+}

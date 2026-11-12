@@ -552,3 +552,23 @@ it("cover image is fitted on a canvas of the project size", async () => {
   const meta = await sharp(jpg).metadata();
   expect([meta.format, meta.width, meta.height]).toEqual(["jpeg", 1080, 1920]);
 });
+
+it("hero layout: two-line question, blurred fill behind the photo, content fades in", () => {
+  const spec = base({ imageLayout: "hero" }) as any;
+  spec.levels[0].questions[1] = {
+    q: "Which monkey is one of the loudest land animals?",
+    a: "Howler monkey",
+    image: "asset:logo",
+  };
+  const list = elements(compileLevels(spec), "question_2") as any[];
+  const byId = (id: string) => list.find((e) => e.id === id);
+  const question = byId("question");
+  expect(question.fontSize).toBeGreaterThanOrEqual(48);
+  const fill = byId("question_image_fill");
+  const photo = byId("question_image");
+  expect(fill).toMatchObject({ fit: "cover", x: photo.x, y: photo.y, w: photo.w, h: photo.h });
+  expect(list.indexOf(fill)).toBeLessThan(list.indexOf(photo));
+  for (const id of ["question", "question_image", "question_image_fill"])
+    expect(byId(id).keyframes.opacity[0]).toMatchObject({ t: 0, v: 0 });
+  expect(byId("progress_0_0").keyframes.opacity ?? []).toEqual([]);
+});

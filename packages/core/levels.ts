@@ -910,6 +910,22 @@ export function compileLevels(
         newActor(duration, actor as Partial<Actor>),
       ),
     );
+    // Le contenu d'une question apparaît en fondu au lieu d'une coupe sèche ; le cadre
+    // (en-tête, panneaux, barres) reste fixe pour que l'enchaînement paraisse continu.
+    if (kind === "question")
+      for (const element of d.elements)
+        if (
+          /^(question|question_image|question_image_fill|hint|choice_\d+)$/.test(
+            element.id,
+          ) &&
+          element.start === 0 &&
+          element.opacity > 0 &&
+          !element.keyframes.opacity?.length
+        )
+          element.keyframes.opacity = [
+            { t: 0, v: 0, ease: "linear" },
+            { t: Math.min(0.3, duration / 4), v: element.opacity, ease: "easeOut" },
+          ];
     scenes.push({
       id,
       name: id,
@@ -1324,7 +1340,7 @@ export function compileLevels(
           rowH = safeH * (q.choicesLayout === "list" ? 0.058 : 0.085),
           rowGap = safeH * 0.012,
           gridH = rows ? rows * rowH + (rows - 1) * rowGap : 0,
-          gap = safeH * 0.015;
+          gap = safeH * (hero ? 0.026 : 0.015);
         let py: number, pw: number, ph: number;
         let ax: number, ay: number, aw: number, ah: number;
         let gridY = 0;
@@ -1385,12 +1401,21 @@ export function compileLevels(
                   ],
                 },
               };
+        // En hero, la question passe sur deux lignes plutôt que de rétrécir sur une seule.
+        const heroLines =
+          hero && !landscape
+            ? Math.min(
+                2,
+                wrapText(q.q, 52 * unit, pw - 56, theme.typography.family, true)
+                  .length,
+              )
+            : 1;
         const questionH = !q.image
           ? ph - 48
           : hero
             ? landscape
               ? ph * 0.16
-              : 80 * unit
+              : (heroLines > 1 ? 136 : 80) * unit
             : ph * 0.3;
         d.text(
           "question",
@@ -1455,6 +1480,16 @@ export function compileLevels(
             bw -= 2 * pad;
             bh -= 2 * pad;
           }
+          // Fond flou de la même photo derrière l'image entière : pas de bandes vides
+          // autour d'une photo portrait ou carrée, sans recadrer drapeaux ni logos.
+          if (q.image && !card && effectType === "none")
+            d.image("question_image_fill", q.image, bx, by, bw, bh, {
+              fit: "cover",
+              blur: 18,
+              opacity: 0.7,
+              focusX: q.focusX,
+              focusY: q.focusY,
+            });
           if (q.image)
             d.image("question_image", q.image, bx, by, bw, bh, {
               focusX: q.focusX,

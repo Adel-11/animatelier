@@ -1,3 +1,32 @@
+# Point de reprise, 12 novembre 2026 — quiz classique (`levels`, preset QFF) et couverture
+
+Corrigé (`packages/core/levels.ts`, `tools/qff/qff.py`) :
+- Défaut 1 : en `imageLayout: "hero"`, sans `imageCard` ni effet d'image, `question_image_fill` (la même photo en `cover`, flou 18, opacité 0,7) remplit le panneau derrière l'image `contain`. Plus de bandes vides, et drapeaux ou logos ne sont jamais recadrés.
+- Défaut 2 : en hero portrait, une question qui fait plus d'une ligne à 52 px reçoit une boîte de 136 px au lieu de 80, donc deux lignes lisibles (environ 52-56 px).
+- Défaut 3 : l'écart hero entre le panneau, la grille et la réponse passe de 1,5 % à 2,6 % de la hauteur utile.
+- Défaut 5 : à l'entrée d'une scène question, `question`, `question_image(_fill)`, `hint` et `choice_N` apparaissent en fondu (0,3 s, easeOut). Le cadre (en-tête, barres, panneaux) reste fixe.
+- Défaut 6 : nouvelle couverture QFF. Logo 180 px en haut, titre 112 px, sous-titre 72 px, une grande photo 940×560 puis deux de 460×330 (avec deux photos : 940×330), accroche 64 px. Le contenu principal tient entre y=290 et 1620, dans le recadrage 3:4 de la grille Instagram. Image identique à 0,3, 1,5 et 3 s.
+- Défaut 4 : non traité. La bande basse correspond à la zone réservée à l'interface Instagram (`safeH = height-280`).
+- Test : `levels-v3.test.ts`, « hero layout: two-line question… ». `npm test` passe (88 tests, en série) et `npm run build` aussi.
+- Démo : `projets-videos/demo-classique/demo-classique.mp4` (135 s, sans voix ni musique, rendu en moins de 10 min avec `--jobs 4`) et `cover.png`. Planche contact à 1 image toutes les 1,5 s : rien d'anormal. Les photos viennent de `qff-sons-animaux-1/img`, dont les crédits ne sont pas documentés : ne pas publier la démo.
+- Non vérifié : la vraie couverture produite dans le cloud, avec les vraies voix et le vrai logo. Les quiz sons gardent leur propre mise en page (`SOUND`).
+
+Banc d'essai : `projets-videos/demo-classique/spec.json`, passé par `qff.merged()`.
+- Sous Windows, il faut neutraliser `zoneinfo` (pas de tzdata) et imposer `timing.read` à 2,8 (pas de voix locales).
+- Il faut aussi un `heart.png` local : le kit QFF n'existe que sur la machine cloud.
+
+Images inspectées : chaque question à 1,5 s, 4,5 s et 6,8 s, plus les cartes de niveau, le CTA, l'outro et la couverture (intro à 1,5 s).
+
+Défauts relevés :
+1. Les images « hero » sont placées en `contain` dans un panneau : bandes vides à côté des photos portrait ou carrées (hibou, loup), et tailles qui varient d'une question à l'autre.
+2. Une question avec image est réduite sur une ligne, en police minuscule (Q11 : deux lignes d'environ 20 px).
+3. Le minuteur et la réponse viennent toucher le bas du panneau image.
+4. Le quart inférieur de l'écran est inutilisé (questions texte, outro).
+5. Coupe franche d'une question à l'autre.
+6. Couverture : moitié basse vide, photos minuscules (240×160), logo dans un carré sombre, accroche isolée.
+
+---
+
 # Point de reprise, 2 novembre 2026 — quiz liste fluide
 
 Constats sur le quiz liste (`stack`) :

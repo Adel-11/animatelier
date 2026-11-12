@@ -39,9 +39,13 @@ PRESET = {
     # (mettre "intro": {"skip": false} dans une spec pour la retablir)
     "intro": {"skip": True, "logoSeconds": 1, "subtitle": "15 QUESTIONS", "tagline": "Rookie or GOAT?",
               "say": "Answer these fifteen questions, and find out if you're a rookie... or a goat!",
-              "elements": [{"id": "cover_logo_big", "type": "image", "src": "file:qff-logo.png", "x": 370, "y": 300, "w": 340, "h": 340, "radius": 40}],
-              "layout": {"brand_logo": {"visible": False}, "badge_*": {"visible": False}, "intro_title": {"y": 0.481},
-                         "intro_subtitle": {"y": 0.553}, "intro_tagline": {"y": 0.781}}},
+              # Couverture : logo en tete, titre, une grande photo et deux petites, accroche en bas ; le contenu
+              # principal reste entre y=290 et 1620 pour survivre au recadrage 3:4 de la grille Instagram.
+              "elements": [{"id": "cover_logo_big", "type": "image", "src": "file:qff-logo.png", "x": 450, "y": 150, "w": 180, "h": 180, "radius": 32}],
+              "layout": {"brand_logo": {"visible": False}, "badge_*": {"visible": False},
+                         "intro_title": {"y": 0.285, "fontSize": 112, "w": 0.92},
+                         "intro_subtitle": {"y": 0.34, "fontSize": 72},
+                         "intro_tagline": {"y": 0.985, "fontSize": 64, "w": 0.92}}},
     "questionEffect": "none", "imageLayout": "hero",
     "voice": {"seed": 7, "answerTemplates": ["Of course, it's {a}!", "Yes, it's {a}.", "The answer is {a}.", "{a}!", "That's {a}."]},
     "outro": {"title": "What's your score?", "tiers": ["0-5 · ROOKIE", "6-10 · MASTER", "11-15 · GOAT"],
@@ -257,9 +261,12 @@ def merged(spec_path):
         if sound:
             els.append({"id": f"cover_img_{i}", "type": "image", "src": f"file:{name}", "fit": "cover",
                         "x": 150 + 275 * i, "y": 1060, "w": 230, "h": 230, "radius": 115})
-        else:
+        else:  # une grande photo puis deux petites cote a cote (si une seule photo : la grande seulement)
+            boxes = [(70, 605, 940, 560), (70, 1185, 940, 330)] if len(cover) == 2 else \
+                    [(70, 605, 940, 560), (70, 1185, 460, 330), (550, 1185, 460, 330)]
+            box = boxes[i]
             els.append({"id": f"cover_img_{i}", "type": "image", "src": f"file:{name}", "fit": "cover",
-                        "x": 150 + 270 * i, "y": 985, "w": 240, "h": 160, "radius": 12})
+                        "x": box[0], "y": box[1], "w": box[2], "h": box[3], "radius": 28})
     if not m.pop("noCta", False) and not any(x.get("id") == "cta_like" for x in m.get("sequence", [])):
         m.setdefault("sequence", []).append(CTA)
     return m

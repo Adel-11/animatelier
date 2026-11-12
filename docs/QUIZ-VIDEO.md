@@ -226,3 +226,13 @@ Coût de rendu : une photo plein écran prend environ 1,5 à 2 s par image sur u
 `tools/qff/qff.py` n'ajoute plus son propre minuteur aux quiz liste : il ferait doublon avec le minuteur natif.
 
 Démo : `projets-videos/demo-liste-animaux/spec.json`, à lancer avec `--assets-dir projets-videos/qff-sons-animaux-1/img`. Les crédits de ces photos ne sont pas documentés dans le dépôt : ne pas publier la démo sans les retrouver.
+
+## Quiz classique hero et couverture QFF (12 novembre 2026)
+
+En `imageLayout: "hero"`, quatre réglages s'appliquent :
+- Une question trop longue pour une ligne à 52 px reçoit une boîte de deux lignes (136 px au lieu de 80).
+- Sans `imageCard` ni `imageEffect`, `question_image_fill` place la même photo floutée en `cover` derrière l'image en `contain`. Le panneau est toujours plein, et l'image principale n'est jamais recadrée, ce qui protège drapeaux et logos.
+- L'écart vertical entre le panneau, les choix et la réponse vaut 2,6 % de la hauteur utile.
+- Dans toute scène question, le contenu (`question`, images, `hint`, `choice_N`) apparaît en fondu sur 0,3 s. Le cadre reste fixe. Les éléments qui ont déjà des clés d'opacité (`questionEffect: "hide"`) ne sont pas touchés.
+
+Couverture QFF (`tools/qff/qff.py`, `PRESET.intro` et `merged()`) : logo en tête, titre, sous-titre, une grande photo puis deux petites, accroche. Le contenu principal tient entre y=290 et 1620 (recadrage 3:4 de la grille de profil). Les quiz sons gardent la mise en page `SOUND`.
